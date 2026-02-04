@@ -57,6 +57,7 @@ const translations: Record<Locale, Translations> = {
       contacts: 'Contacts',
       login: 'Log in',
       getStarted: 'Get Started',
+      dashboard: 'Dashboard',
     },
     // Landing page
     landing: {
@@ -989,6 +990,7 @@ const translations: Record<Locale, Translations> = {
       contacts: 'Контакты',
       login: 'Войти',
       getStarted: 'Начать',
+      dashboard: 'Панель управления',
     },
     // Landing
     landing: {
