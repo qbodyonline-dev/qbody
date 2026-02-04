@@ -34,35 +34,52 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<Profile | null>(null)
   const [session, setSession] = useState<Session | null>(null)
   const [loading, setLoading] = useState(true)
+  const [mounted, setMounted] = useState(false)
   const router = useRouter()
-  const initDone = useRef(false)
   
-  const supabaseRef = useRef<SupabaseClient>(createClient())
-  const supabase = supabaseRef.current
+  const supabaseRef = useRef<SupabaseClient | null>(null)
+  
+  if (typeof window !== 'undefined' && !supabaseRef.current) {
+    try {
+      supabaseRef.current = createClient()
+      console.log('[AUTH] Supabase client created')
+    } catch (e) {
+      console.error('[AUTH] Failed to create client:', e)
+    }
+  }
 
   const fetchProfile = async (userId: string) => {
+    if (!supabaseRef.current) return
     try {
-      const { data, error } = await supabase
+      const { data, error } = await supabaseRef.current
         .from('profiles')
         .select('*')
         .eq('id', userId)
         .single()
       if (error) {
-        console.warn('Profile fetch failed:', error.message)
+        console.warn('[AUTH] Profile fetch failed:', error.message)
         return
       }
       if (data) setProfile(data as Profile)
     } catch (e) {
-      console.warn('Profile fetch exception:', e)
+      console.warn('[AUTH] Profile fetch exception:', e)
     }
   }
 
   useEffect(() => {
-    if (initDone.current) return
-    initDone.current = true
+    console.log('[AUTH] useEffect running, client exists:', !!supabaseRef.current)
+    setMounted(true)
+    
+    if (!supabaseRef.current) {
+      console.error('[AUTH] No supabase client!')
+      setLoading(false)
+      return
+    }
 
-    // Safety timeout — if nothing resolves in 3s, stop loading
+    const supabase = supabaseRef.current
+
     const timeout = setTimeout(() => {
+      console.warn('[AUTH] Timeout — forcing loading=false')
       setLoading(false)
     }, 3000)
 
@@ -83,10 +100,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     )
 
-    // Get initial session
     supabase.auth.getSession()
       .then(({ data: { session } }) => {
-        console.log('[AUTH] getSession result:', session ? 'has session' : 'no session')
+        console.log('[AUTH] getSession:', session ? 'has session' : 'no session')
         clearTimeout(timeout)
         setSession(session)
         setUser(session?.user ?? null)
@@ -108,12 +124,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
+    if (!supabaseRef.current) return { error: 'No client' }
+    const { error } = await supabaseRef.current.auth.signInWithPassword({ email, password })
     return { error: error?.message ?? null }
   }
 
   const signUp = async (email: string, password: string, fullName: string) => {
-    const { error } = await supabase.auth.signUp({
+    if (!supabaseRef.current) return { error: 'No client' }
+    const { error } = await supabaseRef.current.auth.signUp({
       email,
       password,
       options: { data: { full_name: fullName } }
@@ -122,13 +140,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   const signOut = async () => {
-    await supabase.auth.signOut()
+    if (!supabaseRef.current) return
+    await supabaseRef.current.auth.signOut()
     setUser(null)
     setProfile(null)
     setSession(null)
     router.push('/')
     router.refresh()
   }
+
+  console.log('[AUTH] Render — mounted:', mounted, 'loading:', loading, 'user:', user?.email || 'null')
 
   return (
     <AuthContext.Provider value={{
