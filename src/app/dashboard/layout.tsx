@@ -66,12 +66,19 @@ function SidebarNavItem({ item, isActive, isSidebarOpen, pathname, onNavigate }:
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { t, locale } = useTranslation()
-  const { profile, signOut, loading } = useAuth()
+  const { profile, signOut, loading, isClient } = useAuth()
   const pathname = usePathname()
   const router = useRouter()
   const [isSidebarOpen, setIsSidebarOpen] = useState(true)
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false)
   const [isDark, setIsDark] = useState(false)
+
+  // Redirect clients away from admin dashboard
+  useEffect(() => {
+    if (!loading && isClient) {
+      router.replace('/client/home')
+    }
+  }, [loading, isClient, router])
 
   const ru = locale === 'ru'
 

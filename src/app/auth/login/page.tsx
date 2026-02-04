@@ -35,8 +35,24 @@ function LoginForm() {
       
       console.log('[LOGIN] Success, redirecting...')
       toast.success('Login successful!')
-      const redirect = searchParams.get('redirect') || '/dashboard'
-      window.location.href = redirect
+      
+      // Fetch profile to determine role
+      const supabase = (await import('@/lib/supabase')).createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', user.id)
+          .single()
+        
+        const role = profile?.role || 'client'
+        const defaultRedirect = role === 'admin' || role === 'trainer' ? '/dashboard' : '/client/home'
+        const redirect = searchParams.get('redirect') || defaultRedirect
+        window.location.href = redirect
+      } else {
+        window.location.href = searchParams.get('redirect') || '/client/home'
+      }
     } catch (err) {
       console.error('[LOGIN] Exception:', err)
       toast.error('Something went wrong')
