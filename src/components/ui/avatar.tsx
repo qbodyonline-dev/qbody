@@ -44,3 +44,4 @@ export function Avatar({ className, src, alt, fallback, size = 'md', ...props }:
     </div>
   )
 }
+// v2 
