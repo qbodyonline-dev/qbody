@@ -1,7 +1,7 @@
 'use client'
 import React, { useState, Suspense } from 'react'
 import Link from 'next/link'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useSearchParams } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
@@ -13,7 +13,6 @@ import { toast } from 'sonner'
 
 function LoginForm() {
   const { t } = useTranslation()
-  const router = useRouter()
   const searchParams = useSearchParams()
   const { signIn } = useAuth()
   const [isLoading, setIsLoading] = useState(false)
@@ -30,9 +29,8 @@ function LoginForm() {
     }
     toast.success('Login successful!')
     const redirect = searchParams.get('redirect') || '/dashboard'
-    // Use router.refresh() to ensure middleware picks up new cookies
-    router.refresh()
-    router.push(redirect)
+    // Full page navigation to ensure middleware picks up new cookies
+    window.location.href = redirect
   }
 
   return (
