@@ -1,0 +1,7 @@
+DELETE THESE FOLDERS MANUALLY:
+
+1. D:\site\src\app\dashboard\courses\[slug]  (entire folder)
+2. D:\site\src\app\dashboard\courses\new     (entire folder)
+
+Then commit and push:
+git add . && git commit -m "fix: remove conflicting [slug] folder" && git push
