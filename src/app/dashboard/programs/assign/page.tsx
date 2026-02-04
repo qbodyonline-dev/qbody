@@ -70,7 +70,7 @@ export default function AssignProgramPage() {
               {mockClients.map(c => (
                 <button key={c.id} onClick={() => setSelectedClient(c.id)}
                   className={`w-full flex items-center gap-3 p-3 rounded-xl transition-all text-left ${selectedClient === c.id ? 'bg-teal-50 border-2 border-teal-500' : 'border border-zinc-200 hover:border-zinc-300'}`}>
-                  <Avatar initials={c.initials} size="sm" />
+                  <Avatar fallback={c.initials} size="sm" />
                   <div className="flex-1">
                     <p className="font-medium text-sm">{c.name}</p>
                     <p className="text-xs text-zinc-400">{c.goal} • {c.plan}</p>
