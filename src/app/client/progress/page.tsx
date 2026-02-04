@@ -39,8 +39,8 @@ export default function ProgressPage() {
         .eq('user_id', user.id)
         .eq('status', 'paid')
 
-      setCourses(accessData || [])
-      setOrders(ordersData || [])
+      setCourses((accessData || []) as { course_slug: string; granted_at: string }[])
+      setOrders((ordersData || []) as { course_slug: string; amount: number; status: string; paid_at: string | null }[])
       setLoading(false)
     }
 

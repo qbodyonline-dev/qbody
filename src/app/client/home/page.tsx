@@ -53,8 +53,8 @@ export default function ClientHomePage() {
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
 
-      setCourses(accessData || [])
-      setOrders(ordersData || [])
+      setCourses((accessData || []) as CourseAccess[])
+      setOrders((ordersData || []) as Order[])
       setLoading(false)
     }
 
