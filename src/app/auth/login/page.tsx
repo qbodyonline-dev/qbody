@@ -21,16 +21,27 @@ function LoginForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
-    const { error } = await signIn(formData.email, formData.password)
-    if (error) {
-      toast.error(error)
+    console.log('[LOGIN] Starting signIn...')
+    
+    try {
+      const { error } = await signIn(formData.email, formData.password)
+      console.log('[LOGIN] signIn returned, error:', error)
+      
+      if (error) {
+        toast.error(error)
+        setIsLoading(false)
+        return
+      }
+      
+      console.log('[LOGIN] Success, redirecting...')
+      toast.success('Login successful!')
+      const redirect = searchParams.get('redirect') || '/dashboard'
+      window.location.href = redirect
+    } catch (err) {
+      console.error('[LOGIN] Exception:', err)
+      toast.error('Something went wrong')
       setIsLoading(false)
-      return
     }
-    toast.success('Login successful!')
-    const redirect = searchParams.get('redirect') || '/dashboard'
-    // Full page navigation to ensure middleware picks up new cookies
-    window.location.href = redirect
   }
 
   return (
