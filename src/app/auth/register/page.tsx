@@ -1,5 +1,5 @@
 'use client'
-import React, { useState } from 'react'
+import React, { useState, Suspense } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Button } from '@/components/ui/button'
@@ -12,6 +12,10 @@ import { Mail, Lock, User, ArrowLeft, CheckCircle2 } from 'lucide-react'
 import { toast } from 'sonner'
 
 export default function RegisterPage() {
+  return <Suspense fallback={<div className="flex items-center justify-center min-h-screen"><div className="animate-spin w-8 h-8 border-2 border-teal-500 border-t-transparent rounded-full" /></div>}><RegisterContent /></Suspense>
+}
+
+function RegisterContent() {
   const { t } = useTranslation()
   const router = useRouter()
   const searchParams = useSearchParams()
