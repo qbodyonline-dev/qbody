@@ -1,21 +1,86 @@
 'use client'
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Avatar } from '@/components/ui/avatar'
 import { useTranslation, useLocale } from '@/lib/i18n'
-import { User, Mail, Phone, Lock } from 'lucide-react'
+import { useAuth } from '@/lib/auth'
+import { createClient } from '@/lib/supabase'
+import { User, Mail, Phone, Lock, Save, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 
 export default function ProfilePage() {
   const { t } = useTranslation()
   const { locale } = useLocale()
-  const [profile, setProfile] = useState({ name: 'Anna Kovaleva', email: 'anna@example.com', phone: '+1 234 567 890' })
+  const { user, profile } = useAuth()
+  const [form, setForm] = useState({ name: '', email: '', phone: '' })
+  const [saving, setSaving] = useState(false)
+  const [passwords, setPasswords] = useState({ current: '', new: '', confirm: '' })
+  const [changingPassword, setChangingPassword] = useState(false)
 
-  const handleUpdateProfile = (e: React.FormEvent) => {
+  const ru = locale === 'ru'
+
+  useEffect(() => {
+    if (profile) {
+      setForm({
+        name: profile.full_name || '',
+        email: profile.email || user?.email || '',
+        phone: profile.phone || '',
+      })
+    } else if (user) {
+      setForm(f => ({ ...f, email: user.email || '' }))
+    }
+  }, [profile, user])
+
+  const initials = form.name
+    ? form.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
+    : form.email?.slice(0, 2).toUpperCase() || 'U'
+
+  const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault()
-    toast.success(locale === 'ru' ? 'Профиль обновлён!' : 'Profile updated!')
+    if (!user) return
+    setSaving(true)
+
+    const supabase = createClient()
+    const { error } = await supabase
+      .from('profiles')
+      .update({
+        full_name: form.name,
+        phone: form.phone,
+      })
+      .eq('id', user.id)
+
+    if (error) {
+      toast.error(ru ? 'Ошибка обновления профиля' : 'Failed to update profile')
+    } else {
+      toast.success(ru ? 'Профиль обновлён!' : 'Profile updated!')
+    }
+    setSaving(false)
+  }
+
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (passwords.new !== passwords.confirm) {
+      toast.error(ru ? 'Пароли не совпадают' : 'Passwords do not match')
+      return
+    }
+    if (passwords.new.length < 6) {
+      toast.error(ru ? 'Минимум 6 символов' : 'Minimum 6 characters')
+      return
+    }
+
+    setChangingPassword(true)
+    const supabase = createClient()
+    const { error } = await supabase.auth.updateUser({ password: passwords.new })
+
+    if (error) {
+      toast.error(error.message)
+    } else {
+      toast.success(ru ? 'Пароль изменён!' : 'Password changed!')
+      setPasswords({ current: '', new: '', confirm: '' })
+    }
+    setChangingPassword(false)
   }
 
   return (
@@ -29,17 +94,37 @@ export default function ProfilePage() {
         <CardHeader><CardTitle>{t('client.profile.personalInfo')}</CardTitle></CardHeader>
         <CardContent>
           <div className="flex items-center gap-4 mb-6">
-            <Avatar fallback="AK" size="lg" />
+            <Avatar fallback={initials} size="lg" />
             <div>
-              <p className="font-semibold text-zinc-900">{profile.name}</p>
-              <p className="text-sm text-zinc-500">{profile.email}</p>
+              <p className="font-semibold text-zinc-900">{form.name || (ru ? 'Не указано' : 'Not set')}</p>
+              <p className="text-sm text-zinc-500">{form.email}</p>
             </div>
           </div>
           <form onSubmit={handleUpdateProfile} className="space-y-4">
-            <Input label={t('client.profile.name')} icon={<User className="w-4 h-4" />} value={profile.name} onChange={(e) => setProfile({...profile, name: e.target.value})} />
-            <Input label={t('client.profile.email')} type="email" icon={<Mail className="w-4 h-4" />} value={profile.email} onChange={(e) => setProfile({...profile, email: e.target.value})} />
-            <Input label={t('client.profile.phone')} icon={<Phone className="w-4 h-4" />} value={profile.phone} onChange={(e) => setProfile({...profile, phone: e.target.value})} />
-            <Button type="submit" variant="gradient">{t('client.profile.updateProfile')}</Button>
+            <Input
+              label={t('client.profile.name')}
+              icon={<User className="w-4 h-4" />}
+              value={form.name}
+              onChange={(e) => setForm({ ...form, name: e.target.value })}
+            />
+            <Input
+              label={t('client.profile.email')}
+              type="email"
+              icon={<Mail className="w-4 h-4" />}
+              value={form.email}
+              disabled
+            />
+            <Input
+              label={t('client.profile.phone')}
+              icon={<Phone className="w-4 h-4" />}
+              value={form.phone}
+              onChange={(e) => setForm({ ...form, phone: e.target.value })}
+              placeholder="+1 234 567 890"
+            />
+            <Button type="submit" variant="gradient" disabled={saving}>
+              {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
+              {t('client.profile.updateProfile')}
+            </Button>
           </form>
         </CardContent>
       </Card>
@@ -47,27 +132,28 @@ export default function ProfilePage() {
       <Card>
         <CardHeader><CardTitle>{t('client.profile.security')}</CardTitle></CardHeader>
         <CardContent>
-          <form className="space-y-4">
-            <Input label={t('client.profile.currentPassword')} type="password" icon={<Lock className="w-4 h-4" />} />
-            <Input label={t('client.profile.newPassword')} type="password" icon={<Lock className="w-4 h-4" />} />
-            <Input label={t('client.profile.confirmPassword')} type="password" icon={<Lock className="w-4 h-4" />} />
-            <Button type="submit" variant="outline">{t('client.profile.updatePassword')}</Button>
+          <form onSubmit={handleChangePassword} className="space-y-4">
+            <Input
+              label={t('client.profile.newPassword')}
+              type="password"
+              icon={<Lock className="w-4 h-4" />}
+              value={passwords.new}
+              onChange={(e) => setPasswords({ ...passwords, new: e.target.value })}
+              placeholder={ru ? 'Минимум 6 символов' : 'Min 6 characters'}
+            />
+            <Input
+              label={t('client.profile.confirmPassword')}
+              type="password"
+              icon={<Lock className="w-4 h-4" />}
+              value={passwords.confirm}
+              onChange={(e) => setPasswords({ ...passwords, confirm: e.target.value })}
+              placeholder={ru ? 'Повторите пароль' : 'Repeat password'}
+            />
+            <Button type="submit" variant="outline" disabled={changingPassword}>
+              {changingPassword ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Lock className="w-4 h-4 mr-2" />}
+              {t('client.profile.updatePassword')}
+            </Button>
           </form>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader><CardTitle>{t('client.profile.preferences')}</CardTitle></CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div><p className="font-medium text-zinc-900">{t('client.profile.language')}</p></div>
-              <div className="flex items-center gap-1 bg-zinc-100 rounded-lg p-1">
-                <button className={`px-3 py-1.5 rounded-md text-sm font-medium ${locale === 'en' ? 'bg-white shadow-sm' : ''}`}>🇺🇸 EN</button>
-                <button className={`px-3 py-1.5 rounded-md text-sm font-medium ${locale === 'ru' ? 'bg-white shadow-sm' : ''}`}>🇷🇺 RU</button>
-              </div>
-            </div>
-          </div>
         </CardContent>
       </Card>
     </div>
