@@ -1,13 +1,15 @@
 'use client'
-import React from 'react'
+import React, { useState } from 'react'
 import Link from 'next/link'
-import { useParams } from 'next/navigation'
+import { useParams, useRouter } from 'next/navigation'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { useTranslation } from '@/lib/i18n'
+import { useAuth } from '@/lib/auth'
 import { LanguageSwitcher } from '@/components/ui/language-switcher'
-import { ArrowLeft, Play, Clock, BookOpen, CheckCircle2, Shield, Award, Heart, Baby, Star, User } from 'lucide-react'
+import { ArrowLeft, Play, Clock, BookOpen, CheckCircle2, Shield, Award, Heart, Baby, Star, User, Loader2 } from 'lucide-react'
+import { toast } from 'sonner'
 
 const coursesData = {
   'breast-augmentation-recovery': {
@@ -44,13 +46,56 @@ const coursesData = {
 
 export default function CoursePage() {
   const { t, locale } = useTranslation()
+  const { user } = useAuth()
+  const router = useRouter()
   const params = useParams()
   const slug = params.slug as string
   const course = coursesData[slug as keyof typeof coursesData]
+  const [isLoading, setIsLoading] = useState(false)
 
   if (!course) return <div className="min-h-screen flex items-center justify-center">Course not found</div>
 
   const Icon = course.icon
+
+  const handleBuy = async () => {
+    // If not logged in, redirect to register with course param
+    if (!user) {
+      router.push(`/auth/register?course=${slug}`)
+      return
+    }
+
+    setIsLoading(true)
+    try {
+      const res = await fetch('/api/stripe/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          courseSlug: slug,
+          userId: user.id,
+          userEmail: user.email,
+        }),
+      })
+
+      const data = await res.json()
+
+      if (!res.ok) {
+        if (data.error === 'Course already purchased') {
+          toast.info(locale === 'ru' ? 'Вы уже купили этот курс!' : 'You already own this course!')
+          router.push('/client/courses')
+          return
+        }
+        throw new Error(data.error || 'Failed to create checkout')
+      }
+
+      // Redirect to Stripe Checkout
+      window.location.href = data.url
+    } catch (error: any) {
+      console.error('Checkout error:', error)
+      toast.error(locale === 'ru' ? 'Ошибка при создании платежа' : 'Error creating payment')
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
   return (
     <div className="min-h-screen bg-white">
@@ -63,7 +108,11 @@ export default function CoursePage() {
           </Link>
           <div className="flex items-center gap-4">
             <LanguageSwitcher variant="dropdown" />
-            <Link href="/auth/login"><Button variant="outline" size="sm">{t('nav.login')}</Button></Link>
+            {user ? (
+              <Link href="/client"><Button variant="outline" size="sm">{locale === 'ru' ? 'Мой кабинет' : 'My Account'}</Button></Link>
+            ) : (
+              <Link href="/auth/login"><Button variant="outline" size="sm">{t('nav.login')}</Button></Link>
+            )}
           </div>
         </div>
       </header>
@@ -138,9 +187,9 @@ export default function CoursePage() {
               <div className="flex items-start gap-4 p-6 bg-zinc-50 rounded-2xl">
                 <div className="w-16 h-16 rounded-full bg-teal-500/20 flex items-center justify-center"><User className="w-8 h-8 text-teal-500" /></div>
                 <div>
-                  <h3 className="font-semibold text-zinc-900">Qbody Coach</h3>
-                  <p className="text-zinc-500 text-sm mb-2">Certified Personal Trainer</p>
-                  <p className="text-zinc-600">10+ years of experience helping women achieve their fitness goals. Specializing in recovery programs and body transformation.</p>
+                  <h3 className="font-semibold text-zinc-900">Aleksandra Khavanskaia</h3>
+                  <p className="text-zinc-500 text-sm mb-2">NASM CPT • CES • PBC • CAPT</p>
+                  <p className="text-zinc-600">{locale === 'ru' ? 'Практикующий тренер с 17-летним опытом, специалист по восстановлению и коррекции.' : '17 years of experience. Specializing in recovery programs and body correction.'}</p>
                 </div>
               </div>
             </section>
@@ -156,9 +205,19 @@ export default function CoursePage() {
                     <span className="text-xl text-zinc-400 line-through">${course.originalPrice}</span>
                     <Badge variant="success">-{Math.round((1 - course.price/course.originalPrice)*100)}%</Badge>
                   </div>
-                  <Link href={`/auth/register?course=${slug}`}>
-                    <Button variant="gradient" size="lg" className="w-full mb-4">{t('coursePage.buyNow')}</Button>
-                  </Link>
+                  <Button
+                    variant="gradient"
+                    size="lg"
+                    className="w-full mb-4"
+                    onClick={handleBuy}
+                    disabled={isLoading}
+                  >
+                    {isLoading ? (
+                      <><Loader2 className="w-4 h-4 mr-2 animate-spin" />{locale === 'ru' ? 'Перенаправление...' : 'Redirecting...'}</>
+                    ) : (
+                      t('coursePage.buyNow')
+                    )}
+                  </Button>
                   <p className="text-center text-sm text-zinc-500 mb-6">{t('coursePage.guarantee')}</p>
                   <div className="space-y-3 pt-4 border-t">
                     <p className="font-medium text-zinc-900">{t('coursePage.includes')}</p>
