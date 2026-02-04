@@ -5,7 +5,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 export type Locale = 'en' | 'ru'
 
 type Translations = {
-  [key: string]: string | Translations
+  [key: string]: string | string[] | Translations
 }
 
 const translations: Record<Locale, Translations> = {
