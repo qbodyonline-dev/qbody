@@ -35,6 +35,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null)
   const [loading, setLoading] = useState(true)
   const router = useRouter()
+  const initDone = useRef(false)
   
   const supabaseRef = useRef<SupabaseClient>(createClient())
   const supabase = supabaseRef.current
@@ -57,15 +58,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   useEffect(() => {
-    // IMPORTANT: Do NOT use async in onAuthStateChange callback
-    // It blocks signIn from resolving
+    if (initDone.current) return
+    initDone.current = true
+
+    // Safety timeout — if nothing resolves in 3s, stop loading
+    const timeout = setTimeout(() => {
+      setLoading(false)
+    }, 3000)
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
+        console.log('[AUTH] onAuthStateChange:', event)
+        clearTimeout(timeout)
         setSession(session)
         setUser(session?.user ?? null)
 
         if (session?.user) {
-          // Fire and forget — do NOT await
           fetchProfile(session.user.id)
         } else {
           setProfile(null)
@@ -76,16 +84,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     )
 
     // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session)
-      setUser(session?.user ?? null)
-      if (session?.user) {
-        fetchProfile(session.user.id)
-      }
-      setLoading(false)
-    })
+    supabase.auth.getSession()
+      .then(({ data: { session } }) => {
+        console.log('[AUTH] getSession result:', session ? 'has session' : 'no session')
+        clearTimeout(timeout)
+        setSession(session)
+        setUser(session?.user ?? null)
+        if (session?.user) {
+          fetchProfile(session.user.id)
+        }
+        setLoading(false)
+      })
+      .catch((err) => {
+        console.error('[AUTH] getSession error:', err)
+        clearTimeout(timeout)
+        setLoading(false)
+      })
 
-    return () => subscription.unsubscribe()
+    return () => {
+      clearTimeout(timeout)
+      subscription.unsubscribe()
+    }
   }, [])
 
   const signIn = async (email: string, password: string) => {

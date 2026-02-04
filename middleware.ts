@@ -25,13 +25,28 @@ export async function middleware(request: NextRequest) {
     }
   )
 
-  // Just refresh the session — this is the key part
-  // getSession reads and refreshes the token in cookies
-  await supabase.auth.getSession()
+  // Refresh session — updates cookies if token was refreshed
+  const { data: { user } } = await supabase.auth.getUser()
+
+  // Protect /dashboard — redirect to login if no user
+  if (request.nextUrl.pathname.startsWith('/dashboard') && !user) {
+    const url = new URL('/auth/login', request.url)
+    url.searchParams.set('redirect', request.nextUrl.pathname)
+    return NextResponse.redirect(url)
+  }
+
+  // Already logged in going to login — redirect to dashboard
+  if (request.nextUrl.pathname === '/auth/login' && user) {
+    return NextResponse.redirect(new URL('/dashboard', request.url))
+  }
 
   return supabaseResponse
 }
 
 export const config = {
-  matcher: ['/dashboard/:path*', '/auth/:path*', '/'],
+  matcher: [
+    '/',
+    '/dashboard/:path*',
+    '/auth/:path*',
+  ],
 }
