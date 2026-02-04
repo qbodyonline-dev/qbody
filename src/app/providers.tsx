@@ -1,10 +1,12 @@
 'use client'
 
 import { LocaleProvider } from '@/lib/i18n'
+import { AuthProvider } from '@/lib/auth'
 import { Toaster } from 'sonner'
 
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
+    <AuthProvider>
     <LocaleProvider>
       {children}
       <Toaster 
@@ -18,5 +20,6 @@ export function Providers({ children }: { children: React.ReactNode }) {
         }}
       />
     </LocaleProvider>
+    </AuthProvider>
   )
 }

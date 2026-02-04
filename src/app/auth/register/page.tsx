@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { useTranslation } from '@/lib/i18n'
+import { useAuth } from '@/lib/auth'
 import { LanguageSwitcher } from '@/components/ui/language-switcher'
 import { Mail, Lock, User, ArrowLeft, CheckCircle2 } from 'lucide-react'
 import { toast } from 'sonner'
@@ -18,6 +19,7 @@ export default function RegisterPage() {
 function RegisterContent() {
   const { t } = useTranslation()
   const router = useRouter()
+  const { signUp } = useAuth()
   const searchParams = useSearchParams()
   const courseId = searchParams.get('course')
   const [isLoading, setIsLoading] = useState(false)
@@ -26,10 +28,16 @@ function RegisterContent() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (formData.password !== formData.confirmPassword) { toast.error('Passwords do not match'); return }
+    if (formData.password.length < 6) { toast.error('Password must be at least 6 characters'); return }
     setIsLoading(true)
-    await new Promise(resolve => setTimeout(resolve, 1000))
-    toast.success('Registration successful!')
-    router.push(courseId ? `/checkout?course=${courseId}` : '/client/home')
+    const { error } = await signUp(formData.email, formData.password, formData.name)
+    if (error) {
+      toast.error(error)
+      setIsLoading(false)
+      return
+    }
+    toast.success('Registration successful! Check your email to confirm.')
+    router.push('/auth/login')
     setIsLoading(false)
   }
 
@@ -55,7 +63,7 @@ function RegisterContent() {
           <form onSubmit={handleSubmit} className="space-y-4">
             <Input label={t('common.name')} type="text" placeholder="Your name" icon={<User className="w-5 h-5" />} value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} required />
             <Input label={t('common.email')} type="email" placeholder="your@email.com" icon={<Mail className="w-5 h-5" />} value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} required />
-            <Input label={t('common.password')} type="password" placeholder="Min 8 characters" icon={<Lock className="w-5 h-5" />} value={formData.password} onChange={(e) => setFormData({ ...formData, password: e.target.value })} required />
+            <Input label={t('common.password')} type="password" placeholder="Min 6 characters" icon={<Lock className="w-5 h-5" />} value={formData.password} onChange={(e) => setFormData({ ...formData, password: e.target.value })} required />
             <Input label={t('common.confirmPassword')} type="password" placeholder="Repeat password" icon={<Lock className="w-5 h-5" />} value={formData.confirmPassword} onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })} required />
             <p className="text-xs text-zinc-500">{t('auth.register.terms')} <Link href="/terms" className="text-teal-500 hover:underline">{t('auth.register.termsLink')}</Link> {t('common.and')} <Link href="/privacy" className="text-teal-500 hover:underline">{t('auth.register.privacyLink')}</Link></p>
             <Button type="submit" className="w-full" variant="gradient" size="lg" isLoading={isLoading}>{courseId ? t('auth.register.buttonCourse') : t('auth.register.button')}</Button>

@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { useTranslation } from '@/lib/i18n'
+import { useAuth } from '@/lib/auth'
 import { LanguageSwitcher } from '@/components/ui/language-switcher'
 import { Mail, Lock, ArrowLeft } from 'lucide-react'
 import { toast } from 'sonner'
@@ -13,15 +14,21 @@ import { toast } from 'sonner'
 export default function LoginPage() {
   const { t } = useTranslation()
   const router = useRouter()
+  const { signIn } = useAuth()
   const [isLoading, setIsLoading] = useState(false)
   const [formData, setFormData] = useState({ email: '', password: '' })
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
-    await new Promise(resolve => setTimeout(resolve, 1000))
+    const { error } = await signIn(formData.email, formData.password)
+    if (error) {
+      toast.error(error)
+      setIsLoading(false)
+      return
+    }
     toast.success('Login successful!')
-    router.push('/client/home')
+    router.push('/dashboard')
     setIsLoading(false)
   }
 
