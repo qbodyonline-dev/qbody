@@ -1,7 +1,7 @@
 'use client'
 import React, { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { 
   LayoutDashboard, Users, Dumbbell, BookOpen, Calendar, 
   MessageSquare, CreditCard, Settings, Menu, X, Bell, 
@@ -15,6 +15,7 @@ import { Badge } from '@/components/ui/badge'
 import { LanguageSwitcher } from '@/components/ui/language-switcher'
 import { useTranslation } from '@/lib/i18n'
 import { cn } from '@/lib/utils'
+import { useAuth } from '@/lib/auth'
 
 type NavItem = {
   name: string; href: string; icon: any; badge?: number
@@ -159,11 +160,17 @@ function SidebarNavItem({ item, isActive, isSidebarOpen, pathname, onNavigate }:
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { t, locale } = useTranslation()
+  const { profile, signOut, loading } = useAuth()
   const pathname = usePathname()
+  const router = useRouter()
   const [isSidebarOpen, setIsSidebarOpen] = useState(true)
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false)
   const [isNotifOpen, setIsNotifOpen] = useState(false)
   const [isDark, setIsDark] = useState(false)
+
+  const initials = profile?.full_name
+    ? profile.full_name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
+    : profile?.email?.slice(0, 2).toUpperCase() || 'U'
 
   // Dark mode: sync with <html> class and localStorage
   useEffect(() => {
@@ -236,8 +243,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <div className="absolute bottom-0 left-0 right-0 p-3 border-t border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900">
         <Link href="/dashboard/profile">
         <div className={cn('flex items-center gap-3 p-2 rounded-xl hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer', !mobile && !isSidebarOpen && 'justify-center')}>
-          <Avatar fallback="AK" size="sm" />
-          {(mobile || isSidebarOpen) && <div className="flex-1 min-w-0"><p className="font-medium text-zinc-900 dark:text-zinc-100 text-sm truncate">Aleksandra K.</p><p className="text-xs text-zinc-500 dark:text-zinc-400 truncate">admin@qbody.app</p></div>}
+          <Avatar fallback={initials} size="sm" />
+          {(mobile || isSidebarOpen) && <div className="flex-1 min-w-0"><p className="font-medium text-zinc-900 dark:text-zinc-100 text-sm truncate">{profile?.full_name || profile?.email || 'User'}</p><p className="text-xs text-zinc-500 dark:text-zinc-400 truncate">{profile?.role || 'user'}</p></div>}
         </div>
         </Link>
       </div>
