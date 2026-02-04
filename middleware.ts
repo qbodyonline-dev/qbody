@@ -13,7 +13,7 @@ export async function middleware(request: NextRequest) {
           return request.cookies.getAll()
         },
         setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) =>
+          cookiesToSet.forEach(({ name, value }) =>
             request.cookies.set(name, value)
           )
           supabaseResponse = NextResponse.next({ request })
@@ -25,38 +25,13 @@ export async function middleware(request: NextRequest) {
     }
   )
 
-  // IMPORTANT: DO NOT use getSession() — it doesn't refresh tokens.
-  // getUser() sends a request to the Supabase Auth server to validate and refresh.
-  const { data: { user }, error } = await supabase.auth.getUser()
-
-  // Protect /dashboard routes
-  if (request.nextUrl.pathname.startsWith('/dashboard')) {
-    if (error || !user) {
-      const loginUrl = new URL('/auth/login', request.url)
-      loginUrl.searchParams.set('redirect', request.nextUrl.pathname)
-      return NextResponse.redirect(loginUrl)
-    }
-  }
-
-  // If user is logged in and goes to /auth/login, redirect to dashboard
-  if (request.nextUrl.pathname === '/auth/login') {
-    if (user && !error) {
-      return NextResponse.redirect(new URL('/dashboard', request.url))
-    }
-  }
+  // Just refresh the session — this is the key part
+  // getSession reads and refreshes the token in cookies
+  await supabase.auth.getSession()
 
   return supabaseResponse
 }
 
 export const config = {
-  matcher: [
-    /*
-     * Match all request paths except:
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     * - images, svg, fonts
-     */
-    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|woff|woff2)$).*)',
-  ],
+  matcher: ['/dashboard/:path*', '/auth/:path*', '/'],
 }
