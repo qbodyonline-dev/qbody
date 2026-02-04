@@ -1,0 +1,10 @@
+# Qbody Robots.txt
+User-agent: *
+Allow: /
+Disallow: /dashboard/
+Disallow: /auth/
+Disallow: /api/
+Disallow: /client/
+
+# Sitemaps
+Sitemap: https://qbody.app/sitemap.xml
