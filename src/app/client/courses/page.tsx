@@ -44,7 +44,7 @@ export default function CoursesPage() {
         .select('course_slug')
         .eq('user_id', user.id)
 
-      setPurchasedSlugs((data || []).map(d => d.course_slug))
+      setPurchasedSlugs((data || []).map((d: any) => d.course_slug as string))
       setLoading(false)
     }
 
