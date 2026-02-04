@@ -3,12 +3,13 @@
 import React from 'react'
 import Link from 'next/link'
 import { useTranslation } from '@/lib/i18n'
+import { useAuth } from '@/lib/auth'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { LanguageSwitcher } from '@/components/ui/language-switcher'
 import { 
-  Menu, X, Play, Star, Users, Award, CheckCircle2, ArrowRight, Sparkles,
+  Menu, X, Play, Star, Users, Award, CheckCircle2, ArrowRight, Sparkles, LayoutDashboard,
   Clock, Dumbbell, Target, Zap, Heart, Baby, BookOpen, Lock, Video,
   Quote, ChevronLeft, ChevronRight, TrendingDown, Instagram, Send, MessageCircle,
   Mail, Phone, User, Trophy
@@ -17,6 +18,7 @@ import {
 // Header Component
 function Header() {
   const { t } = useTranslation()
+  const { user, profile, loading: authLoading } = useAuth()
   const [isScrolled, setIsScrolled] = React.useState(false)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false)
 
@@ -61,15 +63,26 @@ function Header() {
 
           <div className="flex items-center gap-4">
             <LanguageSwitcher variant="dropdown" className="hidden sm:block" />
-            <Link href="/auth/login" className="hidden sm:block">
-              <Button variant="ghost" className="text-zinc-300 hover:text-white">
-                <User className="w-4 h-4 mr-2" />
-                {t('nav.login')}
-              </Button>
-            </Link>
-            <Link href="#programs" className="hidden sm:block">
-              <Button variant="gradient">{t('nav.getStarted')}</Button>
-            </Link>
+            {!authLoading && user ? (
+              <Link href="/dashboard" className="hidden sm:block">
+                <Button variant="gradient">
+                  <LayoutDashboard className="w-4 h-4 mr-2" />
+                  {t('nav.dashboard') || 'Dashboard'}
+                </Button>
+              </Link>
+            ) : (
+              <>
+                <Link href="/auth/login" className="hidden sm:block">
+                  <Button variant="ghost" className="text-zinc-300 hover:text-white">
+                    <User className="w-4 h-4 mr-2" />
+                    {t('nav.login')}
+                  </Button>
+                </Link>
+                <Link href="#programs" className="hidden sm:block">
+                  <Button variant="gradient">{t('nav.getStarted')}</Button>
+                </Link>
+              </>
+            )}
             <button className="lg:hidden text-white p-2" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}>
               {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
             </button>
@@ -87,8 +100,14 @@ function Header() {
               ))}
               <div className="pt-4 border-t border-zinc-800 mt-2">
                 <LanguageSwitcher className="mb-4 mx-4" />
-                <Link href="/auth/login"><Button variant="ghost" className="w-full justify-start text-zinc-300"><User className="w-4 h-4 mr-2" />{t('nav.login')}</Button></Link>
-                <Link href="#programs"><Button variant="gradient" className="w-full mt-2">{t('nav.getStarted')}</Button></Link>
+                {!authLoading && user ? (
+                  <Link href="/dashboard"><Button variant="gradient" className="w-full"><LayoutDashboard className="w-4 h-4 mr-2" />{t('nav.dashboard') || 'Dashboard'}</Button></Link>
+                ) : (
+                  <>
+                    <Link href="/auth/login"><Button variant="ghost" className="w-full justify-start text-zinc-300"><User className="w-4 h-4 mr-2" />{t('nav.login')}</Button></Link>
+                    <Link href="#programs"><Button variant="gradient" className="w-full mt-2">{t('nav.getStarted')}</Button></Link>
+                  </>
+                )}
               </div>
             </div>
           </div>

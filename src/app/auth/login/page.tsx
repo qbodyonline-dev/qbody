@@ -1,7 +1,7 @@
 'use client'
 import React, { useState } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
@@ -14,6 +14,7 @@ import { toast } from 'sonner'
 export default function LoginPage() {
   const { t } = useTranslation()
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { signIn } = useAuth()
   const [isLoading, setIsLoading] = useState(false)
   const [formData, setFormData] = useState({ email: '', password: '' })
@@ -28,7 +29,8 @@ export default function LoginPage() {
       return
     }
     toast.success('Login successful!')
-    router.push('/dashboard')
+    const redirect = searchParams.get('redirect') || '/dashboard'
+    router.push(redirect)
     setIsLoading(false)
   }
 
