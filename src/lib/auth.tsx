@@ -36,32 +36,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true)
   const router = useRouter()
   
-  // Single supabase instance per provider
   const supabaseRef = useRef<SupabaseClient>(createClient())
   const supabase = supabaseRef.current
 
   const fetchProfile = async (userId: string) => {
     try {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', userId)
         .single()
+      if (error) {
+        console.warn('Profile fetch failed:', error.message)
+        return
+      }
       if (data) setProfile(data as Profile)
     } catch (e) {
-      console.error('Error fetching profile:', e)
+      console.warn('Profile fetch exception:', e)
     }
   }
 
   useEffect(() => {
-    // Listen for auth changes FIRST (before getSession)
+    // IMPORTANT: Do NOT use async in onAuthStateChange callback
+    // It blocks signIn from resolving
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      (event, session) => {
         setSession(session)
         setUser(session?.user ?? null)
 
         if (session?.user) {
-          await fetchProfile(session.user.id)
+          // Fire and forget — do NOT await
+          fetchProfile(session.user.id)
         } else {
           setProfile(null)
         }
@@ -70,7 +75,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     )
 
-    // Then get initial session
+    // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session)
       setUser(session?.user ?? null)
@@ -103,7 +108,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setProfile(null)
     setSession(null)
     router.push('/')
-    // Force a full page reload to clear all state and cookies
     router.refresh()
   }
 
