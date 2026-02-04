@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge'
 import { Modal } from '@/components/ui/modal'
 import { Input } from '@/components/ui/input'
 import { useTranslation } from '@/lib/i18n'
-import { Plus, Edit, Eye, BookOpen, DollarSign, Clock, Trash2, Loader2, Layers, Users } from 'lucide-react'
+import { Plus, Edit, Eye, BookOpen, DollarSign, Clock, Trash2, Loader2, Layers, FileText } from 'lucide-react'
 import { toast } from 'sonner'
 
 type Course = {
@@ -286,10 +286,15 @@ export default function CoursesAdminPage() {
                         {course.is_published ? (ru ? 'Опубликован' : 'Published') : (ru ? 'Черновик' : 'Draft')}
                       </Badge>
                     </div>
-                    <div className="flex gap-2 mt-4">
-                      <Link href={`/dashboard/courses/${course.id}/edit`}>
+                    <div className="flex flex-wrap gap-2 mt-4">
+                      <Link href={`/dashboard/courses/${course.id}/page-editor`}>
                         <Button variant="gradient" size="sm">
-                          <Edit className="w-4 h-4 mr-1" />{ru ? 'Редактор контента' : 'Content Editor'}
+                          <FileText className="w-4 h-4 mr-1" />{ru ? 'Редактор страницы' : 'Page Editor'}
+                        </Button>
+                      </Link>
+                      <Link href={`/dashboard/courses/${course.id}/edit`}>
+                        <Button variant="outline" size="sm">
+                          <BookOpen className="w-4 h-4 mr-1" />{ru ? 'Уроки' : 'Lessons'}
                         </Button>
                       </Link>
                       <Button variant="outline" size="sm" onClick={() => openEdit(course)}>

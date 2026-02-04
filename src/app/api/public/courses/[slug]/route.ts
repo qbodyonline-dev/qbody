@@ -12,17 +12,7 @@ export async function GET(
     const { data, error } = await supabase
       .from('courses')
       .select(`
-        id,
-        slug,
-        title,
-        title_ru,
-        description,
-        description_ru,
-        price,
-        original_price,
-        duration_weeks,
-        image_url,
-        is_published,
+        *,
         course_modules (
           id,
           title,
@@ -49,7 +39,7 @@ export async function GET(
       return NextResponse.json({ error: 'Course not found' }, { status: 404 })
     }
     
-    // Sort modules and lessons
+    // Sort and filter modules and lessons
     if (data.course_modules) {
       data.course_modules.sort((a: any, b: any) => a.sort_order - b.sort_order)
       data.course_modules.forEach((m: any) => {
@@ -58,7 +48,6 @@ export async function GET(
           m.course_lessons.sort((a: any, b: any) => a.sort_order - b.sort_order)
         }
       })
-      // Filter out unpublished modules
       data.course_modules = data.course_modules.filter((m: any) => m.is_published)
     }
     
