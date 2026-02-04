@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge'
 import { Modal } from '@/components/ui/modal'
 import { Input } from '@/components/ui/input'
 import { useTranslation } from '@/lib/i18n'
-import { getCourses, createCourse, deleteCourse, updateCourse } from '@/lib/api'
+import { getCourses } from '@/lib/api'
 import { Plus, Edit, Eye, BookOpen, DollarSign, Clock, Trash2, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -23,8 +23,8 @@ export default function CoursesAdminPage() {
   const [saving, setSaving] = useState(false)
   const [form, setForm] = useState({ title: '', slug: '', description: '', price: '99', original_price: '', duration_weeks: '', is_published: true })
 
-  const loadCourses = async () => {
-    const data = await getCourses()
+  const loadCourses = () => {
+    const data = getCourses()
     setCourses(data)
     setLoading(false)
   }
@@ -39,65 +39,19 @@ export default function CoursesAdminPage() {
 
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault()
-    setSaving(true)
-    const { data, error } = await createCourse({
-      title: form.title,
-      slug: form.slug || generateSlug(form.title),
-      description: form.description || undefined,
-      price: parseFloat(form.price) || 0,
-      original_price: form.original_price ? parseFloat(form.original_price) : undefined,
-      duration_weeks: form.duration_weeks ? parseInt(form.duration_weeks) : undefined,
-      is_published: form.is_published,
-    })
-    setSaving(false)
-    if (error) {
-      toast.error(error.message)
-      return
-    }
-    toast.success(ru ? 'Курс создан!' : 'Course created!')
+    toast.info(ru ? 'Курсы управляются через код. Свяжитесь с разработчиком.' : 'Courses are managed via code. Contact the developer.')
     setIsAddOpen(false)
-    resetForm()
-    loadCourses()
   }
 
   const handleEdit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!selectedCourse) return
-    setSaving(true)
-    const { error } = await updateCourse(selectedCourse.id, {
-      title: form.title,
-      slug: form.slug,
-      description: form.description || null,
-      price: parseFloat(form.price) || 0,
-      original_price: form.original_price ? parseFloat(form.original_price) : null,
-      duration_weeks: form.duration_weeks ? parseInt(form.duration_weeks) : null,
-      is_published: form.is_published,
-    })
-    setSaving(false)
-    if (error) {
-      toast.error(error.message)
-      return
-    }
-    toast.success(ru ? 'Курс обновлён!' : 'Course updated!')
+    toast.info(ru ? 'Курсы управляются через код. Свяжитесь с разработчиком.' : 'Courses are managed via code. Contact the developer.')
     setIsEditOpen(false)
-    setSelectedCourse(null)
-    resetForm()
-    loadCourses()
   }
 
   const handleDelete = async () => {
-    if (!selectedCourse) return
-    setSaving(true)
-    const { error } = await deleteCourse(selectedCourse.id)
-    setSaving(false)
-    if (error) {
-      toast.error(error.message)
-      return
-    }
-    toast.success(ru ? 'Курс удалён' : 'Course deleted')
+    toast.info(ru ? 'Курсы управляются через код. Свяжитесь с разработчиком.' : 'Courses are managed via code. Contact the developer.')
     setIsDeleteOpen(false)
-    setSelectedCourse(null)
-    loadCourses()
   }
 
   const openEdit = (course: any) => {
