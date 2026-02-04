@@ -1,5 +1,5 @@
 'use client'
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, Suspense } from 'react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { Card, CardContent } from '@/components/ui/card'
@@ -17,6 +17,14 @@ const allCourses = [
 ]
 
 export default function CoursesPage() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center py-20"><Loader2 className="w-8 h-8 animate-spin text-teal-500" /></div>}>
+      <CoursesContent />
+    </Suspense>
+  )
+}
+
+function CoursesContent() {
   const { t, locale } = useTranslation()
   const { user } = useAuth()
   const searchParams = useSearchParams()
