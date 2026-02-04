@@ -1,37 +1,37 @@
 import { NextResponse, type NextRequest } from 'next/server'
-import { createServerClient, type CookieOptions } from '@supabase/ssr'
+import { createServerClient } from '@supabase/ssr'
 
 export async function middleware(request: NextRequest) {
-  let response = NextResponse.next({ request: { headers: request.headers } })
+  let supabaseResponse = NextResponse.next({ request })
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        get(name: string) {
-          return request.cookies.get(name)?.value
+        getAll() {
+          return request.cookies.getAll()
         },
-        set(name: string, value: string, options: CookieOptions) {
-          request.cookies.set({ name, value, ...options })
-          response = NextResponse.next({ request: { headers: request.headers } })
-          response.cookies.set({ name, value, ...options })
-        },
-        remove(name: string, options: CookieOptions) {
-          request.cookies.set({ name, value: '', ...options })
-          response = NextResponse.next({ request: { headers: request.headers } })
-          response.cookies.set({ name, value: '', ...options })
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value, options }) =>
+            request.cookies.set(name, value)
+          )
+          supabaseResponse = NextResponse.next({ request })
+          cookiesToSet.forEach(({ name, value, options }) =>
+            supabaseResponse.cookies.set(name, value, options)
+          )
         },
       },
     }
   )
 
-  // Refresh the session — this keeps the user logged in across page loads
-  const { data: { session } } = await supabase.auth.getSession()
+  // IMPORTANT: DO NOT use getSession() — it doesn't refresh tokens.
+  // getUser() sends a request to the Supabase Auth server to validate and refresh.
+  const { data: { user }, error } = await supabase.auth.getUser()
 
-  // Protect /dashboard routes — redirect to login if not authenticated
+  // Protect /dashboard routes
   if (request.nextUrl.pathname.startsWith('/dashboard')) {
-    if (!session) {
+    if (error || !user) {
       const loginUrl = new URL('/auth/login', request.url)
       loginUrl.searchParams.set('redirect', request.nextUrl.pathname)
       return NextResponse.redirect(loginUrl)
@@ -39,13 +39,24 @@ export async function middleware(request: NextRequest) {
   }
 
   // If user is logged in and goes to /auth/login, redirect to dashboard
-  if (request.nextUrl.pathname.startsWith('/auth/login') && session) {
-    return NextResponse.redirect(new URL('/dashboard', request.url))
+  if (request.nextUrl.pathname === '/auth/login') {
+    if (user && !error) {
+      return NextResponse.redirect(new URL('/dashboard', request.url))
+    }
   }
 
-  return response
+  return supabaseResponse
 }
 
 export const config = {
-  matcher: ['/dashboard/:path*', '/auth/:path*'],
+  matcher: [
+    /*
+     * Match all request paths except:
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
+     * - favicon.ico (favicon file)
+     * - images, svg, fonts
+     */
+    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|woff|woff2)$).*)',
+  ],
 }

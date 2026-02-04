@@ -30,8 +30,9 @@ function LoginForm() {
     }
     toast.success('Login successful!')
     const redirect = searchParams.get('redirect') || '/dashboard'
+    // Use router.refresh() to ensure middleware picks up new cookies
+    router.refresh()
     router.push(redirect)
-    setIsLoading(false)
   }
 
   return (

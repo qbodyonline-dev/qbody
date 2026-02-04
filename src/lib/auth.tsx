@@ -1,8 +1,8 @@
 'use client'
 
-import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react'
+import React, { createContext, useContext, useEffect, useState, useRef, ReactNode } from 'react'
 import { createClient } from '@/lib/supabase'
-import { User, Session } from '@supabase/supabase-js'
+import { User, Session, SupabaseClient } from '@supabase/supabase-js'
 import { useRouter } from 'next/navigation'
 
 type Profile = {
@@ -35,8 +35,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null)
   const [loading, setLoading] = useState(true)
   const router = useRouter()
-
-  const supabase = createClient()
+  
+  // Single supabase instance per provider
+  const supabaseRef = useRef<SupabaseClient>(createClient())
+  const supabase = supabaseRef.current
 
   const fetchProfile = async (userId: string) => {
     try {
@@ -52,7 +54,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   useEffect(() => {
-    // Get initial session
+    // Listen for auth changes FIRST (before getSession)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        setSession(session)
+        setUser(session?.user ?? null)
+
+        if (session?.user) {
+          await fetchProfile(session.user.id)
+        } else {
+          setProfile(null)
+        }
+
+        setLoading(false)
+      }
+    )
+
+    // Then get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session)
       setUser(session?.user ?? null)
@@ -61,24 +79,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       setLoading(false)
     })
-
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        setSession(session)
-        setUser(session?.user ?? null)
-
-        if (event === 'SIGNED_IN' && session?.user) {
-          await fetchProfile(session.user.id)
-        }
-
-        if (event === 'SIGNED_OUT') {
-          setProfile(null)
-        }
-
-        setLoading(false)
-      }
-    )
 
     return () => subscription.unsubscribe()
   }, [])
@@ -103,6 +103,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setProfile(null)
     setSession(null)
     router.push('/')
+    // Force a full page reload to clear all state and cookies
+    router.refresh()
   }
 
   return (
