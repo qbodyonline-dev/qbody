@@ -18,18 +18,18 @@ export default function DashboardPage() {
   const { t, locale } = useTranslation()
   const { profile } = useAuth()
   const [loading, setLoading] = useState(true)
-  const [stats, setStats] = useState({ activeClients: 0, publishedCourses: 0 })
+  const [stats, setStats] = useState({ activeClients: 0, totalClients: 0, publishedCourses: 0, totalCourses: 0, totalRevenue: 0, paidOrders: 0 })
   const [clients, setClients] = useState<any[]>([])
   const [courses, setCourses] = useState<any[]>([])
 
   useEffect(() => {
     async function load() {
       try {
-        const [s, c, co] = await Promise.all([
+        const [s, c] = await Promise.all([
           getDashboardStats(),
           getClients(),
-          getCourses()
         ])
+        const co = getCourses()
         setStats(s)
         setClients(c)
         setCourses(co)
@@ -47,8 +47,8 @@ export default function DashboardPage() {
   const statCards = [
     { key: 'activeClients', value: stats.activeClients, icon: Users, color: 'bg-teal-500' },
     { key: 'publishedCourses', value: stats.publishedCourses, icon: BookOpen, color: 'bg-green-500' },
-    { key: 'totalClients', value: clients.length, icon: TrendingUp, color: 'bg-purple-500' },
-    { key: 'totalCourses', value: courses.length, icon: ClipboardCheck, color: 'bg-orange-500' },
+    { key: 'totalClients', value: stats.totalClients, icon: TrendingUp, color: 'bg-purple-500' },
+    { key: 'totalCourses', value: stats.totalCourses, icon: ClipboardCheck, color: 'bg-orange-500' },
   ]
 
   const statLabels: Record<string, string> = {
