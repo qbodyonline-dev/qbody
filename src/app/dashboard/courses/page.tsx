@@ -133,7 +133,7 @@ export default function CoursesAdminPage() {
                   <div className="flex-1 p-6">
                     <div className="flex items-start justify-between mb-3">
                       <div>
-                        <h3 className="text-xl font-bold text-zinc-900 dark:text-zinc-100">{course.title}</h3>
+                        <h3 className="text-xl font-bold text-zinc-900 dark:text-zinc-100">{ru && course.titleRu ? course.titleRu : course.title}</h3>
                         {course.description && <p className="text-sm text-zinc-500 mt-1 line-clamp-2">{course.description}</p>}
                         <div className="flex items-center gap-4 mt-3 text-sm text-zinc-500">
                           <span className="flex items-center gap-1"><DollarSign className="w-4 h-4" />${course.price}</span>

@@ -5,9 +5,9 @@ import { usePathname, useRouter } from 'next/navigation'
 import { 
   LayoutDashboard, Users, Dumbbell, BookOpen, Calendar, 
   MessageSquare, CreditCard, Settings, Menu, X, Bell, 
-  Search, ChevronDown, Video, ListVideo, PlusCircle, TrendingUp,
-  Target, Layers, ClipboardCheck, FileText,
-  Moon, Sun, FormInput, BellRing, UserPlus, LogOut
+  Search, ChevronDown, Video, ListVideo, TrendingUp,
+  Target, Layers, FileText,
+  Moon, Sun, FormInput, BellRing, LogOut
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Avatar } from '@/components/ui/avatar'
@@ -103,10 +103,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     { 
       name: t('sidebar.coursesSection'), href: '#courses', icon: Video,
       children: [
-        { name: t('sidebar.coursesList'), href: '/dashboard/courses', icon: ListVideo },
-        { name: t('sidebar.courseLessons'), href: '/dashboard/checkins', icon: BookOpen },
-        { name: t('sidebar.courseAnalytics'), href: '/dashboard/analytics', icon: TrendingUp },
-        { name: t('sidebar.createCourse'), href: '/dashboard/courses/new', icon: PlusCircle },
+        { name: ru ? 'Все курсы' : 'All Courses', href: '/dashboard/courses', icon: ListVideo },
       ]
     },
     { 
@@ -114,9 +111,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       children: [
         { name: t('sidebar.programsList'), href: '/dashboard/programs', icon: Layers },
         { name: t('sidebar.exercises'), href: '/dashboard/exercises', icon: Dumbbell },
-        { name: t('sidebar.workouts'), href: '/dashboard/workouts', icon: Calendar },
-        { name: ru ? 'Назначить' : 'Assign', href: '/dashboard/programs/assign', icon: UserPlus },
-        { name: t('sidebar.createProgram'), href: '/dashboard/programs/new', icon: PlusCircle },
       ]
     },
     { name: t('messages.title'), href: '/dashboard/messages', icon: MessageSquare },
