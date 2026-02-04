@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Fetch user emails for each order
-    const userIds = [...new Set(orders.map(o => o.user_id))]
+    const userIds = Array.from(new Set(orders.map(o => o.user_id)))
     const { data: profiles } = await supabase
       .from('profiles')
       .select('id, email, full_name')
