@@ -1,11 +1,12 @@
 'use client'
-import React, { useState } from 'react'
+import React, { useState, useRef } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import {
-  Plus, Trash2, Copy, GripVertical, ChevronDown, ChevronUp, X, Check
+  Plus, Trash2, Copy, GripVertical, ChevronDown, ChevronUp, X, Check, Upload, ImageIcon, Loader2
 } from 'lucide-react'
+import { toast } from 'sonner'
 
 import type { CourseItem, ProgramItem, ResultItem, HeaderData, HeroData, AboutData, NavLink } from './types'
 import { COURSE_GRADIENTS, PROGRAM_GRADIENTS, EMOJI_ICONS, HERO_GRADIENTS, LOGO_GRADIENTS } from './renderers'
@@ -812,6 +813,57 @@ interface HeroEditorProps {
 
 export function HeroEditor({ data, onChange, lang }: HeroEditorProps) {
   const [showGradientPicker, setShowGradientPicker] = useState(false)
+  const [uploading, setUploading] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast.error(lang === 'ru' ? 'Выберите изображение' : 'Please select an image file')
+      return
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error(lang === 'ru' ? 'Файл слишком большой (макс. 5MB)' : 'File too large (max 5MB)')
+      return
+    }
+
+    setUploading(true)
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+      formData.append('folder', 'hero')
+
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData
+      })
+
+      if (!res.ok) {
+        const err = await res.json()
+        throw new Error(err.error || 'Upload failed')
+      }
+
+      const { url } = await res.json()
+      onChange({ ...data, heroImage: url })
+      toast.success(lang === 'ru' ? 'Изображение загружено!' : 'Image uploaded!')
+    } catch (err: any) {
+      console.error('Upload error:', err)
+      toast.error(err.message || (lang === 'ru' ? 'Ошибка загрузки' : 'Upload failed'))
+    } finally {
+      setUploading(false)
+      if (fileInputRef.current) fileInputRef.current.value = ''
+    }
+  }
+
+  const removeImage = () => {
+    onChange({ ...data, heroImage: undefined })
+    toast.success(lang === 'ru' ? 'Изображение удалено' : 'Image removed')
+  }
 
   return (
     <Card>
@@ -831,6 +883,111 @@ export function HeroEditor({ data, onChange, lang }: HeroEditorProps) {
               <GradientPicker value={data.gradient} options={HERO_GRADIENTS} onChange={g => onChange({ ...data, gradient: g })} onClose={() => setShowGradientPicker(false)} />
             )}
           </div>
+        </div>
+
+        {/* Hero Image Upload */}
+        <div className="p-3 bg-gradient-to-r from-teal-50 to-zinc-50 dark:from-teal-900/20 dark:to-zinc-800 rounded-lg space-y-3 border border-teal-200 dark:border-teal-800">
+          <label className="text-xs font-medium text-teal-700 dark:text-teal-400 block flex items-center gap-2">
+            <ImageIcon className="w-4 h-4" />
+            {lang === 'ru' ? 'Изображение Hero (вторая колонка)' : 'Hero Image (second column)'}
+          </label>
+          <p className="text-[11px] text-zinc-500 dark:text-zinc-400">
+            {lang === 'ru' 
+              ? 'Добавьте фото для двухколоночного дизайна Hero. Текст слева, изображение справа.' 
+              : 'Add a photo for two-column Hero layout. Text on left, image on right.'}
+          </p>
+          
+          {data.heroImage ? (
+            <div className="flex gap-3 items-start">
+              <div className="relative group">
+                <img 
+                  src={data.heroImage} 
+                  alt="Hero preview" 
+                  className="w-32 h-40 rounded-xl object-cover border-2 border-teal-200 dark:border-teal-700 shadow-md"
+                />
+                <button 
+                  onClick={removeImage}
+                  className="absolute -top-2 -right-2 p-1.5 rounded-full bg-red-500 text-white shadow-lg opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </div>
+              <div className="flex-1 space-y-2">
+                <Input 
+                  value={data.heroImage} 
+                  onChange={e => onChange({ ...data, heroImage: e.target.value })}
+                  placeholder={lang === 'ru' ? 'URL изображения' : 'Image URL'}
+                  className="text-xs h-8"
+                />
+                <div className="flex gap-2">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={uploading}
+                    className="text-xs"
+                  >
+                    {uploading ? <Loader2 className="w-3 h-3 mr-1.5 animate-spin" /> : <Upload className="w-3 h-3 mr-1.5" />}
+                    {lang === 'ru' ? 'Заменить' : 'Replace'}
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={removeImage}
+                    className="text-xs text-red-500 hover:text-red-600 hover:bg-red-50"
+                  >
+                    <Trash2 className="w-3 h-3 mr-1.5" />
+                    {lang === 'ru' ? 'Удалить' : 'Remove'}
+                  </Button>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div 
+              onClick={() => !uploading && fileInputRef.current?.click()}
+              className={`border-2 border-dashed border-teal-300 dark:border-teal-700 rounded-xl p-6 text-center cursor-pointer transition-all ${uploading ? 'opacity-50' : 'hover:border-teal-400 hover:bg-teal-50/50 dark:hover:bg-teal-900/30'}`}
+            >
+              {uploading ? (
+                <div className="flex flex-col items-center gap-2">
+                  <Loader2 className="w-8 h-8 text-teal-500 animate-spin" />
+                  <p className="text-sm text-teal-600 dark:text-teal-400">{lang === 'ru' ? 'Загрузка...' : 'Uploading...'}</p>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center gap-2">
+                  <div className="w-12 h-12 rounded-xl bg-teal-100 dark:bg-teal-900/50 flex items-center justify-center">
+                    <Upload className="w-6 h-6 text-teal-500" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                      {lang === 'ru' ? 'Нажмите для загрузки' : 'Click to upload'}
+                    </p>
+                    <p className="text-xs text-zinc-500">PNG, JPG, WEBP (макс. 5MB)</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+          
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            onChange={handleImageUpload}
+            className="hidden"
+          />
+          
+          {/* Manual URL input when no image */}
+          {!data.heroImage && (
+            <div className="flex gap-2 items-center">
+              <span className="text-xs text-zinc-500">{lang === 'ru' ? 'или вставьте URL:' : 'or paste URL:'}</span>
+              <Input 
+                value={data.heroImage || ''} 
+                onChange={e => onChange({ ...data, heroImage: e.target.value || undefined })}
+                placeholder="https://..."
+                className="text-xs h-8 flex-1"
+              />
+            </div>
+          )}
         </div>
 
         {/* Badge */}

@@ -112,6 +112,7 @@ export interface HeroData {
   features: string[]
   featuresRu: string[]
   gradient: string
+  heroImage?: string  // Optional hero image for two-column layout
 }
 
 export interface AboutData {

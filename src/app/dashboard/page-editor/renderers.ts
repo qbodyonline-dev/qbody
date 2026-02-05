@@ -134,7 +134,44 @@ export function renderHeroHTML(data: HeroData, lang: 'en' | 'ru'): string {
 
   const featuresHtml = features.map(f => `✓ ${f}`).join('&nbsp;&nbsp;')
 
-  return `<div style="text-align:center;padding:60px 20px;background:${data.gradient};color:white;"><p style="color:#2dd4bf;font-weight:600;font-size:14px;margin-bottom:16px;">⭐ ${badge}</p><h1 style="font-size:48px;font-weight:800;margin-bottom:8px;">${title}</h1><h1 style="font-size:48px;font-weight:800;color:#2dd4bf;margin-bottom:24px;">${subtitle}</h1><p style="color:#d4d4d8;font-size:18px;max-width:600px;margin:0 auto 32px;">${description}</p><div style="display:flex;gap:12px;justify-content:center;margin-bottom:24px;"><a href="${data.primaryBtnLink}" style="padding:12px 32px;border-radius:16px;background:#14b8a6;color:white;font-weight:600;font-size:16px;text-decoration:none;">${primaryBtn}</a><a href="${data.secondaryBtnLink}" style="padding:12px 32px;border-radius:16px;border:1px solid rgba(255,255,255,0.3);color:white;font-size:16px;text-decoration:none;">${secondaryBtn}</a></div><p style="font-size:14px;color:#a1a1aa;">${featuresHtml}</p></div>`
+  // Two-column layout with image
+  if (data.heroImage) {
+    const heroId = `hero-${Date.now()}`
+    return `<div style="padding:60px 20px;background:${data.gradient};color:white;">
+      <style>
+        @media (max-width: 900px) {
+          #${heroId} .hero-grid { grid-template-columns: 1fr !important; gap: 32px !important; }
+          #${heroId} .hero-text { text-align: center !important; }
+          #${heroId} .hero-title { font-size: 32px !important; }
+          #${heroId} .hero-buttons { justify-content: center !important; }
+          #${heroId} .hero-features { text-align: center !important; }
+          #${heroId} .hero-image-wrap { order: -1 !important; }
+          #${heroId} .hero-image { max-width: 320px !important; margin: 0 auto !important; }
+        }
+      </style>
+      <div id="${heroId}">
+        <div class="hero-grid" style="max-width:1200px;margin:0 auto;display:grid;grid-template-columns:1fr 1fr;gap:48px;align-items:center;">
+          <div class="hero-text" style="text-align:left;">
+            <p style="color:#2dd4bf;font-weight:600;font-size:14px;margin-bottom:16px;">${badge}</p>
+            <h1 class="hero-title" style="font-size:42px;font-weight:800;margin-bottom:8px;line-height:1.1;">${title}</h1>
+            <h1 class="hero-title" style="font-size:42px;font-weight:800;color:#2dd4bf;margin-bottom:24px;line-height:1.1;">${subtitle}</h1>
+            <p style="color:#d4d4d8;font-size:18px;margin-bottom:32px;line-height:1.6;">${description}</p>
+            <div class="hero-buttons" style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:24px;">
+              <a href="${data.primaryBtnLink}" style="padding:14px 32px;border-radius:16px;background:#14b8a6;color:white;font-weight:600;font-size:16px;text-decoration:none;display:inline-block;">${primaryBtn}</a>
+              <a href="${data.secondaryBtnLink}" style="padding:14px 32px;border-radius:16px;border:1px solid rgba(255,255,255,0.3);color:white;font-size:16px;text-decoration:none;display:inline-block;">${secondaryBtn}</a>
+            </div>
+            <p class="hero-features" style="font-size:14px;color:#a1a1aa;">${featuresHtml}</p>
+          </div>
+          <div class="hero-image-wrap" style="display:flex;justify-content:center;align-items:center;">
+            <img class="hero-image" src="${data.heroImage}" alt="Hero" style="width:100%;max-width:480px;border-radius:24px;aspect-ratio:4/5;object-fit:cover;box-shadow:0 25px 50px -12px rgba(0,0,0,0.5);" />
+          </div>
+        </div>
+      </div>
+    </div>`
+  }
+
+  // Single column layout (no image) - original design
+  return `<div style="text-align:center;padding:60px 20px;background:${data.gradient};color:white;"><p style="color:#2dd4bf;font-weight:600;font-size:14px;margin-bottom:16px;">${badge}</p><h1 style="font-size:48px;font-weight:800;margin-bottom:8px;">${title}</h1><h1 style="font-size:48px;font-weight:800;color:#2dd4bf;margin-bottom:24px;">${subtitle}</h1><p style="color:#d4d4d8;font-size:18px;max-width:600px;margin:0 auto 32px;">${description}</p><div style="display:flex;gap:12px;justify-content:center;margin-bottom:24px;"><a href="${data.primaryBtnLink}" style="padding:12px 32px;border-radius:16px;background:#14b8a6;color:white;font-weight:600;font-size:16px;text-decoration:none;">${primaryBtn}</a><a href="${data.secondaryBtnLink}" style="padding:12px 32px;border-radius:16px;border:1px solid rgba(255,255,255,0.3);color:white;font-size:16px;text-decoration:none;">${secondaryBtn}</a></div><p style="font-size:14px;color:#a1a1aa;">${featuresHtml}</p></div>`
 }
 
 /* ─────────── ABOUT RENDERER ─────────── */
