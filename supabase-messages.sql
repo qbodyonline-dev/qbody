@@ -67,10 +67,22 @@ CREATE TABLE IF NOT EXISTS public.messages (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     conversation_id UUID NOT NULL REFERENCES public.conversations(id) ON DELETE CASCADE,
     sender_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
-    content TEXT NOT NULL,
+    content TEXT,
+    attachments JSONB DEFAULT '[]'::jsonb,
     is_read BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- Add attachments column if it doesn't exist (for existing tables)
+DO $$ 
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'messages' AND column_name = 'attachments') THEN
+        ALTER TABLE public.messages ADD COLUMN attachments JSONB DEFAULT '[]'::jsonb;
+    END IF;
+END $$;
+
+-- Make content nullable (messages can be image-only)
+ALTER TABLE public.messages ALTER COLUMN content DROP NOT NULL;
 
 -- Create indexes if not exist
 CREATE INDEX IF NOT EXISTS idx_messages_conversation_id ON public.messages(conversation_id);

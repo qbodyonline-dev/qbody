@@ -17,17 +17,27 @@ import {
   Clock,
   Users,
   MessageCirclePlus,
-  X
+  X,
+  Image as ImageIcon,
+  Loader2
 } from 'lucide-react'
+import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import { formatDistanceToNow } from 'date-fns'
 import { ru as ruLocale, enUS } from 'date-fns/locale'
+
+type Attachment = {
+  url: string
+  type: string
+  name?: string
+}
 
 type Message = {
   id: string
   conversation_id: string
   sender_id: string
-  content: string
+  content: string | null
+  attachments?: Attachment[]
   is_read: boolean
   created_at: string
   sender: {
@@ -84,9 +94,13 @@ export default function MessagesPage() {
   const [showNewChatModal, setShowNewChatModal] = useState(false)
   const [clientSearchQuery, setClientSearchQuery] = useState('')
   const [activeTab, setActiveTab] = useState<'chats' | 'clients'>('chats')
+  const [pendingAttachments, setPendingAttachments] = useState<Attachment[]>([])
+  const [uploadingImage, setUploadingImage] = useState(false)
+  const [imagePreview, setImagePreview] = useState<string | null>(null)
   
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const supabaseRef = useRef<ReturnType<typeof createClient> | null>(null)
 
   // Initialize Supabase client
@@ -279,9 +293,74 @@ export default function MessagesPage() {
     if (isMobileView) setShowMobileChat(true)
   }
 
+  // Handle image upload
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast.error(ru ? 'Можно загружать только изображения' : 'Only images are allowed')
+      return
+    }
+    
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error(ru ? 'Максимальный размер файла 5MB' : 'Maximum file size is 5MB')
+      return
+    }
+    
+    setUploadingImage(true)
+    
+    // Show preview
+    const reader = new FileReader()
+    reader.onload = (e) => setImagePreview(e.target?.result as string)
+    reader.readAsDataURL(file)
+    
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+      formData.append('folder', 'chat-attachments')
+      
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData
+      })
+      
+      if (res.ok) {
+        const data = await res.json()
+        setPendingAttachments(prev => [...prev, {
+          url: data.url,
+          type: file.type,
+          name: file.name
+        }])
+      } else {
+        throw new Error('Upload failed')
+      }
+    } catch (error) {
+      console.error('Error uploading image:', error)
+      toast.error(ru ? 'Ошибка загрузки изображения' : 'Failed to upload image')
+      setImagePreview(null)
+    } finally {
+      setUploadingImage(false)
+      // Reset file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = ''
+      }
+    }
+  }
+
+  // Remove pending attachment
+  const removePendingAttachment = (index: number) => {
+    setPendingAttachments(prev => prev.filter((_, i) => i !== index))
+    if (pendingAttachments.length === 1) {
+      setImagePreview(null)
+    }
+  }
+
   // Send message
   const handleSendMessage = async () => {
-    if (!newMessage.trim() || !session?.access_token) return
+    if ((!newMessage.trim() && pendingAttachments.length === 0) || !session?.access_token) return
     if (!selectedConversation && !selectedClient) return
     
     setSendingMessage(true)
@@ -296,13 +375,16 @@ export default function MessagesPage() {
           },
           body: JSON.stringify({ 
             client_id: selectedClient.id,
-            message: newMessage.trim() 
+            message: newMessage.trim() || null,
+            attachments: pendingAttachments
           })
         })
         
         if (res.ok) {
           const conversation = await res.json()
           setNewMessage('')
+          setPendingAttachments([])
+          setImagePreview(null)
           // Refresh conversations list
           await fetchConversations()
           // Find the new conversation and select it
@@ -324,13 +406,18 @@ export default function MessagesPage() {
             'Authorization': `Bearer ${session.access_token}`,
             'Content-Type': 'application/json'
           },
-          body: JSON.stringify({ content: newMessage.trim() })
+          body: JSON.stringify({ 
+            content: newMessage.trim() || null,
+            attachments: pendingAttachments
+          })
         })
         
         if (res.ok) {
           const message = await res.json()
           setMessages(prev => [...prev, message])
           setNewMessage('')
+          setPendingAttachments([])
+          setImagePreview(null)
           inputRef.current?.focus()
           
           // Update conversation in list
@@ -669,6 +756,7 @@ export default function MessagesPage() {
                   
                   {messages.map((msg) => {
                     const isOwn = msg.sender_id === user?.id
+                    const hasAttachments = msg.attachments && msg.attachments.length > 0
                     return (
                       <div
                         key={msg.id}
@@ -689,16 +777,45 @@ export default function MessagesPage() {
                             />
                           )}
                           <div>
-                            <div className={cn(
-                              "rounded-2xl px-4 py-2",
-                              isOwn 
-                                ? "bg-teal-500 text-white rounded-br-md"
-                                : "bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 rounded-bl-md shadow-sm"
-                            )}>
-                              <p className="text-sm whitespace-pre-wrap break-words">
-                                {msg.content}
-                              </p>
-                            </div>
+                            {/* Attachments */}
+                            {hasAttachments && (
+                              <div className={cn(
+                                "mb-1 space-y-1",
+                                isOwn && "flex flex-col items-end"
+                              )}>
+                                {msg.attachments!.map((att, idx) => (
+                                  <a 
+                                    key={idx} 
+                                    href={att.url} 
+                                    target="_blank" 
+                                    rel="noopener noreferrer"
+                                    className="block"
+                                  >
+                                    <img 
+                                      src={att.url} 
+                                      alt={att.name || 'Attachment'} 
+                                      className={cn(
+                                        "max-w-[250px] max-h-[300px] rounded-xl object-cover cursor-pointer hover:opacity-90 transition-opacity",
+                                        isOwn ? "rounded-br-md" : "rounded-bl-md"
+                                      )}
+                                    />
+                                  </a>
+                                ))}
+                              </div>
+                            )}
+                            {/* Text content */}
+                            {msg.content && (
+                              <div className={cn(
+                                "rounded-2xl px-4 py-2",
+                                isOwn 
+                                  ? "bg-teal-500 text-white rounded-br-md"
+                                  : "bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 rounded-bl-md shadow-sm"
+                              )}>
+                                <p className="text-sm whitespace-pre-wrap break-words">
+                                  {msg.content}
+                                </p>
+                              </div>
+                            )}
                             <div className={cn(
                               "flex items-center gap-1 mt-1 text-xs text-zinc-400",
                               isOwn && "justify-end"
@@ -721,7 +838,55 @@ export default function MessagesPage() {
 
                 {/* Message input */}
                 <div className="p-4 border-t border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900">
+                  {/* Pending attachments preview */}
+                  {pendingAttachments.length > 0 && (
+                    <div className="flex gap-2 mb-3 flex-wrap">
+                      {pendingAttachments.map((att, idx) => (
+                        <div key={idx} className="relative group">
+                          <img 
+                            src={att.url} 
+                            alt={att.name || 'Attachment'} 
+                            className="w-20 h-20 object-cover rounded-lg"
+                          />
+                          <button
+                            onClick={() => removePendingAttachment(idx)}
+                            className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </div>
+                      ))}
+                      {uploadingImage && (
+                        <div className="w-20 h-20 bg-zinc-100 dark:bg-zinc-800 rounded-lg flex items-center justify-center">
+                          <Loader2 className="w-6 h-6 animate-spin text-teal-500" />
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  
                   <div className="flex items-end gap-2">
+                    {/* Hidden file input */}
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageUpload}
+                      className="hidden"
+                    />
+                    
+                    {/* Image upload button */}
+                    <button
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={uploadingImage}
+                      className="h-11 w-11 flex items-center justify-center rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-zinc-500 hover:text-teal-500 hover:border-teal-500 transition-colors disabled:opacity-50"
+                    >
+                      {uploadingImage ? (
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                      ) : (
+                        <ImageIcon className="w-5 h-5" />
+                      )}
+                    </button>
+                    
                     <textarea
                       ref={inputRef}
                       value={newMessage}
@@ -734,7 +899,7 @@ export default function MessagesPage() {
                     />
                     <Button
                       onClick={handleSendMessage}
-                      disabled={!newMessage.trim() || sendingMessage}
+                      disabled={(!newMessage.trim() && pendingAttachments.length === 0) || sendingMessage}
                       className="h-11 w-11 p-0 rounded-xl"
                     >
                       <Send className="w-5 h-5" />

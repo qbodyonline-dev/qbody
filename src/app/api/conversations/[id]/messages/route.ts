@@ -83,10 +83,11 @@ export async function POST(
     }
     
     const body = await request.json()
-    const { content } = body
+    const { content, attachments } = body
     
-    if (!content?.trim()) {
-      return NextResponse.json({ error: 'Message content is required' }, { status: 400 })
+    // Message must have content or attachments
+    if (!content?.trim() && (!attachments || attachments.length === 0)) {
+      return NextResponse.json({ error: 'Message content or attachments required' }, { status: 400 })
     }
     
     // Get user profile
@@ -119,7 +120,8 @@ export async function POST(
       .insert({
         conversation_id: id,
         sender_id: user.id,
-        content: content.trim()
+        content: content?.trim() || null,
+        attachments: attachments || []
       })
       .select(`
         *,

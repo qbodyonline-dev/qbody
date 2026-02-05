@@ -116,7 +116,7 @@ export async function POST(request: NextRequest) {
     const isAdmin = profile?.role === 'admin' || profile?.role === 'trainer'
     
     const body = await request.json()
-    const { message, client_id } = body
+    const { message, client_id, attachments } = body
     
     // Determine which client this conversation is for
     const targetClientId = isAdmin && client_id ? client_id : user.id
@@ -130,11 +130,12 @@ export async function POST(request: NextRequest) {
     
     if (existing) {
       // Add message to existing conversation
-      if (message) {
+      if (message || (attachments && attachments.length > 0)) {
         await supabase.from('messages').insert({
           conversation_id: existing.id,
           sender_id: user.id,
-          content: message
+          content: message || null,
+          attachments: attachments || []
         })
       }
       return NextResponse.json(existing)
@@ -154,11 +155,12 @@ export async function POST(request: NextRequest) {
     if (error) throw error
     
     // Add first message if provided
-    if (message && conversation) {
+    if ((message || (attachments && attachments.length > 0)) && conversation) {
       await supabase.from('messages').insert({
         conversation_id: conversation.id,
         sender_id: user.id,
-        content: message
+        content: message || null,
+        attachments: attachments || []
       })
     }
     
