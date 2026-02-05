@@ -20,16 +20,16 @@ export async function GET(
       return NextResponse.json({ error: 'Client not found' }, { status: 404 })
     }
 
-    // Get course access
+    // Get course access with is_active status
     const { data: accessData } = await supabase
       .from('course_access')
-      .select('course_slug, granted_at')
+      .select('course_slug, granted_at, is_active')
       .eq('user_id', id)
 
-    // Get orders
+    // Get orders with full details
     const { data: ordersData } = await supabase
       .from('orders')
-      .select('*')
+      .select('id, user_id, course_slug, amount, currency, status, paid_at, created_at, stripe_session_id, stripe_customer_id, stripe_payment_intent_id')
       .eq('user_id', id)
       .order('created_at', { ascending: false })
 
