@@ -61,6 +61,7 @@ export function renderProgramsHTML(items: ProgramItem[], lang: 'en' | 'ru'): str
     const d = lang === 'ru' ? program.descriptionRu : program.description
     const features = lang === 'ru' ? program.featuresRu : program.features
     const levelLabel = LEVEL_LABELS[lang][program.level]
+    const soonLabel = 'Soon'
 
     const featuresHtml = features.map(f => 
       `<li style="padding:3px 0;font-size:13px;color:#52525b;">✅ ${f}</li>`
@@ -69,13 +70,26 @@ export function renderProgramsHTML(items: ProgramItem[], lang: 'en' | 'ru'): str
     const popularBadge = program.popular 
       ? `<div style="position:absolute;top:12px;right:12px;background:#14b8a6;color:white;padding:4px 12px;border-radius:20px;font-size:12px;font-weight:600;">${popularLabel}</div>`
       : ''
+    
+    const soonBadge = program.soon 
+      ? `<div style="position:absolute;top:12px;${program.popular ? 'right:80px' : 'right:12px'};background:#f59e0b;color:white;padding:4px 12px;border-radius:20px;font-size:12px;font-weight:600;">${soonLabel}</div>`
+      : ''
 
-    const borderStyle = program.popular ? 'border:2px solid #14b8a6' : 'border:1px solid #e4e4e7'
-    const btnStyle = program.popular 
-      ? 'background:#14b8a6;color:white'
-      : 'border:1px solid #e4e4e7;color:#18181b'
+    const borderStyle = program.popular ? 'border:2px solid #14b8a6' : program.soon ? 'border:2px solid #f59e0b' : 'border:1px solid #e4e4e7'
+    
+    // Button style and rendering based on soon status
+    let buttonHtml: string
+    if (program.soon) {
+      // Disabled button style - no link, grayed out
+      buttonHtml = `<span style="padding:8px 16px;border-radius:12px;background:#d4d4d8;color:#71717a;font-size:13px;cursor:not-allowed;">${soonLabel}</span>`
+    } else {
+      const btnStyle = program.popular 
+        ? 'background:#14b8a6;color:white'
+        : 'border:1px solid #e4e4e7;color:#18181b'
+      buttonHtml = `<a href="${program.link}" style="padding:8px 16px;border-radius:12px;${btnStyle};font-size:13px;text-decoration:none;">${detailsLabel}</a>`
+    }
 
-    return `<div style="background:white;${borderStyle};border-radius:16px;padding:24px;position:relative;">${popularBadge}<div style="width:48px;height:48px;border-radius:12px;background:${program.gradient};display:flex;align-items:center;justify-content:center;margin-bottom:16px;font-size:20px;">${program.icon}</div><h3 style="font-size:18px;font-weight:700;color:#18181b;margin-bottom:8px;">${t}</h3><p style="color:#52525b;font-size:14px;margin-bottom:12px;">${d}</p><p style="font-size:13px;color:#71717a;margin-bottom:16px;">⏱ ${program.duration} · ${levelLabel}</p><ul style="list-style:none;padding:0;margin:0 0 16px;">${featuresHtml}</ul><div style="border-top:1px solid #e4e4e7;padding-top:16px;display:flex;justify-content:space-between;align-items:center;"><span style="font-size:24px;font-weight:700;color:#18181b;">$${program.price}</span><a href="${program.link}" style="padding:8px 16px;border-radius:12px;${btnStyle};font-size:13px;text-decoration:none;">${detailsLabel}</a></div></div>`
+    return `<div style="background:white;${borderStyle};border-radius:16px;padding:24px;position:relative;">${popularBadge}${soonBadge}<div style="width:48px;height:48px;border-radius:12px;background:${program.gradient};display:flex;align-items:center;justify-content:center;margin-bottom:16px;font-size:20px;">${program.icon}</div><h3 style="font-size:18px;font-weight:700;color:#18181b;margin-bottom:8px;">${t}</h3><p style="color:#52525b;font-size:14px;margin-bottom:12px;">${d}</p><p style="font-size:13px;color:#71717a;margin-bottom:16px;">⏱ ${program.duration} · ${levelLabel}</p><ul style="list-style:none;padding:0;margin:0 0 16px;">${featuresHtml}</ul><div style="border-top:1px solid #e4e4e7;padding-top:16px;display:flex;justify-content:space-between;align-items:center;"><span style="font-size:24px;font-weight:700;color:#18181b;">$${program.price}</span>${buttonHtml}</div></div>`
   }
 
   const mainHtml = mainPrograms.map(p => renderProgram(p, true)).join('')

@@ -58,6 +58,7 @@ export interface ProgramItem {
   featuresRu: string[]
   link: string
   popular?: boolean
+  soon?: boolean
 }
 
 export interface ResultItem {

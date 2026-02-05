@@ -248,13 +248,14 @@ export function ProgramItemEditor({
 
   return (
     <div draggable onDragStart={onDragStart} onDragOver={onDragOver} onDragEnd={onDragEnd}
-      className={`border border-zinc-200 dark:border-zinc-700 rounded-xl overflow-hidden bg-white dark:bg-zinc-900 transition-all ${isDragging ? 'opacity-40' : ''} ${item.popular ? 'ring-2 ring-teal-400' : ''}`}>
+      className={`border border-zinc-200 dark:border-zinc-700 rounded-xl overflow-hidden bg-white dark:bg-zinc-900 transition-all ${isDragging ? 'opacity-40' : ''} ${item.popular ? 'ring-2 ring-teal-400' : ''} ${item.soon ? 'ring-2 ring-amber-400' : ''}`}>
       {/* Header */}
       <div className="flex items-center gap-2 px-3 py-2.5 bg-zinc-50 dark:bg-zinc-800 cursor-pointer select-none" onClick={onToggle}>
         <GripVertical className="w-4 h-4 text-zinc-300 cursor-grab flex-shrink-0" />
         <div className="w-8 h-8 rounded-lg flex items-center justify-center text-lg" style={{ background: item.gradient }}>{item.icon}</div>
         <span className="text-sm font-medium text-zinc-800 dark:text-zinc-200 flex-1 truncate">{title || (lang === 'ru' ? 'Новая программа' : 'New program')}</span>
         {item.popular && <span className="text-[10px] bg-teal-500 text-white px-2 py-0.5 rounded-full">{lang === 'ru' ? 'Хит' : 'Popular'}</span>}
+        {item.soon && <span className="text-[10px] bg-amber-500 text-white px-2 py-0.5 rounded-full">Soon</span>}
         <span className="text-xs text-zinc-500">${item.price}</span>
         <div className="flex gap-0.5">
           <button onClick={e => { e.stopPropagation(); onDuplicate() }} className="p-1 rounded hover:bg-zinc-200 dark:hover:bg-zinc-700"><Copy className="w-3.5 h-3.5 text-zinc-400" /></button>
@@ -281,6 +282,10 @@ export function ProgramItemEditor({
             <label className="flex items-center gap-2 cursor-pointer">
               <input type="checkbox" checked={item.popular || false} onChange={e => u('popular', e.target.checked)} className="w-4 h-4 rounded border-zinc-300 text-teal-500 focus:ring-teal-500" />
               <span className="text-sm text-zinc-700 dark:text-zinc-300">{lang === 'ru' ? 'Популярный' : 'Popular'}</span>
+            </label>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" checked={item.soon || false} onChange={e => u('soon', e.target.checked)} className="w-4 h-4 rounded border-zinc-300 text-amber-500 focus:ring-amber-500" />
+              <span className="text-sm text-zinc-700 dark:text-zinc-300">Soon</span>
             </label>
           </div>
 
