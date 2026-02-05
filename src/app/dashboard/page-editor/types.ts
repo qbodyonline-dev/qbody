@@ -113,6 +113,15 @@ export interface HeroData {
   featuresRu: string[]
   gradient: string
   heroImage?: string  // Optional hero image for two-column layout
+  // Image style settings
+  imageMaxWidth?: string   // e.g., "480px", "100%"
+  imageMaxHeight?: string  // e.g., "600px", "auto"
+  imagePaddingTop?: string
+  imagePaddingBottom?: string
+  imagePaddingLeft?: string
+  imagePaddingRight?: string
+  imageBorderRadius?: string  // e.g., "24px"
+  imageObjectFit?: 'cover' | 'contain' | 'fill' | 'none'
 }
 
 export interface AboutData {

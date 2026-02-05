@@ -248,7 +248,15 @@ export const defaultHeroData: HeroData = {
   features: ['Personal approach', 'Online & in-person', 'Proven results'],
   featuresRu: ['Инд. подход', 'Онлайн и офлайн', 'Результаты'],
   gradient: 'linear-gradient(135deg,#0f766e 0%,#115e59 25%,#134e4a 50%,#18181b 100%)',
-  heroImage: '/images/hero-alexandra.jpg'
+  heroImage: '/images/hero-alexandra.jpg',
+  imageMaxWidth: '480px',
+  imageMaxHeight: '600px',
+  imagePaddingTop: '0',
+  imagePaddingBottom: '0',
+  imagePaddingLeft: '0',
+  imagePaddingRight: '0',
+  imageBorderRadius: '24px',
+  imageObjectFit: 'cover'
 }
 
 export const defaultAboutData: AboutData = {

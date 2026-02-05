@@ -137,6 +137,21 @@ export function renderHeroHTML(data: HeroData, lang: 'en' | 'ru'): string {
   // Two-column layout with image
   if (data.heroImage) {
     const heroId = `hero-${Date.now()}`
+    
+    // Image style settings with defaults
+    const imgMaxWidth = data.imageMaxWidth || '480px'
+    const imgMaxHeight = data.imageMaxHeight || '600px'
+    const imgBorderRadius = data.imageBorderRadius || '24px'
+    const imgObjectFit = data.imageObjectFit || 'cover'
+    const imgPadTop = data.imagePaddingTop || '0'
+    const imgPadRight = data.imagePaddingRight || '0'
+    const imgPadBottom = data.imagePaddingBottom || '0'
+    const imgPadLeft = data.imagePaddingLeft || '0'
+    
+    // Add px if only number
+    const addPx = (val: string) => /^\d+$/.test(val) ? val + 'px' : val
+    const imgPadding = `${addPx(imgPadTop)} ${addPx(imgPadRight)} ${addPx(imgPadBottom)} ${addPx(imgPadLeft)}`
+    
     return `<div style="padding:60px 20px;background:${data.gradient};color:white;">
       <style>
         @media (max-width: 900px) {
@@ -146,7 +161,7 @@ export function renderHeroHTML(data: HeroData, lang: 'en' | 'ru'): string {
           #${heroId} .hero-buttons { justify-content: center !important; }
           #${heroId} .hero-features { text-align: center !important; }
           #${heroId} .hero-image-wrap { order: -1 !important; }
-          #${heroId} .hero-image { max-width: 320px !important; margin: 0 auto !important; }
+          #${heroId} .hero-image { max-width: min(320px, 100%) !important; margin: 0 auto !important; }
         }
       </style>
       <div id="${heroId}">
@@ -162,8 +177,8 @@ export function renderHeroHTML(data: HeroData, lang: 'en' | 'ru'): string {
             </div>
             <p class="hero-features" style="font-size:14px;color:#a1a1aa;">${featuresHtml}</p>
           </div>
-          <div class="hero-image-wrap" style="display:flex;justify-content:center;align-items:center;">
-            <img class="hero-image" src="${data.heroImage}" alt="Hero" style="width:100%;max-width:480px;border-radius:24px;aspect-ratio:4/5;object-fit:cover;box-shadow:0 25px 50px -12px rgba(0,0,0,0.5);" />
+          <div class="hero-image-wrap" style="display:flex;justify-content:center;align-items:center;padding:${imgPadding};">
+            <img class="hero-image" src="${data.heroImage}" alt="Hero" style="width:100%;max-width:${imgMaxWidth};max-height:${imgMaxHeight};border-radius:${imgBorderRadius};object-fit:${imgObjectFit};box-shadow:0 25px 50px -12px rgba(0,0,0,0.5);" />
           </div>
         </div>
       </div>

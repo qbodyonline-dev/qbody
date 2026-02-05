@@ -990,6 +990,107 @@ export function HeroEditor({ data, onChange, lang }: HeroEditorProps) {
           )}
         </div>
 
+        {/* Image Style Settings - only show when image exists */}
+        {data.heroImage && (
+          <div className="p-3 bg-zinc-50 dark:bg-zinc-800 rounded-lg space-y-3">
+            <label className="text-xs font-medium text-zinc-600 dark:text-zinc-400 block flex items-center gap-2">
+              📐 {lang === 'ru' ? 'Настройки изображения' : 'Image Settings'}
+            </label>
+            
+            {/* Max Width & Height */}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs text-zinc-500 block mb-1">{lang === 'ru' ? 'Макс. ширина' : 'Max Width'}</label>
+                <Input 
+                  value={data.imageMaxWidth || '480px'} 
+                  onChange={e => onChange({ ...data, imageMaxWidth: e.target.value })}
+                  placeholder="480px"
+                  className="text-xs h-8"
+                />
+              </div>
+              <div>
+                <label className="text-xs text-zinc-500 block mb-1">{lang === 'ru' ? 'Макс. высота' : 'Max Height'}</label>
+                <Input 
+                  value={data.imageMaxHeight || '600px'} 
+                  onChange={e => onChange({ ...data, imageMaxHeight: e.target.value })}
+                  placeholder="600px"
+                  className="text-xs h-8"
+                />
+              </div>
+            </div>
+
+            {/* Border Radius & Object Fit */}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs text-zinc-500 block mb-1">{lang === 'ru' ? 'Скругление углов' : 'Border Radius'}</label>
+                <Input 
+                  value={data.imageBorderRadius || '24px'} 
+                  onChange={e => onChange({ ...data, imageBorderRadius: e.target.value })}
+                  placeholder="24px"
+                  className="text-xs h-8"
+                />
+              </div>
+              <div>
+                <label className="text-xs text-zinc-500 block mb-1">{lang === 'ru' ? 'Заполнение' : 'Object Fit'}</label>
+                <select 
+                  value={data.imageObjectFit || 'cover'} 
+                  onChange={e => onChange({ ...data, imageObjectFit: e.target.value as any })}
+                  className="w-full h-8 px-2 text-xs border border-zinc-200 dark:border-zinc-700 dark:bg-zinc-900 rounded-lg"
+                >
+                  <option value="cover">Cover ({lang === 'ru' ? 'заполнить' : 'fill area'})</option>
+                  <option value="contain">Contain ({lang === 'ru' ? 'вписать' : 'fit inside'})</option>
+                  <option value="fill">Fill ({lang === 'ru' ? 'растянуть' : 'stretch'})</option>
+                  <option value="none">None ({lang === 'ru' ? 'оригинал' : 'original'})</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Padding */}
+            <div>
+              <label className="text-xs text-zinc-500 block mb-2">{lang === 'ru' ? 'Отступы (padding)' : 'Padding'}</label>
+              <div className="grid grid-cols-4 gap-2">
+                <div>
+                  <label className="text-[10px] text-zinc-400 block mb-0.5">{lang === 'ru' ? 'Верх' : 'Top'}</label>
+                  <Input 
+                    value={data.imagePaddingTop || '0'} 
+                    onChange={e => onChange({ ...data, imagePaddingTop: e.target.value })}
+                    placeholder="0"
+                    className="text-xs h-7"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] text-zinc-400 block mb-0.5">{lang === 'ru' ? 'Право' : 'Right'}</label>
+                  <Input 
+                    value={data.imagePaddingRight || '0'} 
+                    onChange={e => onChange({ ...data, imagePaddingRight: e.target.value })}
+                    placeholder="0"
+                    className="text-xs h-7"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] text-zinc-400 block mb-0.5">{lang === 'ru' ? 'Низ' : 'Bottom'}</label>
+                  <Input 
+                    value={data.imagePaddingBottom || '0'} 
+                    onChange={e => onChange({ ...data, imagePaddingBottom: e.target.value })}
+                    placeholder="0"
+                    className="text-xs h-7"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] text-zinc-400 block mb-0.5">{lang === 'ru' ? 'Лево' : 'Left'}</label>
+                  <Input 
+                    value={data.imagePaddingLeft || '0'} 
+                    onChange={e => onChange({ ...data, imagePaddingLeft: e.target.value })}
+                    placeholder="0"
+                    className="text-xs h-7"
+                  />
+                </div>
+              </div>
+              <p className="text-[10px] text-zinc-400 mt-1">{lang === 'ru' ? 'Значения в px, %, rem' : 'Values in px, %, rem'}</p>
+            </div>
+          </div>
+        )}
+
         {/* Badge */}
         <div className="grid grid-cols-2 gap-3">
           <div>
