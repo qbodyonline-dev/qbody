@@ -1,14 +1,14 @@
 'use client'
-import React, { useState } from 'react'
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import React, { useState, useEffect } from 'react'
+import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { useTranslation } from '@/lib/i18n'
 import {
-  Save, Bell, Mail, Smartphone, Clock, AlertTriangle,
-  Calendar, CreditCard, Dumbbell, ClipboardCheck, MessageSquare,
-  ChevronDown, ChevronRight, Settings, Zap, Send
+  Save, Bell, Mail, Smartphone, Clock,
+  CreditCard, BookOpen, MessageSquare, UserPlus, UserX,
+  ChevronDown, ChevronRight, Zap, Send, Key, ShieldCheck,
+  CheckCircle2, XCircle, RefreshCw
 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -18,14 +18,16 @@ interface NotifRule {
   nameRu: string
   descEn: string
   descRu: string
-  trigger: string
+  category: 'auth' | 'payment' | 'course' | 'message' | 'account'
   icon: any
   color: string
   email: boolean
+  emailConfigurable: boolean // Can this be toggled?
   push: boolean
   telegram: boolean
   enabled: boolean
-  timing: string // e.g. "1h before", "immediately", "3 days before"
+  adminOnly?: boolean // Only sent to admin
+  clientOnly?: boolean // Only sent to client
 }
 
 export default function NotificationsSettingsPage() {
@@ -33,81 +35,415 @@ export default function NotificationsSettingsPage() {
   const ru = locale === 'ru'
   const [isSaving, setIsSaving] = useState(false)
   const [expandedRule, setExpandedRule] = useState<string | null>(null)
+  const [activeCategory, setActiveCategory] = useState<string>('all')
 
   const [rules, setRules] = useState<NotifRule[]>([
-    { id: 'r1', nameEn: 'Missed Workout', nameRu: 'Пропущенная тренировка', descEn: 'When client misses a scheduled workout', descRu: 'Когда клиент пропускает запланированную тренировку', trigger: 'missed_workout', icon: Dumbbell, color: 'bg-red-100 text-red-600', email: true, push: true, telegram: false, enabled: true, timing: 'immediately' },
-    { id: 'r2', nameEn: 'Check-in Reminder', nameRu: 'Напоминание о чек-ине', descEn: 'Remind client to submit weekly check-in', descRu: 'Напомнить клиенту о еженедельном чек-ине', trigger: 'checkin_due', icon: ClipboardCheck, color: 'bg-orange-100 text-orange-600', email: true, push: true, telegram: true, enabled: true, timing: '1h_before' },
-    { id: 'r3', nameEn: 'Payment Due', nameRu: 'Оплата скоро', descEn: 'Remind about upcoming subscription renewal', descRu: 'Напоминание о предстоящем продлении подписки', trigger: 'payment_due', icon: CreditCard, color: 'bg-amber-100 text-amber-600', email: true, push: false, telegram: true, enabled: true, timing: '3d_before' },
-    { id: 'r4', nameEn: 'Payment Overdue', nameRu: 'Просроченная оплата', descEn: 'When payment is overdue', descRu: 'Когда оплата просрочена', trigger: 'payment_overdue', icon: AlertTriangle, color: 'bg-red-100 text-red-600', email: true, push: true, telegram: true, enabled: true, timing: 'immediately' },
-    { id: 'r5', nameEn: 'New Message', nameRu: 'Новое сообщение', descEn: 'When client sends a new message', descRu: 'Когда клиент отправляет новое сообщение', trigger: 'new_message', icon: MessageSquare, color: 'bg-blue-100 text-blue-600', email: false, push: true, telegram: true, enabled: true, timing: 'immediately' },
-    { id: 'r6', nameEn: 'Program Starting', nameRu: 'Начало программы', descEn: 'Remind client that program starts soon', descRu: 'Напомнить клиенту о скором начале программы', trigger: 'program_start', icon: Calendar, color: 'bg-teal-100 text-teal-600', email: true, push: true, telegram: false, enabled: true, timing: '1d_before' },
-    { id: 'r7', nameEn: 'Workout Completed', nameRu: 'Тренировка завершена', descEn: 'Notify trainer when client completes workout', descRu: 'Уведомить тренера о завершении тренировки клиентом', trigger: 'workout_done', icon: Dumbbell, color: 'bg-green-100 text-green-600', email: false, push: true, telegram: false, enabled: false, timing: 'immediately' },
-    { id: 'r8', nameEn: 'Inactive Client', nameRu: 'Неактивный клиент', descEn: 'When client is inactive for 7+ days', descRu: 'Когда клиент неактивен 7+ дней', trigger: 'client_inactive', icon: Clock, color: 'bg-gray-100 text-gray-600', email: true, push: false, telegram: true, enabled: true, timing: '7d_after' },
+    // Authentication
+    {
+      id: 'welcome',
+      nameEn: 'Welcome Email',
+      nameRu: 'Приветственное письмо',
+      descEn: 'Sent when a new user registers',
+      descRu: 'Отправляется при регистрации нового пользователя',
+      category: 'auth',
+      icon: UserPlus,
+      color: 'bg-green-100 text-green-600',
+      email: true,
+      emailConfigurable: false,
+      push: false,
+      telegram: false,
+      enabled: true,
+      clientOnly: true,
+    },
+    {
+      id: 'password_reset',
+      nameEn: 'Password Reset',
+      nameRu: 'Сброс пароля',
+      descEn: 'Sent when user requests password reset',
+      descRu: 'Отправляется при запросе сброса пароля',
+      category: 'auth',
+      icon: Key,
+      color: 'bg-amber-100 text-amber-600',
+      email: true,
+      emailConfigurable: false,
+      push: false,
+      telegram: false,
+      enabled: true,
+      clientOnly: true,
+    },
+    {
+      id: 'password_changed',
+      nameEn: 'Password Changed by Admin',
+      nameRu: 'Пароль изменён админом',
+      descEn: 'Sent when admin resets client password',
+      descRu: 'Отправляется когда админ сбрасывает пароль клиента',
+      category: 'auth',
+      icon: ShieldCheck,
+      color: 'bg-purple-100 text-purple-600',
+      email: true,
+      emailConfigurable: false,
+      push: false,
+      telegram: false,
+      enabled: true,
+      clientOnly: true,
+    },
+    // Payments
+    {
+      id: 'payment_success_client',
+      nameEn: 'Payment Confirmation',
+      nameRu: 'Подтверждение оплаты',
+      descEn: 'Sent to client after successful payment',
+      descRu: 'Отправляется клиенту после успешной оплаты',
+      category: 'payment',
+      icon: CheckCircle2,
+      color: 'bg-green-100 text-green-600',
+      email: true,
+      emailConfigurable: true,
+      push: false,
+      telegram: false,
+      enabled: true,
+      clientOnly: true,
+    },
+    {
+      id: 'payment_success_admin',
+      nameEn: 'New Payment (Admin)',
+      nameRu: 'Новый платёж (Админ)',
+      descEn: 'Notify admin about new payment',
+      descRu: 'Уведомление админа о новом платеже',
+      category: 'payment',
+      icon: CreditCard,
+      color: 'bg-teal-100 text-teal-600',
+      email: true,
+      emailConfigurable: true,
+      push: false,
+      telegram: false,
+      enabled: true,
+      adminOnly: true,
+    },
+    {
+      id: 'payment_refund_client',
+      nameEn: 'Refund Confirmation',
+      nameRu: 'Подтверждение возврата',
+      descEn: 'Sent to client when payment is refunded',
+      descRu: 'Отправляется клиенту при возврате платежа',
+      category: 'payment',
+      icon: RefreshCw,
+      color: 'bg-orange-100 text-orange-600',
+      email: true,
+      emailConfigurable: true,
+      push: false,
+      telegram: false,
+      enabled: true,
+      clientOnly: true,
+    },
+    {
+      id: 'payment_refund_admin',
+      nameEn: 'Refund Processed (Admin)',
+      nameRu: 'Возврат обработан (Админ)',
+      descEn: 'Notify admin about processed refund',
+      descRu: 'Уведомление админа об обработанном возврате',
+      category: 'payment',
+      icon: RefreshCw,
+      color: 'bg-red-100 text-red-600',
+      email: true,
+      emailConfigurable: true,
+      push: false,
+      telegram: false,
+      enabled: true,
+      adminOnly: true,
+    },
+    // Course Access
+    {
+      id: 'course_access_granted',
+      nameEn: 'Course Access Granted',
+      nameRu: 'Доступ к курсу открыт',
+      descEn: 'Sent when client gets access to a course',
+      descRu: 'Отправляется когда клиент получает доступ к курсу',
+      category: 'course',
+      icon: BookOpen,
+      color: 'bg-blue-100 text-blue-600',
+      email: true,
+      emailConfigurable: true,
+      push: false,
+      telegram: false,
+      enabled: true,
+      clientOnly: true,
+    },
+    {
+      id: 'course_access_revoked',
+      nameEn: 'Course Access Revoked',
+      nameRu: 'Доступ к курсу закрыт',
+      descEn: 'Sent when course access is revoked',
+      descRu: 'Отправляется когда доступ к курсу отозван',
+      category: 'course',
+      icon: XCircle,
+      color: 'bg-red-100 text-red-600',
+      email: true,
+      emailConfigurable: true,
+      push: false,
+      telegram: false,
+      enabled: true,
+      clientOnly: true,
+    },
+    // Messages
+    {
+      id: 'new_message_client',
+      nameEn: 'New Message (Client)',
+      nameRu: 'Новое сообщение (Клиент)',
+      descEn: 'Sent to client when trainer sends a message',
+      descRu: 'Отправляется клиенту когда тренер пишет сообщение',
+      category: 'message',
+      icon: MessageSquare,
+      color: 'bg-blue-100 text-blue-600',
+      email: true,
+      emailConfigurable: true,
+      push: false,
+      telegram: false,
+      enabled: true,
+      clientOnly: true,
+    },
+    {
+      id: 'new_message_admin',
+      nameEn: 'New Message (Admin)',
+      nameRu: 'Новое сообщение (Админ)',
+      descEn: 'Sent to admin when client sends a message',
+      descRu: 'Отправляется админу когда клиент пишет сообщение',
+      category: 'message',
+      icon: MessageSquare,
+      color: 'bg-purple-100 text-purple-600',
+      email: true,
+      emailConfigurable: true,
+      push: false,
+      telegram: false,
+      enabled: true,
+      adminOnly: true,
+    },
+    // Account
+    {
+      id: 'new_client_admin',
+      nameEn: 'New Client Registration',
+      nameRu: 'Регистрация нового клиента',
+      descEn: 'Notify admin about new client registration',
+      descRu: 'Уведомление админа о регистрации нового клиента',
+      category: 'account',
+      icon: UserPlus,
+      color: 'bg-teal-100 text-teal-600',
+      email: true,
+      emailConfigurable: true,
+      push: false,
+      telegram: false,
+      enabled: true,
+      adminOnly: true,
+    },
+    {
+      id: 'client_onboarded',
+      nameEn: 'Client Onboarded',
+      nameRu: 'Клиент добавлен',
+      descEn: 'Welcome email when admin creates a client',
+      descRu: 'Приветственное письмо когда админ создаёт клиента',
+      category: 'account',
+      icon: UserPlus,
+      color: 'bg-green-100 text-green-600',
+      email: true,
+      emailConfigurable: false,
+      push: false,
+      telegram: false,
+      enabled: true,
+      clientOnly: true,
+    },
+    {
+      id: 'account_deleted',
+      nameEn: 'Account Deleted',
+      nameRu: 'Аккаунт удалён',
+      descEn: 'Confirmation when account is deleted',
+      descRu: 'Подтверждение удаления аккаунта',
+      category: 'account',
+      icon: UserX,
+      color: 'bg-red-100 text-red-600',
+      email: true,
+      emailConfigurable: false,
+      push: false,
+      telegram: false,
+      enabled: true,
+    },
   ])
 
-  const updateRule = (id: string, patch: Partial<NotifRule>) => setRules(rules.map(r => r.id === id ? { ...r, ...patch } : r))
-  const handleSave = async () => { setIsSaving(true); await new Promise(r => setTimeout(r, 800)); toast.success(ru ? 'Настройки уведомлений сохранены!' : 'Notification settings saved!'); setIsSaving(false) }
-
-  const timingOptions = [
-    { v: 'immediately', en: 'Immediately', ru: 'Сразу' },
-    { v: '15m_before', en: '15 min before', ru: 'За 15 мин' },
-    { v: '1h_before', en: '1 hour before', ru: 'За 1 час' },
-    { v: '3h_before', en: '3 hours before', ru: 'За 3 часа' },
-    { v: '1d_before', en: '1 day before', ru: 'За 1 день' },
-    { v: '3d_before', en: '3 days before', ru: 'За 3 дня' },
-    { v: '7d_after', en: '7 days after', ru: 'Через 7 дней' },
+  const categories = [
+    { id: 'all', nameEn: 'All', nameRu: 'Все', icon: Bell },
+    { id: 'auth', nameEn: 'Authentication', nameRu: 'Аутентификация', icon: Key },
+    { id: 'payment', nameEn: 'Payments', nameRu: 'Платежи', icon: CreditCard },
+    { id: 'course', nameEn: 'Courses', nameRu: 'Курсы', icon: BookOpen },
+    { id: 'message', nameEn: 'Messages', nameRu: 'Сообщения', icon: MessageSquare },
+    { id: 'account', nameEn: 'Account', nameRu: 'Аккаунт', icon: UserPlus },
   ]
 
+  const filteredRules = activeCategory === 'all' 
+    ? rules 
+    : rules.filter(r => r.category === activeCategory)
+
+  const updateRule = (id: string, patch: Partial<NotifRule>) => {
+    setRules(rules.map(r => r.id === id ? { ...r, ...patch } : r))
+  }
+
+  const handleSave = async () => {
+    setIsSaving(true)
+    try {
+      // Save to API
+      const response = await fetch('/api/settings', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          notification_settings: rules.reduce((acc, r) => ({
+            ...acc,
+            [r.id]: { email: r.email, push: r.push, telegram: r.telegram, enabled: r.enabled }
+          }), {})
+        })
+      })
+      
+      if (!response.ok) throw new Error('Failed to save')
+      toast.success(ru ? 'Настройки уведомлений сохранены!' : 'Notification settings saved!')
+    } catch (error) {
+      toast.error(ru ? 'Ошибка сохранения' : 'Failed to save settings')
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
   const enabledCount = rules.filter(r => r.enabled).length
+  const emailCount = rules.filter(r => r.enabled && r.email).length
 
   return (
     <div className="space-y-6 max-w-4xl">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-zinc-900">{ru ? 'Уведомления' : 'Notifications'}</h1>
-          <p className="text-zinc-500 mt-1">{ru ? 'Настройте автоматические уведомления для клиентов' : 'Configure automatic notifications for clients'}</p>
+          <p className="text-zinc-500 mt-1">{ru ? 'Настройте email-уведомления для клиентов и админа' : 'Configure email notifications for clients and admin'}</p>
         </div>
-        <Button variant="gradient" onClick={handleSave} disabled={isSaving}><Save className="w-4 h-4 mr-2" />{isSaving ? '...' : ru ? 'Сохранить' : 'Save'}</Button>
+        <Button variant="gradient" onClick={handleSave} disabled={isSaving}>
+          <Save className="w-4 h-4 mr-2" />{isSaving ? '...' : ru ? 'Сохранить' : 'Save'}
+        </Button>
       </div>
 
       {/* Summary */}
-      <div className="grid grid-cols-3 gap-4">
-        <Card><CardContent className="p-4 flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-teal-100 flex items-center justify-center"><Zap className="w-5 h-5 text-teal-600" /></div>
-          <div><div className="text-xl font-bold">{enabledCount}/{rules.length}</div><div className="text-xs text-zinc-500">{ru ? 'Активных' : 'Active'}</div></div>
-        </CardContent></Card>
-        <Card><CardContent className="p-4 flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center"><Mail className="w-5 h-5 text-blue-600" /></div>
-          <div><div className="text-xl font-bold">{rules.filter(r => r.enabled && r.email).length}</div><div className="text-xs text-zinc-500">Email</div></div>
-        </CardContent></Card>
-        <Card><CardContent className="p-4 flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-purple-100 flex items-center justify-center"><Send className="w-5 h-5 text-purple-600" /></div>
-          <div><div className="text-xl font-bold">{rules.filter(r => r.enabled && r.telegram).length}</div><div className="text-xs text-zinc-500">Telegram</div></div>
-        </CardContent></Card>
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <Card>
+          <CardContent className="p-4 flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-teal-100 flex items-center justify-center">
+              <Zap className="w-5 h-5 text-teal-600" />
+            </div>
+            <div>
+              <div className="text-xl font-bold">{enabledCount}/{rules.length}</div>
+              <div className="text-xs text-zinc-500">{ru ? 'Активных' : 'Active'}</div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4 flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center">
+              <Mail className="w-5 h-5 text-blue-600" />
+            </div>
+            <div>
+              <div className="text-xl font-bold">{emailCount}</div>
+              <div className="text-xs text-zinc-500">Email</div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4 flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-purple-100 flex items-center justify-center">
+              <Smartphone className="w-5 h-5 text-purple-600" />
+            </div>
+            <div>
+              <div className="text-xl font-bold flex items-center gap-1">
+                <span className="text-zinc-300">—</span>
+              </div>
+              <div className="text-xs text-zinc-400">Push <Badge variant="outline" className="ml-1 text-[10px] px-1">Soon</Badge></div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4 flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-sky-100 flex items-center justify-center">
+              <Send className="w-5 h-5 text-sky-600" />
+            </div>
+            <div>
+              <div className="text-xl font-bold flex items-center gap-1">
+                <span className="text-zinc-300">—</span>
+              </div>
+              <div className="text-xs text-zinc-400">Telegram <Badge variant="outline" className="ml-1 text-[10px] px-1">Soon</Badge></div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Category Tabs */}
+      <div className="flex gap-2 overflow-x-auto pb-2">
+        {categories.map(cat => {
+          const Icon = cat.icon
+          const isActive = activeCategory === cat.id
+          const count = cat.id === 'all' ? rules.length : rules.filter(r => r.category === cat.id).length
+          return (
+            <button
+              key={cat.id}
+              onClick={() => setActiveCategory(cat.id)}
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition-all ${
+                isActive 
+                  ? 'bg-zinc-900 text-white' 
+                  : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200'
+              }`}
+            >
+              <Icon className="w-4 h-4" />
+              {ru ? cat.nameRu : cat.nameEn}
+              <span className={`text-xs ${isActive ? 'text-zinc-400' : 'text-zinc-400'}`}>({count})</span>
+            </button>
+          )
+        })}
       </div>
 
       {/* Rules */}
       <div className="space-y-3">
-        {rules.map(rule => {
+        {filteredRules.map(rule => {
           const Icon = rule.icon
           const isExpanded = expandedRule === rule.id
           return (
             <Card key={rule.id} className={!rule.enabled ? 'opacity-60' : ''}>
-              <div className="flex items-center gap-4 p-4 cursor-pointer" onClick={() => setExpandedRule(isExpanded ? null : rule.id)}>
-                <div className={`w-10 h-10 rounded-xl ${rule.color} flex items-center justify-center flex-shrink-0`}><Icon className="w-5 h-5" /></div>
+              <div 
+                className="flex items-center gap-4 p-4 cursor-pointer" 
+                onClick={() => setExpandedRule(isExpanded ? null : rule.id)}
+              >
+                <div className={`w-10 h-10 rounded-xl ${rule.color} flex items-center justify-center flex-shrink-0`}>
+                  <Icon className="w-5 h-5" />
+                </div>
                 <div className="flex-1 min-w-0">
-                  <p className="font-medium text-sm text-zinc-900">{ru ? rule.nameRu : rule.nameEn}</p>
+                  <div className="flex items-center gap-2">
+                    <p className="font-medium text-sm text-zinc-900">{ru ? rule.nameRu : rule.nameEn}</p>
+                    {rule.adminOnly && (
+                      <Badge variant="outline" className="text-[10px] px-1.5 py-0">Admin</Badge>
+                    )}
+                    {rule.clientOnly && (
+                      <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-teal-200 text-teal-600">Client</Badge>
+                    )}
+                  </div>
                   <p className="text-xs text-zinc-400 truncate">{ru ? rule.descRu : rule.descEn}</p>
                 </div>
                 <div className="flex items-center gap-2">
-                  {rule.email && <Mail className="w-4 h-4 text-zinc-400" />}
-                  {rule.push && <Smartphone className="w-4 h-4 text-zinc-400" />}
-                  {rule.telegram && <Send className="w-4 h-4 text-zinc-400" />}
+                  {rule.email && rule.enabled && <Mail className="w-4 h-4 text-blue-500" />}
+                  {rule.push && rule.enabled && <Smartphone className="w-4 h-4 text-zinc-300" />}
+                  {rule.telegram && rule.enabled && <Send className="w-4 h-4 text-zinc-300" />}
                 </div>
-                <div className={`w-10 h-6 rounded-full transition-colors flex items-center px-0.5 cursor-pointer ${rule.enabled ? 'bg-teal-500' : 'bg-zinc-300'}`}
-                  onClick={(e) => { e.stopPropagation(); updateRule(rule.id, { enabled: !rule.enabled }) }}>
-                  <div className={`w-5 h-5 bg-white rounded-full shadow transition-transform ${rule.enabled ? 'translate-x-4' : ''}`} />
-                </div>
+                {rule.emailConfigurable && (
+                  <div 
+                    className={`w-10 h-6 rounded-full transition-colors flex items-center px-0.5 cursor-pointer ${
+                      rule.enabled ? 'bg-teal-500' : 'bg-zinc-300'
+                    }`}
+                    onClick={(e) => { e.stopPropagation(); updateRule(rule.id, { enabled: !rule.enabled }) }}
+                  >
+                    <div className={`w-5 h-5 bg-white rounded-full shadow transition-transform ${rule.enabled ? 'translate-x-4' : ''}`} />
+                  </div>
+                )}
+                {!rule.emailConfigurable && (
+                  <Badge variant="outline" className="text-[10px]">{ru ? 'Обязат.' : 'Required'}</Badge>
+                )}
                 {isExpanded ? <ChevronDown className="w-4 h-4 text-zinc-400" /> : <ChevronRight className="w-4 h-4 text-zinc-400" />}
               </div>
 
@@ -115,30 +451,53 @@ export default function NotificationsSettingsPage() {
                 <CardContent className="pt-0 pb-4 px-4 border-t border-zinc-100">
                   <div className="space-y-4 mt-4">
                     <div>
-                      <label className="text-sm font-medium text-zinc-700 mb-3 block">{ru ? 'Каналы доставки' : 'Delivery channels'}</label>
-                      <div className="flex gap-3">
-                        {[
-                          { key: 'email' as const, icon: Mail, label: 'Email' },
-                          { key: 'push' as const, icon: Smartphone, label: 'Push' },
-                          { key: 'telegram' as const, icon: Send, label: 'Telegram' },
-                        ].map(ch => (
-                          <button key={ch.key} onClick={() => updateRule(rule.id, { [ch.key]: !rule[ch.key] })}
-                            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border text-sm font-medium transition-all ${rule[ch.key] ? 'border-teal-500 bg-teal-50 text-teal-700' : 'border-zinc-200 text-zinc-400'}`}>
-                            <ch.icon className="w-4 h-4" />{ch.label}
-                          </button>
-                        ))}
+                      <label className="text-sm font-medium text-zinc-700 mb-3 block">
+                        {ru ? 'Каналы доставки' : 'Delivery channels'}
+                      </label>
+                      <div className="flex flex-wrap gap-3">
+                        {/* Email - always available */}
+                        <button 
+                          onClick={() => rule.emailConfigurable && updateRule(rule.id, { email: !rule.email })}
+                          disabled={!rule.emailConfigurable}
+                          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border text-sm font-medium transition-all ${
+                            rule.email 
+                              ? 'border-blue-500 bg-blue-50 text-blue-700' 
+                              : 'border-zinc-200 text-zinc-400'
+                          } ${!rule.emailConfigurable ? 'opacity-75 cursor-not-allowed' : ''}`}
+                        >
+                          <Mail className="w-4 h-4" />
+                          Email
+                          {rule.email && <CheckCircle2 className="w-3 h-3" />}
+                        </button>
+                        
+                        {/* Push - coming soon */}
+                        <button 
+                          disabled
+                          className="flex items-center gap-2 px-4 py-2.5 rounded-xl border text-sm font-medium border-zinc-100 text-zinc-300 cursor-not-allowed"
+                        >
+                          <Smartphone className="w-4 h-4" />
+                          Push
+                          <Badge variant="outline" className="text-[10px] px-1 ml-1">Soon</Badge>
+                        </button>
+                        
+                        {/* Telegram - coming soon */}
+                        <button 
+                          disabled
+                          className="flex items-center gap-2 px-4 py-2.5 rounded-xl border text-sm font-medium border-zinc-100 text-zinc-300 cursor-not-allowed"
+                        >
+                          <Send className="w-4 h-4" />
+                          Telegram
+                          <Badge variant="outline" className="text-[10px] px-1 ml-1">Soon</Badge>
+                        </button>
                       </div>
                     </div>
-                    <div>
-                      <label className="text-sm font-medium text-zinc-700 mb-1.5 block">{ru ? 'Когда отправлять' : 'When to send'}</label>
-                      <select className="w-full h-11 px-4 rounded-xl border border-zinc-200 text-sm" value={rule.timing}
-                        onChange={e => updateRule(rule.id, { timing: e.target.value })}>
-                        {timingOptions.map(o => <option key={o.v} value={o.v}>{ru ? o.ru : o.en}</option>)}
-                      </select>
-                    </div>
-                    <div className="grid sm:grid-cols-2 gap-3">
-                      <Input label={ru ? 'Текст (EN)' : 'Message (EN)'} defaultValue={rule.nameEn} />
-                      <Input label={ru ? 'Текст (RU)' : 'Message (RU)'} defaultValue={rule.nameRu} />
+                    
+                    <div className="p-3 bg-zinc-50 rounded-xl">
+                      <p className="text-xs text-zinc-500">
+                        {ru 
+                          ? 'Push-уведомления и Telegram будут доступны после запуска мобильного приложения.' 
+                          : 'Push notifications and Telegram will be available after the mobile app launch.'}
+                      </p>
                     </div>
                   </div>
                 </CardContent>
@@ -147,6 +506,25 @@ export default function NotificationsSettingsPage() {
           )
         })}
       </div>
+
+      {/* Info */}
+      <Card className="bg-gradient-to-r from-blue-50 to-purple-50 border-blue-100">
+        <CardContent className="p-4">
+          <div className="flex items-start gap-3">
+            <div className="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center flex-shrink-0">
+              <Bell className="w-4 h-4 text-blue-600" />
+            </div>
+            <div>
+              <p className="font-medium text-sm text-zinc-900">{ru ? 'О системе уведомлений' : 'About notifications'}</p>
+              <p className="text-xs text-zinc-500 mt-1">
+                {ru 
+                  ? 'Email-уведомления отправляются автоматически через Resend. Все письма на английском языке. Push-уведомления и интеграция с Telegram будут добавлены в будущих версиях.' 
+                  : 'Email notifications are sent automatically via Resend. All emails are in English. Push notifications and Telegram integration will be added in future versions.'}
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   )
 }

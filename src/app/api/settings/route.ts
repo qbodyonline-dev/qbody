@@ -115,3 +115,48 @@ export async function PUT(request: Request) {
     return NextResponse.json({ error: err.message }, { status: 500 })
   }
 }
+
+// PATCH - Update settings (simplified for notification settings)
+export async function PATCH(request: Request) {
+  try {
+    const supabase = createServerClient()
+    const body = await request.json()
+    
+    // Handle notification_settings or any other settings
+    const results = []
+    const errors = []
+
+    for (const [key, value] of Object.entries(body)) {
+      const { data, error } = await supabase
+        .from('site_settings')
+        .upsert({ 
+          key, 
+          value,
+          updated_at: new Date().toISOString()
+        }, { 
+          onConflict: 'key' 
+        })
+        .select()
+        .single()
+
+      if (error) {
+        errors.push({ key, error: error.message })
+      } else {
+        results.push(data)
+      }
+    }
+
+    if (errors.length > 0) {
+      return NextResponse.json({ 
+        success: false, 
+        errors,
+        saved: results 
+      }, { status: 207 })
+    }
+
+    return NextResponse.json({ success: true, saved: results })
+  } catch (err: any) {
+    console.error('PATCH /api/settings error:', err)
+    return NextResponse.json({ error: err.message }, { status: 500 })
+  }
+}
