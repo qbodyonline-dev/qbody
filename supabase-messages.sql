@@ -1,6 +1,7 @@
 -- =============================================
 -- Messages/Chat Schema
 -- Run this in Supabase SQL Editor
+-- Safe to run multiple times (idempotent)
 -- =============================================
 
 -- =============================================
@@ -15,30 +16,46 @@ CREATE TABLE IF NOT EXISTS public.conversations (
     status TEXT NOT NULL DEFAULT 'open' CHECK (status IN ('open', 'closed', 'archived')),
     last_message_at TIMESTAMPTZ DEFAULT NOW(),
     created_at TIMESTAMPTZ DEFAULT NOW(),
-    updated_at TIMESTAMPTZ DEFAULT NOW(),
-    UNIQUE(client_id)
+    updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- RLS for conversations
+-- Add unique constraint if not exists
+DO $$ 
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'conversations_client_id_key') THEN
+        ALTER TABLE public.conversations ADD CONSTRAINT conversations_client_id_key UNIQUE (client_id);
+    END IF;
+END $$;
+
+-- Enable RLS
 ALTER TABLE public.conversations ENABLE ROW LEVEL SECURITY;
 
--- Clients can only view their own conversations
+-- Drop existing policies if they exist
+DROP POLICY IF EXISTS "Clients can view own conversations" ON public.conversations;
+DROP POLICY IF EXISTS "Clients can create conversations" ON public.conversations;
+DROP POLICY IF EXISTS "Admins can view all conversations" ON public.conversations;
+DROP POLICY IF EXISTS "Admins can update conversations" ON public.conversations;
+DROP POLICY IF EXISTS "Admins can insert conversations" ON public.conversations;
+
+-- Create policies
 CREATE POLICY "Clients can view own conversations" ON public.conversations
     FOR SELECT USING (auth.uid() = client_id);
 
--- Clients can create conversations
 CREATE POLICY "Clients can create conversations" ON public.conversations
     FOR INSERT WITH CHECK (auth.uid() = client_id);
 
--- Admins can view all conversations
 CREATE POLICY "Admins can view all conversations" ON public.conversations
     FOR SELECT USING (
         EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role IN ('admin', 'trainer'))
     );
 
--- Admins can update conversations
 CREATE POLICY "Admins can update conversations" ON public.conversations
     FOR UPDATE USING (
+        EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role IN ('admin', 'trainer'))
+    );
+
+CREATE POLICY "Admins can insert conversations" ON public.conversations
+    FOR INSERT WITH CHECK (
         EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role IN ('admin', 'trainer'))
     );
 
@@ -55,15 +72,23 @@ CREATE TABLE IF NOT EXISTS public.messages (
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Index for faster queries
+-- Create indexes if not exist
 CREATE INDEX IF NOT EXISTS idx_messages_conversation_id ON public.messages(conversation_id);
 CREATE INDEX IF NOT EXISTS idx_messages_created_at ON public.messages(created_at);
 CREATE INDEX IF NOT EXISTS idx_conversations_last_message ON public.conversations(last_message_at DESC);
 
--- RLS for messages
+-- Enable RLS
 ALTER TABLE public.messages ENABLE ROW LEVEL SECURITY;
 
--- Clients can view messages in their own conversations
+-- Drop existing policies if they exist
+DROP POLICY IF EXISTS "Clients can view own messages" ON public.messages;
+DROP POLICY IF EXISTS "Clients can send messages" ON public.messages;
+DROP POLICY IF EXISTS "Admins can view all messages" ON public.messages;
+DROP POLICY IF EXISTS "Admins can send messages" ON public.messages;
+DROP POLICY IF EXISTS "Admins can update messages" ON public.messages;
+DROP POLICY IF EXISTS "Clients can update own messages" ON public.messages;
+
+-- Create policies
 CREATE POLICY "Clients can view own messages" ON public.messages
     FOR SELECT USING (
         EXISTS (
@@ -73,7 +98,6 @@ CREATE POLICY "Clients can view own messages" ON public.messages
         )
     );
 
--- Clients can send messages in their own conversations
 CREATE POLICY "Clients can send messages" ON public.messages
     FOR INSERT WITH CHECK (
         auth.uid() = sender_id AND
@@ -84,26 +108,22 @@ CREATE POLICY "Clients can send messages" ON public.messages
         )
     );
 
--- Admins can view all messages
 CREATE POLICY "Admins can view all messages" ON public.messages
     FOR SELECT USING (
         EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role IN ('admin', 'trainer'))
     );
 
--- Admins can send messages
 CREATE POLICY "Admins can send messages" ON public.messages
     FOR INSERT WITH CHECK (
         auth.uid() = sender_id AND
         EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role IN ('admin', 'trainer'))
     );
 
--- Admins can update messages (mark as read)
 CREATE POLICY "Admins can update messages" ON public.messages
     FOR UPDATE USING (
         EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role IN ('admin', 'trainer'))
     );
 
--- Clients can update messages (mark as read)
 CREATE POLICY "Clients can update own messages" ON public.messages
     FOR UPDATE USING (
         EXISTS (
@@ -128,7 +148,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- Trigger to update last_message_at
+-- Drop and recreate trigger
 DROP TRIGGER IF EXISTS on_new_message ON public.messages;
 CREATE TRIGGER on_new_message
     AFTER INSERT ON public.messages
@@ -141,12 +161,25 @@ CREATE TRIGGER update_conversations_updated_at
     FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 
 -- =============================================
--- 4. REALTIME SUBSCRIPTIONS (Enable in Supabase Dashboard)
+-- 4. REALTIME SUBSCRIPTIONS
 -- =============================================
--- Go to Database > Replication and enable:
--- - public.messages
--- - public.conversations
+-- Enable realtime for messages and conversations
+DO $$ 
+BEGIN
+    -- Try to add tables to realtime publication
+    BEGIN
+        ALTER PUBLICATION supabase_realtime ADD TABLE public.messages;
+    EXCEPTION WHEN duplicate_object THEN
+        -- Table already in publication, ignore
+    END;
+    
+    BEGIN
+        ALTER PUBLICATION supabase_realtime ADD TABLE public.conversations;
+    EXCEPTION WHEN duplicate_object THEN
+        -- Table already in publication, ignore
+    END;
+END $$;
 
--- Or run this SQL:
-ALTER PUBLICATION supabase_realtime ADD TABLE public.messages;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.conversations;
+-- =============================================
+-- DONE! Tables and policies created successfully
+-- =============================================
