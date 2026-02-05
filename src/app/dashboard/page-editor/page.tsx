@@ -723,7 +723,7 @@ export default function PageEditorPage() {
   const [active, setActive] = useState('hero')
   const [loading, setLoading] = useState(true)
 
-  // Load blocks from database on mount
+  // Load blocks from database on mount, or save defaults if DB is empty
   useEffect(() => {
     const loadBlocks = async () => {
       try {
@@ -732,7 +732,12 @@ export default function PageEditorPage() {
           const data = await res.json()
           if (data.blocks && data.blocks.length > 0) {
             setBlocks(data.blocks)
-            setActive(data.blocks[0]?.id || 'hero')
+            setActive(data.blocks.find((b: any) => b.type === 'hero')?.id || data.blocks[0]?.id || 'hero')
+          } else {
+            // No blocks in DB — save defaults
+            console.log('No blocks in DB, saving defaults...')
+            await saveBlocksToDB(initBlocks)
+            setActive('hero')
           }
         }
       } catch (err) {
@@ -742,7 +747,26 @@ export default function PageEditorPage() {
       }
     }
     loadBlocks()
-  }, [])
+  }, []) // eslint-disable-line
+
+  // Helper to save blocks to DB
+  const saveBlocksToDB = async (blocksToSave: PB[]) => {
+    try {
+      const res = await fetch('/api/page-blocks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pageSlug: 'home', blocks: blocksToSave })
+      })
+      if (!res.ok) {
+        const err = await res.json()
+        console.error('Save failed:', err)
+      } else {
+        console.log('Blocks saved to DB successfully')
+      }
+    } catch (err) {
+      console.error('Save error:', err)
+    }
+  }
   const [preview, setPreview] = useState(false)
   const [device, setDevice] = useState<'desktop'|'mobile'|'tablet'>('desktop')
   const [lt, setLt] = useState<'en'|'ru'>('ru')
@@ -825,6 +849,13 @@ export default function PageEditorPage() {
           <button onClick={()=>setFullscreen(!fullscreen)} className="p-1.5 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800" title="Fullscreen"><Maximize2 className="w-4 h-4" /></button>
           <button onClick={exportJSON} className="p-1.5 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800" title="Export JSON"><Download className="w-4 h-4" /></button>
           <button onClick={importJSON} className="p-1.5 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800" title="Import JSON"><Upload className="w-4 h-4" /></button>
+          <Button variant="outline" size="sm" onClick={async()=>{
+            if(!confirm(lang==='ru'?'Сбросить все блоки к исходным? Несохранённые правки будут потеряны.':'Reset all blocks to defaults? Unsaved changes will be lost.')) return
+            push(initBlocks)
+            await saveBlocksToDB(initBlocks)
+            setActive('hero')
+            toast.success(lang==='ru'?'Сброшено к дефолтам':'Reset to defaults!')
+          }}>{lang==='ru'?'Сброс':'Reset'}</Button>
           <Button variant="gradient" size="sm" onClick={async()=>{
             try {
               const res = await fetch('/api/page-blocks', {
