@@ -8,6 +8,7 @@ import { useTranslation } from '@/lib/i18n'
 import { LanguageSwitcher } from '@/components/ui/language-switcher'
 import { Mail, ArrowLeft, CheckCircle2 } from 'lucide-react'
 import { toast } from 'sonner'
+import { createClient } from '@/lib/supabase'
 
 export default function ForgotPasswordPage() {
   const { t } = useTranslation()
@@ -19,12 +20,25 @@ export default function ForgotPasswordPage() {
     e.preventDefault()
     setIsLoading(true)
     
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1500))
-    
-    setIsLoading(false)
-    setIsSent(true)
-    toast.success(t('auth.forgotPassword.success'))
+    try {
+      const supabase = createClient()
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/auth/reset-password`,
+      })
+      
+      if (error) {
+        toast.error(error.message)
+        setIsLoading(false)
+        return
+      }
+      
+      setIsSent(true)
+      toast.success(t('auth.forgotPassword.success'))
+    } catch {
+      toast.error('Something went wrong')
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (

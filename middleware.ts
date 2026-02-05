@@ -36,6 +36,7 @@ export async function middleware(request: NextRequest) {
   }
 
   // Already logged in going to login — redirect to dashboard
+  // (but allow reset-password page for password recovery flow)
   if (request.nextUrl.pathname === '/auth/login' && user) {
     return NextResponse.redirect(new URL('/dashboard', request.url))
   }
