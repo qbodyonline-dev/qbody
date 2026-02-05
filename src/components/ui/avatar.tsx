@@ -7,7 +7,7 @@ interface AvatarProps extends React.HTMLAttributes<HTMLDivElement> {
   src?: string
   alt?: string
   fallback?: string
-  size?: 'xs' | 'sm' | 'md' | 'lg'
+  size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl'
 }
 
 const sizeClasses = {
@@ -15,10 +15,16 @@ const sizeClasses = {
   sm: 'w-8 h-8 text-xs',
   md: 'w-10 h-10 text-sm',
   lg: 'w-12 h-12 text-base',
+  xl: 'w-20 h-20 text-xl',
 }
 
 export function Avatar({ className, src, alt, fallback, size = 'md', ...props }: AvatarProps) {
   const [error, setError] = React.useState(false)
+
+  // Reset error state when src changes
+  React.useEffect(() => {
+    setError(false)
+  }, [src])
 
   return (
     <div
@@ -32,7 +38,7 @@ export function Avatar({ className, src, alt, fallback, size = 'md', ...props }:
       {src && !error ? (
         <img
           src={src}
-          alt={alt}
+          alt={alt || 'Avatar'}
           className="aspect-square h-full w-full object-cover"
           onError={() => setError(true)}
         />
@@ -44,5 +50,3 @@ export function Avatar({ className, src, alt, fallback, size = 'md', ...props }:
     </div>
   )
 }
-// v2 
-// fix 
