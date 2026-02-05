@@ -7,7 +7,6 @@ import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { useTranslation } from '@/lib/i18n'
-import { useAuth } from '@/lib/auth'
 import { LanguageSwitcher } from '@/components/ui/language-switcher'
 import { Mail, Lock, User, ArrowLeft, CheckCircle2 } from 'lucide-react'
 import { toast } from 'sonner'
@@ -19,7 +18,7 @@ export default function RegisterPage() {
 function RegisterContent() {
   const { t } = useTranslation()
   const router = useRouter()
-  const { signUp } = useAuth()
+  // Registration is handled via /api/auth/register
   const searchParams = useSearchParams()
   const courseId = searchParams.get('course')
   const [isLoading, setIsLoading] = useState(false)
@@ -30,15 +29,30 @@ function RegisterContent() {
     if (formData.password !== formData.confirmPassword) { toast.error('Passwords do not match'); return }
     if (formData.password.length < 6) { toast.error('Password must be at least 6 characters'); return }
     setIsLoading(true)
-    const { error } = await signUp(formData.email, formData.password, formData.name)
-    if (error) {
-      toast.error(error)
+    try {
+      const res = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: formData.email,
+          password: formData.password,
+          name: formData.name,
+          courseSlug: courseId || undefined,
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        toast.error(data.error || 'Registration failed')
+        setIsLoading(false)
+        return
+      }
+      toast.success('Registration successful! Welcome aboard!')
+      router.push('/auth/login')
+    } catch {
+      toast.error('Something went wrong')
+    } finally {
       setIsLoading(false)
-      return
     }
-    toast.success('Registration successful! Check your email to confirm.')
-    router.push('/auth/login')
-    setIsLoading(false)
   }
 
   return (

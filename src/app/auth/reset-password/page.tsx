@@ -60,12 +60,25 @@ export default function ResetPasswordPage() {
     
     try {
       const supabase = createClient()
+      
+      // Get current user before updating
+      const { data: { user } } = await supabase.auth.getUser()
+      
       const { error } = await supabase.auth.updateUser({ password })
       
       if (error) {
         toast.error(error.message)
         setIsLoading(false)
         return
+      }
+      
+      // Send password reset success email notification
+      if (user?.id) {
+        fetch('/api/auth/password-reset-success', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId: user.id }),
+        }).catch(() => {}) // non-blocking
       }
       
       // Sign out after password change so user logs in with new password
