@@ -55,8 +55,6 @@ export default function LessonPage() {
   const [lessonIndex, setLessonIndex] = useState(0)
   const [totalLessons, setTotalLessons] = useState(0)
 
-  const ru = locale === 'ru'
-
   useEffect(() => {
     if (!user) return
 
@@ -114,7 +112,7 @@ export default function LessonPage() {
 
       // Update local state
       setCurrentLesson(prev => prev ? { ...prev, completed: true } : null)
-      toast.success(ru ? 'Урок отмечен как пройденный!' : 'Lesson marked as complete!')
+      toast.success(t('client.lesson.lessonMarkedComplete'))
 
       // Auto-navigate to next lesson after delay
       if (nextLesson) {
@@ -124,11 +122,11 @@ export default function LessonPage() {
       }
     } catch (err) {
       console.error('Failed to save progress:', err)
-      toast.error(ru ? 'Ошибка сохранения прогресса' : 'Failed to save progress')
+      toast.error(t('client.lesson.failedToSave'))
     } finally {
       setSaving(false)
     }
-  }, [currentLesson, lessonId, nextLesson, courseSlug, router, ru])
+  }, [currentLesson, lessonId, nextLesson, courseSlug, router, t])
 
   if (loading) {
     return (
@@ -143,12 +141,12 @@ export default function LessonPage() {
       <div className="text-center py-20">
         <BookOpen className="w-16 h-16 mx-auto text-zinc-300 mb-4" />
         <h2 className="text-xl font-semibold text-zinc-900 mb-2">
-          {ru ? 'Урок не найден' : 'Lesson not found'}
+          {t('client.lesson.notFound')}
         </h2>
         <Link href={`/client/courses/${courseSlug}`}>
           <Button variant="outline">
             <ArrowLeft className="w-4 h-4 mr-2" />
-            {ru ? 'Назад к курсу' : 'Back to course'}
+            {t('client.lesson.backToCourse')}
           </Button>
         </Link>
       </div>
@@ -208,8 +206,8 @@ export default function LessonPage() {
             ) : (
               <div className="text-center">
                 <Play className="w-16 h-16 text-white/50 mx-auto mb-4" />
-                <p className="text-white/50">{ru ? 'Видео контент' : 'Video Player'}</p>
-                <p className="text-white/30 text-sm">{ru ? 'Защищённый контент' : 'Protected video content'}</p>
+                <p className="text-white/50">{t('client.lesson.videoPlayer')}</p>
+                <p className="text-white/30 text-sm">{t('client.lesson.protectedContent')}</p>
               </div>
             )}
           </div>
@@ -218,10 +216,10 @@ export default function LessonPage() {
           <div>
             <div className="flex flex-wrap items-center gap-3 mb-4">
               <Badge variant="secondary">
-                {ru ? 'Урок' : 'Lesson'} {lessonIndex}/{totalLessons}
+                {t('client.lesson.lessonNumber')} {lessonIndex}/{totalLessons}
               </Badge>
               <Badge variant="outline">
-                {currentLesson.duration_minutes} {ru ? 'мин' : 'min'}
+                {currentLesson.duration_minutes} {t('client.course.min')}
               </Badge>
               {currentLesson.completed && (
                 <Badge variant="success">
@@ -231,7 +229,7 @@ export default function LessonPage() {
               )}
             </div>
             <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100 mb-4">
-              {ru ? currentLesson.title_ru || currentLesson.title : currentLesson.title}
+              {locale === 'ru' ? currentLesson.title_ru || currentLesson.title : currentLesson.title}
             </h1>
           </div>
 
@@ -255,7 +253,7 @@ export default function LessonPage() {
           {currentLesson.completed && nextLesson && (
             <Link href={`/client/courses/${courseSlug}/${nextLesson.id}`}>
               <Button variant="gradient" size="lg">
-                {ru ? 'Следующий урок' : 'Next Lesson'}
+                {t('client.lesson.nextLesson')}
                 <ArrowRight className="w-5 h-5 ml-2" />
               </Button>
             </Link>
@@ -265,14 +263,14 @@ export default function LessonPage() {
             <div className="p-6 bg-green-50 dark:bg-green-900/20 rounded-2xl text-center">
               <CheckCircle2 className="w-12 h-12 text-green-500 mx-auto mb-3" />
               <h3 className="text-lg font-semibold text-green-700 dark:text-green-400 mb-2">
-                {ru ? 'Поздравляем!' : 'Congratulations!'}
+                {t('client.lesson.congratulations')}
               </h3>
               <p className="text-green-600 dark:text-green-500">
-                {ru ? 'Вы завершили этот курс!' : 'You have completed this course!'}
+                {t('client.lesson.courseCompleted')}
               </p>
               <Link href={`/client/courses/${courseSlug}`}>
                 <Button variant="outline" className="mt-4">
-                  {ru ? 'Вернуться к курсу' : 'Back to Course'}
+                  {t('client.course.backToCourses')}
                 </Button>
               </Link>
             </div>
@@ -284,7 +282,7 @@ export default function LessonPage() {
           <Card>
             <CardContent className="p-6">
               <h3 className="font-semibold text-zinc-900 dark:text-zinc-100 mb-4">
-                {ru ? course.course_title_ru : course.course_title}
+                {locale === 'ru' ? course.course_title_ru : course.course_title}
               </h3>
               
               {/* Mini progress */}
@@ -294,7 +292,7 @@ export default function LessonPage() {
                   return (
                     <div key={module.id} className="text-sm">
                       <div className="flex justify-between text-zinc-600 dark:text-zinc-400 mb-1">
-                        <span className="truncate">{ru ? module.title_ru || module.title : module.title}</span>
+                        <span className="truncate">{locale === 'ru' ? module.title_ru || module.title : module.title}</span>
                         <span>{completedInModule}/{module.lessons.length}</span>
                       </div>
                       <div className="h-1.5 bg-zinc-200 dark:bg-zinc-700 rounded-full overflow-hidden">

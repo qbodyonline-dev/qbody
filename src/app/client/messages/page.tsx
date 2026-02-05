@@ -59,7 +59,7 @@ type Conversation = {
 export default function ClientMessagesPage() {
   const { locale } = useTranslation()
   const { session, user, profile } = useAuth()
-  const ru = locale === 'ru'
+  const isRussian = locale === 'ru'
   
   const [conversation, setConversation] = useState<Conversation | null>(null)
   const [messages, setMessages] = useState<Message[]>([])
@@ -187,13 +187,13 @@ export default function ClientMessagesPage() {
     
     // Validate file type
     if (!file.type.startsWith('image/')) {
-      toast.error(ru ? 'Можно загружать только изображения' : 'Only images are allowed')
+      toast.error(t('client.support.onlyImages'))
       return
     }
     
     // Validate file size (max 5MB)
     if (file.size > 5 * 1024 * 1024) {
-      toast.error(ru ? 'Максимальный размер файла 5MB' : 'Maximum file size is 5MB')
+      toast.error(t('client.support.maxFileSize'))
       return
     }
     
@@ -221,7 +221,7 @@ export default function ClientMessagesPage() {
       }
     } catch (error) {
       console.error('Error uploading image:', error)
-      toast.error(ru ? 'Ошибка загрузки изображения' : 'Failed to upload image')
+      toast.error(t('client.support.uploadError'))
     } finally {
       setUploadingImage(false)
       // Reset file input
@@ -305,7 +305,7 @@ export default function ClientMessagesPage() {
   const formatTime = (dateString: string) => {
     return formatDistanceToNow(new Date(dateString), { 
       addSuffix: true,
-      locale: ru ? ruLocale : enUS
+      locale: isRussian ? ruLocale : enUS
     })
   }
 
@@ -329,10 +329,10 @@ export default function ClientMessagesPage() {
     <div className="max-w-3xl mx-auto">
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">
-          {ru ? 'Поддержка' : 'Support'}
+          {t('client.support.title')}
         </h1>
         <p className="text-zinc-500 mt-1">
-          {ru ? 'Напишите нам, мы поможем!' : 'Message us, we are here to help!'}
+          {t('client.support.subtitle')}
         </p>
       </div>
 
@@ -345,10 +345,10 @@ export default function ClientMessagesPage() {
             </div>
             <div>
               <h3 className="font-medium text-white">
-                {ru ? 'Служба поддержки' : 'Support Team'}
+                {t('client.support.team')}
               </h3>
               <p className="text-xs text-white/80">
-                {ru ? 'Обычно отвечаем в течение нескольких часов' : 'Usually reply within a few hours'}
+                {t('client.support.replyTime')}
               </p>
             </div>
           </div>
@@ -362,13 +362,10 @@ export default function ClientMessagesPage() {
                   <MessageSquare className="w-8 h-8 text-teal-500" />
                 </div>
                 <h3 className="font-medium text-zinc-700 dark:text-zinc-300 mb-2">
-                  {ru ? 'Добро пожаловать в чат поддержки!' : 'Welcome to support chat!'}
+                  {t('client.support.welcome')}
                 </h3>
                 <p className="text-sm text-zinc-500 max-w-sm mx-auto">
-                  {ru 
-                    ? 'Напишите ваш вопрос и мы ответим как можно скорее.'
-                    : 'Send your question and we will respond as soon as possible.'
-                  }
+                  {t('client.support.welcomeMessage')}
                 </p>
               </div>
             )}
@@ -401,7 +398,7 @@ export default function ClientMessagesPage() {
                     <div>
                       {!isOwn && (
                         <p className="text-xs text-zinc-500 mb-1 ml-1">
-                          {isAdmin ? (ru ? 'Поддержка' : 'Support') : msg.sender?.full_name || msg.sender?.email}
+                          {isAdmin ? t('client.support.team') : msg.sender?.full_name || msg.sender?.email}
                         </p>
                       )}
                       {/* Attachments */}
@@ -519,7 +516,7 @@ export default function ClientMessagesPage() {
                 value={newMessage}
                 onChange={(e) => setNewMessage(e.target.value)}
                 onKeyDown={handleKeyDown}
-                placeholder={ru ? 'Введите сообщение...' : 'Type a message...'}
+                placeholder={t('messages.typeMessage')}
                 rows={1}
                 className="flex-1 resize-none rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 max-h-32"
                 style={{ minHeight: '44px' }}
@@ -533,7 +530,7 @@ export default function ClientMessagesPage() {
               </Button>
             </div>
             <p className="text-xs text-zinc-400 mt-2 text-center">
-              {ru ? 'Enter для отправки' : 'Press Enter to send'}
+              {t('client.support.pressEnter')}
             </p>
           </div>
         </div>

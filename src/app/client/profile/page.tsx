@@ -19,8 +19,6 @@ export default function ProfilePage() {
   const [passwords, setPasswords] = useState({ current: '', new: '', confirm: '' })
   const [changingPassword, setChangingPassword] = useState(false)
 
-  const ru = locale === 'ru'
-
   useEffect(() => {
     if (profile) {
       setForm({
@@ -52,9 +50,9 @@ export default function ProfilePage() {
       .eq('id', user.id)
 
     if (error) {
-      toast.error(ru ? 'Ошибка обновления профиля' : 'Failed to update profile')
+      toast.error(t('client.profile.updateError'))
     } else {
-      toast.success(ru ? 'Профиль обновлён!' : 'Profile updated!')
+      toast.success(t('client.profile.updateSuccess'))
     }
     setSaving(false)
   }
@@ -62,11 +60,11 @@ export default function ProfilePage() {
   const handleChangePassword = async (e: React.FormEvent) => {
     e.preventDefault()
     if (passwords.new !== passwords.confirm) {
-      toast.error(ru ? 'Пароли не совпадают' : 'Passwords do not match')
+      toast.error(t('client.profile.passwordMismatch'))
       return
     }
     if (passwords.new.length < 6) {
-      toast.error(ru ? 'Минимум 6 символов' : 'Minimum 6 characters')
+      toast.error(t('client.profile.passwordTooShort'))
       return
     }
 
@@ -77,7 +75,7 @@ export default function ProfilePage() {
     if (error) {
       toast.error(error.message)
     } else {
-      toast.success(ru ? 'Пароль изменён!' : 'Password changed!')
+      toast.success(t('client.profile.passwordChanged'))
       setPasswords({ current: '', new: '', confirm: '' })
     }
     setChangingPassword(false)
@@ -96,7 +94,7 @@ export default function ProfilePage() {
           <div className="flex items-center gap-4 mb-6">
             <Avatar fallback={initials} size="lg" />
             <div>
-              <p className="font-semibold text-zinc-900">{form.name || (ru ? 'Не указано' : 'Not set')}</p>
+              <p className="font-semibold text-zinc-900">{form.name || t('client.profile.notSet')}</p>
               <p className="text-sm text-zinc-500">{form.email}</p>
             </div>
           </div>
@@ -139,7 +137,7 @@ export default function ProfilePage() {
               icon={<Lock className="w-4 h-4" />}
               value={passwords.new}
               onChange={(e) => setPasswords({ ...passwords, new: e.target.value })}
-              placeholder={ru ? 'Минимум 6 символов' : 'Min 6 characters'}
+              placeholder={t('client.profile.minCharacters')}
             />
             <Input
               label={t('client.profile.confirmPassword')}
@@ -147,7 +145,7 @@ export default function ProfilePage() {
               icon={<Lock className="w-4 h-4" />}
               value={passwords.confirm}
               onChange={(e) => setPasswords({ ...passwords, confirm: e.target.value })}
-              placeholder={ru ? 'Повторите пароль' : 'Repeat password'}
+              placeholder={t('client.profile.repeatPassword')}
             />
             <Button type="submit" variant="outline" disabled={changingPassword}>
               {changingPassword ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Lock className="w-4 h-4 mr-2" />}

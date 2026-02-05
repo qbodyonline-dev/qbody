@@ -45,16 +45,14 @@ function CoursesContent() {
   const [purchasedCourses, setPurchasedCourses] = useState<CourseProgress[]>([])
   const [loading, setLoading] = useState(true)
 
-  const ru = locale === 'ru'
-
   useEffect(() => {
     // Show success toast if redirected from Stripe
     const payment = searchParams.get('payment')
     const course = searchParams.get('course')
     if (payment === 'success' && course) {
-      toast.success(ru ? `Курс успешно оплачен!` : `Course purchased successfully!`)
+      toast.success(t('client.courses.purchaseSuccess'))
     }
-  }, [searchParams, ru])
+  }, [searchParams, t])
 
   useEffect(() => {
     if (!user) return
@@ -97,7 +95,7 @@ function CoursesContent() {
       {/* Purchased */}
       {purchasedCourses.length > 0 && (
         <section>
-          <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-4">{ru ? 'Мои курсы' : 'My Courses'}</h2>
+          <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-4">{t('client.courses.title')}</h2>
           <div className="grid md:grid-cols-2 gap-6">
             {purchasedCourses.map((course) => {
               const meta = coursesMeta[course.course_slug] || { icon: BookOpen, color: 'from-teal-500 to-emerald-500' }
@@ -108,22 +106,22 @@ function CoursesContent() {
                     <Icon className="w-16 h-16 text-white/50" />
                     {course.progress_percent === 100 ? (
                       <Badge className="absolute top-4 left-4 bg-white/90 text-green-600">
-                        <CheckCircle2 className="w-3 h-3 mr-1" />{ru ? 'Завершён' : 'Complete'}
+                        <CheckCircle2 className="w-3 h-3 mr-1" />{t('client.courses.completed')}
                       </Badge>
                     ) : (
                       <Badge className="absolute top-4 left-4 bg-white/90 text-teal-600">
-                        <BookOpen className="w-3 h-3 mr-1" />{course.progress_percent}% {ru ? 'пройдено' : 'complete'}
+                        <BookOpen className="w-3 h-3 mr-1" />{course.progress_percent}% {t('client.course.completed')}
                       </Badge>
                     )}
                   </div>
                   <CardContent className="p-6">
                     <h3 className="text-xl font-bold text-zinc-900 dark:text-zinc-100 mb-2">
-                      {ru ? course.course_title_ru : course.course_title}
+                      {locale === 'ru' ? course.course_title_ru : course.course_title}
                     </h3>
                     <div className="flex items-center gap-4 text-sm text-zinc-500 mb-4">
                       <span className="flex items-center gap-1">
                         <BookOpen className="w-4 h-4" />
-                        {course.completed_lessons}/{course.total_lessons} {ru ? 'уроков' : 'lessons'}
+                        {course.completed_lessons}/{course.total_lessons} {t('client.courses.lessons')}
                       </span>
                     </div>
                     
@@ -143,7 +141,7 @@ function CoursesContent() {
                       </div>
                     ) : (
                       <div className="mb-4 text-sm text-amber-600 dark:text-amber-400">
-                        {ru ? '⏳ Контент готовится...' : '⏳ Content coming soon...'}
+                        {t('client.courses.contentComingSoon')}
                       </div>
                     )}
                     
@@ -151,22 +149,22 @@ function CoursesContent() {
                       <Button variant="gradient" className="w-full">
                         {course.total_lessons === 0 ? (
                           <>
-                            {ru ? 'Подробнее' : 'View Details'}
+                            {t('client.courses.viewDetails')}
                             <ArrowRight className="w-4 h-4 ml-2" />
                           </>
                         ) : course.progress_percent === 0 ? (
                           <>
                             <Play className="w-4 h-4 mr-2" />
-                            {ru ? 'Начать курс' : 'Start Course'}
+                            {t('client.course.startCourse')}
                           </>
                         ) : course.progress_percent < 100 ? (
                           <>
                             <Play className="w-4 h-4 mr-2" />
-                            {ru ? 'Продолжить' : 'Continue'}
+                            {t('client.courses.continue')}
                           </>
                         ) : (
                           <>
-                            {ru ? 'Открыть курс' : 'Open Course'}
+                            {t('client.courses.openCourse')}
                             <ArrowRight className="w-4 h-4 ml-2" />
                           </>
                         )}
@@ -184,15 +182,15 @@ function CoursesContent() {
       {purchasedCourses.length === 0 && (
         <Card className="p-12 text-center">
           <ShoppingBag className="w-16 h-16 text-zinc-300 mx-auto mb-4" />
-          <h3 className="text-xl font-semibold text-zinc-900 dark:text-zinc-100 mb-2">{ru ? 'У вас пока нет курсов' : 'No courses yet'}</h3>
-          <p className="text-zinc-500 mb-6">{ru ? 'Выберите курс ниже и начните восстановление' : 'Choose a course below to start your recovery'}</p>
+          <h3 className="text-xl font-semibold text-zinc-900 dark:text-zinc-100 mb-2">{t('client.courses.noCourses')}</h3>
+          <p className="text-zinc-500 mb-6">{t('client.courses.chooseCourse')}</p>
         </Card>
       )}
 
       {/* Available */}
       {available.length > 0 && (
         <section>
-          <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-4">{ru ? 'Доступные курсы' : 'Available Courses'}</h2>
+          <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-4">{t('client.courses.availableCourses')}</h2>
           <div className="grid md:grid-cols-2 gap-6">
             {available.map((course) => {
               const Icon = course.icon
@@ -202,16 +200,16 @@ function CoursesContent() {
                     <Icon className="w-16 h-16 text-white/50" />
                   </div>
                   <CardContent className="p-6">
-                    <h3 className="text-xl font-bold text-zinc-900 dark:text-zinc-100 mb-2">{ru ? course.titleRu : course.title}</h3>
+                    <h3 className="text-xl font-bold text-zinc-900 dark:text-zinc-100 mb-2">{locale === 'ru' ? course.titleRu : course.title}</h3>
                     <div className="flex items-center gap-4 text-sm text-zinc-500 mb-4">
-                      <span className="flex items-center gap-1"><BookOpen className="w-4 h-4" />{course.lessons} {ru ? 'уроков' : 'lessons'}</span>
-                      <span className="flex items-center gap-1"><Clock className="w-4 h-4" />{course.weeks} {ru ? 'недель' : 'weeks'}</span>
+                      <span className="flex items-center gap-1"><BookOpen className="w-4 h-4" />{course.lessons} {t('client.courses.lessons')}</span>
+                      <span className="flex items-center gap-1"><Clock className="w-4 h-4" />{course.weeks} {t('client.courses.weeks')}</span>
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">${course.price}</span>
                       <Link href={`/courses/${course.id}`}>
                         <Button variant="gradient">
-                          {ru ? 'Купить' : 'Buy Now'}
+                          {t('client.courses.buyNow')}
                           <ArrowRight className="w-4 h-4 ml-2" />
                         </Button>
                       </Link>

@@ -24,8 +24,6 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
   const menuRef = useRef<HTMLDivElement>(null)
   const supabaseRef = useRef<ReturnType<typeof createClient> | null>(null)
 
-  const ru = locale === 'ru'
-
   const initials = profile?.full_name
     ? profile.full_name.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2)
     : user?.email?.slice(0, 2).toUpperCase() || 'U'
@@ -94,7 +92,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
     { name: t('client.nav.home'), href: '/client/home', icon: Home, badge: 0 },
     { name: t('client.nav.courses'), href: '/client/courses', icon: BookOpen, badge: 0 },
     { name: t('client.nav.progress'), href: '/client/progress', icon: TrendingUp, badge: 0 },
-    { name: ru ? 'Поддержка' : 'Support', href: '/client/messages', icon: MessageCircle, badge: unreadMessages },
+    { name: t('client.nav.support'), href: '/client/messages', icon: MessageCircle, badge: unreadMessages },
     { name: t('client.nav.profile'), href: '/client/profile', icon: User, badge: 0 },
   ]
 
@@ -126,10 +124,10 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
         const data = await res.json()
         throw new Error(data.error || 'Failed to delete account')
       }
-      toast.success(ru ? 'Аккаунт удалён' : 'Account deleted')
+      toast.success(t('client.profile.accountDeleted'))
       await signOut()
     } catch (err: any) {
-      toast.error(err.message || (ru ? 'Ошибка удаления' : 'Delete failed'))
+      toast.error(err.message || t('client.profile.deleteFailed'))
     } finally {
       setDeleteLoading(false)
       setShowDeleteConfirm(false)
@@ -194,7 +192,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
                       className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-zinc-700 hover:bg-zinc-50 transition-colors"
                     >
                       <LogOut className="w-4 h-4" />
-                      {ru ? 'Выйти' : 'Sign Out'}
+                      {t('common.logout')}
                     </button>
 
                     {/* Delete account */}
@@ -204,7 +202,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
                         className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-500 hover:bg-red-50 transition-colors"
                       >
                         <Trash2 className="w-4 h-4" />
-                        {ru ? 'Удалить аккаунт' : 'Delete Account'}
+                        {t('client.profile.deleteAccount')}
                       </button>
                     </div>
                   </div>
@@ -253,11 +251,11 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
               <div className="pt-4 border-t border-zinc-200 mt-4 space-y-1">
                 <button onClick={handleSignOut} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-zinc-700 hover:bg-zinc-100">
                   <LogOut className="w-5 h-5" />
-                  {ru ? 'Выйти' : 'Sign Out'}
+                  {t('common.logout')}
                 </button>
                 <button onClick={() => { setIsMobileMenuOpen(false); setShowDeleteConfirm(true) }} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-red-500 hover:bg-red-50">
                   <Trash2 className="w-5 h-5" />
-                  {ru ? 'Удалить аккаунт' : 'Delete Account'}
+                  {t('client.profile.deleteAccount')}
                 </button>
               </div>
             </nav>
@@ -275,12 +273,10 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
               <Trash2 className="w-6 h-6 text-red-500" />
             </div>
             <h3 className="text-lg font-bold text-zinc-900 text-center mb-2">
-              {ru ? 'Удалить аккаунт?' : 'Delete Account?'}
+              {t('client.profile.deleteConfirmTitle')}
             </h3>
             <p className="text-sm text-zinc-500 text-center mb-6">
-              {ru
-                ? 'Это действие необратимо. Все ваши данные, курсы и прогресс будут удалены навсегда.'
-                : 'This action is irreversible. All your data, courses, and progress will be permanently deleted.'}
+              {t('client.profile.deleteConfirmMessage')}
             </p>
             <div className="flex gap-3">
               <Button
@@ -288,7 +284,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
                 className="flex-1"
                 onClick={() => setShowDeleteConfirm(false)}
               >
-                {ru ? 'Отмена' : 'Cancel'}
+                {t('common.cancel')}
               </Button>
               <Button
                 variant="gradient"
@@ -296,7 +292,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
                 onClick={handleDeleteAccount}
                 isLoading={deleteLoading}
               >
-                {ru ? 'Удалить' : 'Delete'}
+                {t('common.delete')}
               </Button>
             </div>
           </div>

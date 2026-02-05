@@ -47,8 +47,6 @@ export default function CoursePage() {
   const [loading, setLoading] = useState(true)
   const [expandedModules, setExpandedModules] = useState<Set<string>>(new Set())
 
-  const ru = locale === 'ru'
-
   useEffect(() => {
     if (!user) return
 
@@ -105,15 +103,15 @@ export default function CoursePage() {
       <div className="text-center py-20">
         <BookOpen className="w-16 h-16 mx-auto text-zinc-300 mb-4" />
         <h2 className="text-xl font-semibold text-zinc-900 dark:text-zinc-100 mb-2">
-          {ru ? 'Курс не найден' : 'Course not found'}
+          {t('client.course.notFound')}
         </h2>
         <p className="text-zinc-500 mb-6">
-          {ru ? 'Возможно, у вас нет доступа к этому курсу' : 'You may not have access to this course'}
+          {t('client.course.noAccess')}
         </p>
         <Link href="/client/courses">
           <Button variant="outline">
             <ArrowLeft className="w-4 h-4 mr-2" />
-            {ru ? 'К моим курсам' : 'Back to my courses'}
+            {t('client.course.backToCourses')}
           </Button>
         </Link>
       </div>
@@ -134,24 +132,22 @@ export default function CoursePage() {
 
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold text-zinc-900 dark:text-zinc-100 mb-2">
-            {ru ? course.course_title_ru : course.course_title}
+            {locale === 'ru' ? course.course_title_ru : course.course_title}
           </h1>
         </div>
 
         <Card className="p-12 text-center">
           <Clock className="w-16 h-16 mx-auto text-zinc-300 mb-4" />
           <h3 className="text-xl font-semibold text-zinc-900 dark:text-zinc-100 mb-2">
-            {ru ? 'Контент готовится' : 'Content Coming Soon'}
+            {t('client.course.contentComingSoon')}
           </h3>
           <p className="text-zinc-500 mb-6">
-            {ru 
-              ? 'Уроки для этого курса скоро будут добавлены. Мы уведомим вас когда курс будет готов!' 
-              : 'Lessons for this course are being prepared. We will notify you when the course is ready!'}
+            {t('client.course.lessonsBeingPrepared')}
           </p>
           <Link href="/client/courses">
             <Button variant="outline">
               <ArrowLeft className="w-4 h-4 mr-2" />
-              {ru ? 'К моим курсам' : 'Back to my courses'}
+              {t('client.course.backToCourses')}
             </Button>
           </Link>
         </Card>
@@ -190,12 +186,12 @@ export default function CoursePage() {
         <div className="lg:col-span-2 space-y-6">
           <div>
             <h1 className="text-2xl sm:text-3xl font-bold text-zinc-900 dark:text-zinc-100 mb-2">
-              {ru ? course.course_title_ru : course.course_title}
+              {locale === 'ru' ? course.course_title_ru : course.course_title}
             </h1>
             <div className="flex items-center gap-4 text-sm text-zinc-500">
               <span className="flex items-center gap-1">
                 <BookOpen className="w-4 h-4" />
-                {course.total_lessons} {ru ? 'уроков' : 'lessons'}
+                {course.total_lessons} {t('client.courses.lessons')}
               </span>
               <span className="flex items-center gap-1">
                 <Clock className="w-4 h-4" />
@@ -227,17 +223,17 @@ export default function CoursePage() {
                       )}
                       <div>
                         <p className="font-semibold text-zinc-900 dark:text-zinc-100">
-                          {ru ? module.title_ru || module.title : module.title}
+                          {locale === 'ru' ? module.title_ru || module.title : module.title}
                         </p>
                         <p className="text-sm text-zinc-500">
-                          {completedInModule}/{module.lessons.length} {ru ? 'уроков' : 'lessons'} • {moduleProgress}%
+                          {completedInModule}/{module.lessons.length} {t('client.courses.lessons')} • {moduleProgress}%
                         </p>
                       </div>
                     </div>
                     {moduleProgress === 100 && (
                       <Badge variant="success">
                         <CheckCircle2 className="w-3 h-3 mr-1" />
-                        {ru ? 'Завершён' : 'Complete'}
+                        {t('client.courses.completed')}
                       </Badge>
                     )}
                   </button>
@@ -272,10 +268,10 @@ export default function CoursePage() {
                                 </div>
                                 <div>
                                   <p className="font-medium text-zinc-900 dark:text-zinc-100">
-                                    {ru ? lesson.title_ru || lesson.title : lesson.title}
+                                    {locale === 'ru' ? lesson.title_ru || lesson.title : lesson.title}
                                   </p>
                                   <p className="text-sm text-zinc-500">
-                                    {lesson.duration_minutes} {ru ? 'мин' : 'min'}
+                                    {lesson.duration_minutes} {t('client.course.min')}
                                   </p>
                                 </div>
                               </div>
@@ -317,7 +313,7 @@ export default function CoursePage() {
                 />
               </div>
               <p className="text-sm text-zinc-500 text-center">
-                {course.completed_lessons} / {course.total_lessons} {ru ? 'уроков' : 'lessons'}
+                {course.completed_lessons} / {course.total_lessons} {t('client.courses.lessons')}
               </p>
               {nextLesson && (
                 <Link href={`/client/courses/${courseSlug}/${nextLesson.lesson.id}`}>
@@ -331,7 +327,7 @@ export default function CoursePage() {
                 <div className="mt-4 p-4 bg-green-50 dark:bg-green-900/20 rounded-xl text-center">
                   <CheckCircle2 className="w-8 h-8 text-green-500 mx-auto mb-2" />
                   <p className="font-medium text-green-700 dark:text-green-400">
-                    {ru ? 'Курс завершён!' : 'Course completed!'}
+                    {t('client.course.courseCompleted')}
                   </p>
                 </div>
               )}

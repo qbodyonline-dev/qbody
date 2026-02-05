@@ -33,8 +33,6 @@ export default function ProgressPage() {
   const [orders, setOrders] = useState<{ course_slug: string; amount: number; status: string; paid_at: string | null }[]>([])
   const [loading, setLoading] = useState(true)
 
-  const ru = locale === 'ru'
-
   useEffect(() => {
     if (!user) return
 
@@ -74,7 +72,7 @@ export default function ProgressPage() {
   // Calculate member since
   const memberSince = courses.length > 0
     ? new Date(courses.reduce((min, c) => c.granted_at < min ? c.granted_at : min, courses[0].granted_at))
-        .toLocaleDateString(ru ? 'ru-RU' : 'en-US', { month: 'long', year: 'numeric' })
+        .toLocaleDateString(locale === 'ru' ? 'ru-RU' : 'en-US', { month: 'long', year: 'numeric' })
     : '—'
 
   if (loading) {
@@ -86,10 +84,10 @@ export default function ProgressPage() {
   }
 
   const stats = [
-    { icon: BookOpen, value: String(courses.length), label: ru ? 'Курсов' : 'Courses', color: 'bg-teal-500/10 text-teal-500' },
-    { icon: BarChart3, value: `${overallProgress}%`, label: ru ? 'Прогресс' : 'Progress', color: 'bg-blue-500/10 text-blue-500' },
-    { icon: Trophy, value: String(completedLessons), label: ru ? 'Уроков пройдено' : 'Lessons Done', color: 'bg-orange-500/10 text-orange-500' },
-    { icon: Calendar, value: memberSince, label: ru ? 'Участник с' : 'Member since', color: 'bg-purple-500/10 text-purple-500' },
+    { icon: BookOpen, value: String(courses.length), label: t('client.progress.stats.courses'), color: 'bg-teal-500/10 text-teal-500' },
+    { icon: BarChart3, value: `${overallProgress}%`, label: t('client.progress.stats.progress'), color: 'bg-blue-500/10 text-blue-500' },
+    { icon: Trophy, value: String(completedLessons), label: t('client.progress.stats.lessonsDone'), color: 'bg-orange-500/10 text-orange-500' },
+    { icon: Calendar, value: memberSince, label: t('client.progress.stats.memberSince'), color: 'bg-purple-500/10 text-purple-500' },
   ]
 
   return (
@@ -120,12 +118,12 @@ export default function ProgressPage() {
       {/* Course list */}
       {courses.length > 0 ? (
         <section>
-          <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-4">{ru ? 'Мои курсы' : 'My Courses'}</h2>
+          <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-4">{t('client.courses.title')}</h2>
           <div className="space-y-4">
             {courses.map((course) => {
               const meta = coursesMeta[course.course_slug] || { icon: BookOpen, color: 'from-teal-500 to-emerald-500' }
               const Icon = meta.icon
-              const purchaseDate = new Date(course.granted_at).toLocaleDateString(ru ? 'ru-RU' : 'en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+              const purchaseDate = new Date(course.granted_at).toLocaleDateString(locale === 'ru' ? 'ru-RU' : 'en-US', { month: 'short', day: 'numeric', year: 'numeric' })
 
               return (
                 <Card key={course.course_slug} className="card-hover overflow-hidden">
@@ -140,25 +138,25 @@ export default function ProgressPage() {
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 mb-1">
                               <h3 className="font-bold text-zinc-900 dark:text-zinc-100">
-                                {ru ? course.course_title_ru : course.course_title}
+                                {locale === 'ru' ? course.course_title_ru : course.course_title}
                               </h3>
                               {course.progress_percent === 100 && (
                                 <Badge variant="success" className="flex-shrink-0">
                                   <CheckCircle2 className="w-3 h-3 mr-1" />
-                                  {ru ? 'Завершён' : 'Complete'}
+                                  {t('client.courses.completed')}
                                 </Badge>
                               )}
                             </div>
                             <div className="flex flex-wrap items-center gap-3 text-sm text-zinc-500 mt-1">
-                              <span>{course.total_lessons} {ru ? 'уроков' : 'lessons'}</span>
+                              <span>{course.total_lessons} {t('client.courses.lessons')}</span>
                               <span>•</span>
-                              <span>{ru ? 'Куплен' : 'Purchased'}: {purchaseDate}</span>
+                              <span>{t('client.home.purchased')}: {purchaseDate}</span>
                             </div>
                             
                             {/* Progress bar */}
                             <div className="mt-4">
                               <div className="flex items-center justify-between text-sm mb-2">
-                                <span className="text-zinc-500">{ru ? 'Прогресс' : 'Progress'}</span>
+                                <span className="text-zinc-500">{t('client.courses.progress')}</span>
                                 <span className="font-medium text-zinc-700 dark:text-zinc-300">
                                   {course.completed_lessons}/{course.total_lessons} ({course.progress_percent}%)
                                 </span>
@@ -185,16 +183,16 @@ export default function ProgressPage() {
                             {course.progress_percent === 0 ? (
                               <>
                                 <Play className="w-4 h-4 mr-1" />
-                                {ru ? 'Начать' : 'Start'}
+                                {t('client.courses.start')}
                               </>
                             ) : course.progress_percent < 100 ? (
                               <>
                                 <Play className="w-4 h-4 mr-1" />
-                                {ru ? 'Продолжить' : 'Continue'}
+                                {t('client.courses.continue')}
                               </>
                             ) : (
                               <>
-                                {ru ? 'Открыть' : 'Open'}
+                                {t('client.progress.open')}
                                 <ArrowRight className="w-4 h-4 ml-1" />
                               </>
                             )}
@@ -212,13 +210,13 @@ export default function ProgressPage() {
         <Card className="p-12 text-center">
           <Trophy className="w-16 h-16 text-zinc-300 mx-auto mb-4" />
           <h3 className="text-xl font-semibold text-zinc-900 dark:text-zinc-100 mb-2">
-            {ru ? 'Прогресс появится здесь' : 'Progress will appear here'}
+            {t('client.progress.noProgress')}
           </h3>
           <p className="text-zinc-500 mb-6">
-            {ru ? 'Купите курс, чтобы начать отслеживать прогресс' : 'Purchase a course to start tracking your progress'}
+            {t('client.progress.purchaseToContinue')}
           </p>
           <Link href="/#courses">
-            <Button variant="gradient">{ru ? 'Посмотреть курсы' : 'Browse Courses'}</Button>
+            <Button variant="gradient">{t('client.courses.browseCourses')}</Button>
           </Link>
         </Card>
       )}

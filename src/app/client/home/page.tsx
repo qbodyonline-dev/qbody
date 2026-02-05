@@ -33,8 +33,6 @@ export default function ClientHomePage() {
   const [orders, setOrders] = useState<Order[]>([])
   const [loading, setLoading] = useState(true)
 
-  const ru = locale === 'ru'
-
   useEffect(() => {
     if (!user) return
     const supabase = createClient()
@@ -79,12 +77,12 @@ export default function ClientHomePage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold text-zinc-900">
-            {ru ? `Привет, ${firstName}` : `Welcome, ${firstName}`} 👋
+            {t('client.home.welcomeUser').replace('{name}', firstName)} 👋
           </h1>
           <p className="text-zinc-600 mt-1">
             {courses.length > 0
-              ? (ru ? 'Продолжайте свой путь к восстановлению' : 'Continue your recovery journey')
-              : (ru ? 'Начните свой путь к восстановлению' : 'Start your recovery journey')
+              ? t('client.home.continueRecovery')
+              : t('client.home.startRecovery')
             }
           </p>
         </div>
@@ -96,10 +94,10 @@ export default function ClientHomePage() {
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
-          { icon: BookOpen, value: String(courses.length), label: ru ? 'Активных курсов' : 'Active Courses', color: 'bg-teal-500/10 text-teal-500' },
-          { icon: ShoppingBag, value: String(paidOrders.length), label: ru ? 'Покупок' : 'Purchases', color: 'bg-green-500/10 text-green-500' },
-          { icon: Clock, value: totalSpent > 0 ? `$${(totalSpent / 100).toFixed(0)}` : '$0', label: ru ? 'Потрачено' : 'Total Spent', color: 'bg-orange-500/10 text-orange-500' },
-          { icon: Trophy, value: courses.length > 0 ? (ru ? 'Да' : 'Active') : '—', label: ru ? 'Статус' : 'Status', color: 'bg-purple-500/10 text-purple-500' },
+          { icon: BookOpen, value: String(courses.length), label: t('client.home.stats.activeCourses'), color: 'bg-teal-500/10 text-teal-500' },
+          { icon: ShoppingBag, value: String(paidOrders.length), label: t('client.home.stats.purchases'), color: 'bg-green-500/10 text-green-500' },
+          { icon: Clock, value: totalSpent > 0 ? `$${(totalSpent / 100).toFixed(0)}` : '$0', label: t('client.home.stats.totalSpent'), color: 'bg-orange-500/10 text-orange-500' },
+          { icon: Trophy, value: courses.length > 0 ? t('client.home.stats.active') : '—', label: t('client.home.stats.status'), color: 'bg-purple-500/10 text-purple-500' },
         ].map((stat) => {
           const Icon = stat.icon
           return (
@@ -116,7 +114,7 @@ export default function ClientHomePage() {
       {/* My courses */}
       {courses.length > 0 ? (
         <section>
-          <h2 className="text-lg font-semibold text-zinc-900 mb-4">{ru ? 'Мои курсы' : 'My Courses'}</h2>
+          <h2 className="text-lg font-semibold text-zinc-900 mb-4">{t('client.courses.title')}</h2>
           <div className="grid md:grid-cols-2 gap-6">
             {courses.map((access) => {
               const meta = coursesMeta[access.course_slug]
@@ -127,18 +125,18 @@ export default function ClientHomePage() {
                   <div className={`h-40 bg-gradient-to-br ${meta.color} flex items-center justify-center relative`}>
                     <Icon className="w-16 h-16 text-white/50" />
                     <Badge className="absolute top-4 left-4 bg-white/90 text-green-600">
-                      <CheckCircle2 className="w-3 h-3 mr-1" />{ru ? 'Куплен' : 'Purchased'}
+                      <CheckCircle2 className="w-3 h-3 mr-1" />{t('client.home.purchased')}
                     </Badge>
                   </div>
                   <CardContent className="p-6">
-                    <h3 className="text-xl font-bold text-zinc-900 mb-2">{ru ? meta.titleRu : meta.title}</h3>
+                    <h3 className="text-xl font-bold text-zinc-900 mb-2">{locale === 'ru' ? meta.titleRu : meta.title}</h3>
                     <div className="flex items-center gap-4 text-sm text-zinc-500 mb-4">
-                      <span className="flex items-center gap-1"><BookOpen className="w-4 h-4" />{meta.lessons} {ru ? 'уроков' : 'lessons'}</span>
-                      <span className="flex items-center gap-1"><Clock className="w-4 h-4" />{ru ? 'Доступ навсегда' : 'Lifetime access'}</span>
+                      <span className="flex items-center gap-1"><BookOpen className="w-4 h-4" />{meta.lessons} {t('client.courses.lessons')}</span>
+                      <span className="flex items-center gap-1"><Clock className="w-4 h-4" />{t('client.home.lifetimeAccess')}</span>
                     </div>
                     <Link href={`/client/courses/${access.course_slug}`}>
                       <Button variant="gradient" className="w-full">
-                        {ru ? 'Открыть курс' : 'Open Course'}
+                        {t('client.courses.openCourse')}
                         <ArrowRight className="w-4 h-4 ml-2" />
                       </Button>
                     </Link>
@@ -151,16 +149,16 @@ export default function ClientHomePage() {
       ) : (
         <Card className="p-12 text-center">
           <BookOpen className="w-16 h-16 text-zinc-300 mx-auto mb-4" />
-          <h3 className="text-xl font-semibold text-zinc-900 mb-2">{ru ? 'У вас пока нет курсов' : 'No courses yet'}</h3>
-          <p className="text-zinc-500 mb-6">{ru ? 'Приобретите свой первый курс и начните восстановление' : 'Purchase your first course to start your recovery'}</p>
-          <Link href="/#courses"><Button variant="gradient">{ru ? 'Посмотреть курсы' : 'Browse Courses'}</Button></Link>
+          <h3 className="text-xl font-semibold text-zinc-900 mb-2">{t('client.courses.noCourses')}</h3>
+          <p className="text-zinc-500 mb-6">{t('client.home.purchaseFirst')}</p>
+          <Link href="/#courses"><Button variant="gradient">{t('client.courses.browseCourses')}</Button></Link>
         </Card>
       )}
 
       {/* Recent orders */}
       {orders.length > 0 && (
         <section>
-          <h2 className="text-lg font-semibold text-zinc-900 mb-4">{ru ? 'История покупок' : 'Purchase History'}</h2>
+          <h2 className="text-lg font-semibold text-zinc-900 mb-4">{t('client.home.purchaseHistory')}</h2>
           <Card><CardContent className="p-0">
             <div className="divide-y divide-zinc-200">
               {orders.slice(0, 5).map((order, i) => {
@@ -172,16 +170,16 @@ export default function ClientHomePage() {
                         <CheckCircle2 className={`w-4 h-4 ${order.status === 'paid' ? 'text-green-500' : 'text-orange-500'}`} />
                       </div>
                       <div>
-                        <p className="font-medium text-zinc-900 text-sm">{meta ? (ru ? meta.titleRu : meta.title) : order.course_slug}</p>
+                        <p className="font-medium text-zinc-900 text-sm">{meta ? (locale === 'ru' ? meta.titleRu : meta.title) : order.course_slug}</p>
                         <p className="text-xs text-zinc-500">
-                          {order.paid_at ? new Date(order.paid_at).toLocaleDateString(ru ? 'ru-RU' : 'en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}
+                          {order.paid_at ? new Date(order.paid_at).toLocaleDateString(locale === 'ru' ? 'ru-RU' : 'en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}
                         </p>
                       </div>
                     </div>
                     <div className="text-right">
                       <p className="font-semibold text-zinc-900">${(order.amount / 100).toFixed(0)}</p>
                       <Badge variant={order.status === 'paid' ? 'success' : 'warning'} className="text-xs">
-                        {order.status === 'paid' ? (ru ? 'Оплачен' : 'Paid') : (ru ? 'Ожидает' : 'Pending')}
+                        {order.status === 'paid' ? t('client.home.paid') : t('client.home.pending')}
                       </Badge>
                     </div>
                   </div>
