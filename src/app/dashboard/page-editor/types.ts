@@ -24,6 +24,56 @@ export interface SectionStyle {
   customCss?: string
 }
 
+/* ═══════════ STRUCTURED ITEM TYPES ═══════════ */
+
+export interface CourseItem {
+  id: string
+  title: string
+  titleRu: string
+  description: string
+  descriptionRu: string
+  price: number
+  oldPrice?: number
+  duration: string
+  lessons: number
+  icon: string  // emoji
+  gradient: string
+  features: string[]
+  featuresRu: string[]
+  link: string
+}
+
+export interface ProgramItem {
+  id: string
+  title: string
+  titleRu: string
+  description: string
+  descriptionRu: string
+  price: number
+  duration: string
+  level: 'beginner' | 'intermediate' | 'advanced' | 'any'
+  icon: string
+  gradient: string
+  features: string[]
+  featuresRu: string[]
+  link: string
+  popular?: boolean
+}
+
+export interface ResultItem {
+  id: string
+  name: string
+  nameRu: string
+  age: number
+  result: string
+  resultRu: string
+  quote: string
+  quoteRu: string
+  icon: string
+}
+
+export type StructuredItems = CourseItem[] | ProgramItem[] | ResultItem[]
+
 export type BlockType = 'header' | 'hero' | 'programs' | 'courses' | 'about' | 'results' | 'footer' | 'custom'
 
 export interface PageBlock {
@@ -35,6 +85,8 @@ export interface PageBlock {
   contentEn: string
   contentRu: string
   style: SectionStyle
+  // Structured items for courses, programs, results blocks
+  items?: StructuredItems
 }
 
 /* Block type → icon mapping */

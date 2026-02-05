@@ -2,7 +2,8 @@ import {
   Square, Zap, LayoutGrid, Columns2, Play, MessageSquare,
   Heart, Hash, Mail, Camera
 } from 'lucide-react'
-import type { PageBlock, SectionStyle } from './types'
+import type { PageBlock, SectionStyle, CourseItem, ProgramItem, ResultItem } from './types'
+import { renderCoursesHTML, renderProgramsHTML, renderResultsHTML } from './renderers'
 
 /* ═══════════ BLOCK CONTENT DATA ═══════════ */
 
@@ -53,6 +54,162 @@ export const TEMPLATES: BlockTemplate[] = [
   { id: 'gallery', l: 'Photo Gallery', lr: 'Фотогалерея', icon: Camera, en: `<div style="padding:60px 20px;"><h2 style="text-align:center;font-size:32px;font-weight:800;color:#18181b;margin-bottom:32px;">Gallery</h2><div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;max-width:900px;margin:0 auto;"><div style="aspect-ratio:1;background:#e4e4e7;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:32px;">📷</div><div style="aspect-ratio:1;background:#e4e4e7;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:32px;">📷</div><div style="aspect-ratio:1;background:#e4e4e7;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:32px;">📷</div><div style="aspect-ratio:1;background:#e4e4e7;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:32px;">📷</div></div></div>`, ru: `<div style="padding:60px 20px;"><h2 style="text-align:center;font-size:32px;font-weight:800;color:#18181b;margin-bottom:32px;">Галерея</h2><div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;max-width:900px;margin:0 auto;"><div style="aspect-ratio:1;background:#e4e4e7;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:32px;">📷</div><div style="aspect-ratio:1;background:#e4e4e7;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:32px;">📷</div><div style="aspect-ratio:1;background:#e4e4e7;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:32px;">📷</div><div style="aspect-ratio:1;background:#e4e4e7;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:32px;">📷</div></div></div>` },
 ]
 
+/* ═══════════ DEFAULT STRUCTURED ITEMS ═══════════ */
+
+export const defaultCourseItems: CourseItem[] = [
+  {
+    id: 'mammoplasty',
+    title: 'Post-Mammoplasty Recovery',
+    titleRu: 'Восстановление после маммопластики',
+    description: 'Safe recovery and active lifestyle',
+    descriptionRu: 'Безопасное восстановление',
+    price: 99,
+    oldPrice: 149,
+    duration: '6 weeks',
+    lessons: 18,
+    icon: '💗',
+    gradient: 'linear-gradient(135deg,#ec4899,#f43f5e)',
+    features: ['Safe scar exercises', 'Posture correction', 'Return to training', 'Expert guidance'],
+    featuresRu: ['Работа с рубцом', 'Осанка', 'Возврат к тренировкам', 'Эксперт'],
+    link: '/courses/mammoplasty'
+  },
+  {
+    id: 'csection',
+    title: 'Post C-Section Recovery',
+    titleRu: 'После кесарева',
+    description: 'For new moms after surgery',
+    descriptionRu: 'Для мам после операции',
+    price: 99,
+    oldPrice: 149,
+    duration: '8 weeks',
+    lessons: 24,
+    icon: '👶',
+    gradient: 'linear-gradient(135deg,#8b5cf6,#7c3aed)',
+    features: ['Core rehab', 'Diastasis recovery', 'Pelvic floor', 'Safe return'],
+    featuresRu: ['Реабилитация кора', 'Диастаз', 'Тазовое дно', 'Безопасный возврат'],
+    link: '/courses/csection'
+  }
+]
+
+export const defaultProgramItems: ProgramItem[] = [
+  {
+    id: 'weight-loss',
+    title: '8 weeks: Lose Weight',
+    titleRu: '8 нед: Похудение',
+    description: 'Comprehensive weight loss program with workouts and nutrition',
+    descriptionRu: 'Комплексная программа похудения',
+    price: 49,
+    duration: '8 weeks',
+    level: 'any',
+    icon: '🎯',
+    gradient: 'linear-gradient(135deg,#ec4899,#f43f5e)',
+    features: ['24 workouts', 'Meal plan', 'In-app support'],
+    featuresRu: ['24 тренировки', 'Питание', 'Поддержка'],
+    link: '/programs/weight-loss',
+    popular: true
+  },
+  {
+    id: 'muscle-gain',
+    title: '8 weeks: Build Muscle',
+    titleRu: '8 нед: Масса',
+    description: 'Muscle building with progressive overload',
+    descriptionRu: 'Набор мышечной массы',
+    price: 49,
+    duration: '8 weeks',
+    level: 'intermediate',
+    icon: '💪',
+    gradient: 'linear-gradient(135deg,#3b82f6,#6366f1)',
+    features: ['32 workouts', 'Strength gains', 'Weight progression'],
+    featuresRu: ['32 тренировки', 'Рост силы', 'Прогрессия'],
+    link: '/programs/muscle-gain',
+    popular: false
+  },
+  {
+    id: 'beginner',
+    title: '8 weeks: Beginner',
+    titleRu: '8 нед: Новичок',
+    description: 'Perfect start for fitness beginners',
+    descriptionRu: 'Для начинающих',
+    price: 39,
+    duration: '8 weeks',
+    level: 'beginner',
+    icon: '⭐',
+    gradient: 'linear-gradient(135deg,#22c55e,#10b981)',
+    features: ['Basic exercises', 'Technique focus', 'Gradual progression'],
+    featuresRu: ['Базовые', 'Техника', 'Постепенно'],
+    link: '/programs/beginner',
+    popular: false
+  },
+  {
+    id: 'endurance',
+    title: '8 weeks: Endurance',
+    titleRu: '8 нед: Выносливость',
+    description: 'Develop endurance & cardiovascular health',
+    descriptionRu: 'Кардио и выносливость',
+    price: 49,
+    duration: '8 weeks',
+    level: 'intermediate',
+    icon: '⚡',
+    gradient: 'linear-gradient(135deg,#f97316,#eab308)',
+    features: ['Cardio + strength', 'Interval training', 'All-day energy'],
+    featuresRu: ['Кардио+сила', 'Интервалы', 'Энергия'],
+    link: '/programs/endurance',
+    popular: false
+  },
+  {
+    id: 'home',
+    title: '8 weeks: Home Fitness',
+    titleRu: '8 нед: Дома',
+    description: 'Effective home workouts, no equipment',
+    descriptionRu: 'Тренировки дома',
+    price: 39,
+    duration: '8 weeks',
+    level: 'any',
+    icon: '🏠',
+    gradient: 'linear-gradient(135deg,#14b8a6,#0d9488)',
+    features: ['No equipment', '30-40 min', 'Home or travel'],
+    featuresRu: ['Без инвентаря', '30-40 мин', 'Дома/в поездке'],
+    link: '/programs/home',
+    popular: false
+  }
+]
+
+export const defaultResultItems: ResultItem[] = [
+  {
+    id: 'elena',
+    name: 'Elena',
+    nameRu: 'Елена',
+    age: 34,
+    result: '-16 kg in 4 months',
+    resultRu: '-16 кг за 4 мес',
+    quote: 'Changed my body & outlook!',
+    quoteRu: 'Изменила тело и взгляд на жизнь!',
+    icon: '📉'
+  },
+  {
+    id: 'maria',
+    name: 'Maria',
+    nameRu: 'Мария',
+    age: 29,
+    result: '-14 kg in 6 months',
+    resultRu: '-14 кг за 6 мес',
+    quote: 'Back in shape after C-section!',
+    quoteRu: 'Вернулась в форму после кесарева!',
+    icon: '👶'
+  },
+  {
+    id: 'anna',
+    name: 'Anna',
+    nameRu: 'Анна',
+    age: 41,
+    result: '-18 kg in 5 months',
+    resultRu: '-18 кг за 5 мес',
+    quote: 'Best shape at 40!',
+    quoteRu: 'Лучшая форма в 40!',
+    icon: '💪'
+  }
+]
+
 /* ═══════════ INIT BLOCKS ═══════════ */
 const D = getDefaultContent()
 const S0: SectionStyle = {}
@@ -60,9 +217,9 @@ const S0: SectionStyle = {}
 export const initBlocks: PageBlock[] = [
   { id: 'header', type: 'header', label: 'Header', labelRu: 'Шапка', visible: true, contentEn: D.en.header, contentRu: D.ru.header, style: S0 },
   { id: 'hero', type: 'hero', label: 'Hero', labelRu: 'Баннер', visible: true, contentEn: D.en.hero, contentRu: D.ru.hero, style: S0 },
-  { id: 'programs', type: 'programs', label: 'Programs (5)', labelRu: 'Программы (5)', visible: true, contentEn: D.en.programs, contentRu: D.ru.programs, style: { bgColor: '#fafafa' } },
-  { id: 'courses', type: 'courses', label: 'Video Courses', labelRu: 'Видеокурсы', visible: true, contentEn: D.en.courses, contentRu: D.ru.courses, style: S0 },
+  { id: 'programs', type: 'programs', label: 'Programs (5)', labelRu: 'Программы (5)', visible: true, contentEn: renderProgramsHTML(defaultProgramItems, 'en'), contentRu: renderProgramsHTML(defaultProgramItems, 'ru'), style: { bgColor: '#fafafa' }, items: defaultProgramItems },
+  { id: 'courses', type: 'courses', label: 'Video Courses', labelRu: 'Видеокурсы', visible: true, contentEn: renderCoursesHTML(defaultCourseItems, 'en'), contentRu: renderCoursesHTML(defaultCourseItems, 'ru'), style: S0, items: defaultCourseItems },
   { id: 'about', type: 'about', label: 'About', labelRu: 'О тренере', visible: true, contentEn: D.en.about, contentRu: D.ru.about, style: { bgColor: '#fafafa' } },
-  { id: 'results', type: 'results', label: 'Results', labelRu: 'Результаты', visible: true, contentEn: D.en.results, contentRu: D.ru.results, style: S0 },
+  { id: 'results', type: 'results', label: 'Results', labelRu: 'Результаты', visible: true, contentEn: renderResultsHTML(defaultResultItems, 'en'), contentRu: renderResultsHTML(defaultResultItems, 'ru'), style: S0, items: defaultResultItems },
   { id: 'footer', type: 'footer', label: 'Footer', labelRu: 'Подвал', visible: true, contentEn: D.en.footer, contentRu: D.ru.footer, style: S0 },
 ]

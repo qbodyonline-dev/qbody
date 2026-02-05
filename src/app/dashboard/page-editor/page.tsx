@@ -8,16 +8,18 @@ import {
   Save, Eye, EyeOff, Monitor, Smartphone, Undo2, Redo2,
   ChevronDown, ChevronUp, GripVertical, Trash2, Copy,
   Layout, X, Tablet, Download, Upload, Paintbrush,
-  Maximize2, Minimize2, Plus, Loader2
+  Maximize2, Minimize2, Plus, Loader2, Code2, LayoutList
 } from 'lucide-react'
 import { toast } from 'sonner'
 
 // Local modules
-import { TEMPLATES, initBlocks } from './default-content'
-import { BLOCK_ICONS, type PageBlock } from './types'
+import { TEMPLATES, initBlocks, defaultCourseItems, defaultProgramItems, defaultResultItems } from './default-content'
+import { BLOCK_ICONS, type PageBlock, type CourseItem, type ProgramItem, type ResultItem } from './types'
 import { styleToCSS, styleAttrs, parseCSStoObj } from './utils'
 import { RichEditor } from './rich-editor'
 import { StylePanel } from './style-panel'
+import { CoursesBlockEditor, ProgramsBlockEditor, ResultsBlockEditor } from './item-editors'
+import { renderCoursesHTML, renderProgramsHTML, renderResultsHTML } from './renderers'
 
 /* ═══════════ MAIN EDITOR ═══════════ */
 export default function PageEditorPage() {
@@ -35,8 +37,21 @@ export default function PageEditorPage() {
         if (res.ok) {
           const data = await res.json()
           if (data.blocks && data.blocks.length > 0) {
-            setBlocks(data.blocks)
-            setActive(data.blocks.find((b: any) => b.type === 'hero')?.id || data.blocks[0]?.id || 'hero')
+            // Auto-migrate blocks that don't have items
+            const migratedBlocks = data.blocks.map((block: PageBlock) => {
+              if (block.type === 'courses' && !block.items) {
+                return { ...block, items: defaultCourseItems }
+              }
+              if (block.type === 'programs' && !block.items) {
+                return { ...block, items: defaultProgramItems }
+              }
+              if (block.type === 'results' && !block.items) {
+                return { ...block, items: defaultResultItems }
+              }
+              return block
+            })
+            setBlocks(migratedBlocks)
+            setActive(migratedBlocks.find((b: any) => b.type === 'hero')?.id || migratedBlocks[0]?.id || 'hero')
           } else {
             // No blocks in DB — save defaults
             console.log('No blocks in DB, saving defaults...')
@@ -82,8 +97,35 @@ export default function PageEditorPage() {
   const [showStyle, setShowStyle] = useState(false)
   const [history, setHistory] = useState<PageBlock[][]>([initBlocks])
   const [histIdx, setHistIdx] = useState(0)
+  const [editMode, setEditMode] = useState<'structured' | 'html'>('structured') // For blocks with items
 
   const ab = blocks.find(b => b.id === active) || null
+  
+  // Migration: add default items to blocks that don't have them
+  const migrateBlock = (block: PageBlock): PageBlock => {
+    if (block.type === 'courses' && !block.items) {
+      return { ...block, items: defaultCourseItems, contentEn: renderCoursesHTML(defaultCourseItems, 'en'), contentRu: renderCoursesHTML(defaultCourseItems, 'ru') }
+    }
+    if (block.type === 'programs' && !block.items) {
+      return { ...block, items: defaultProgramItems, contentEn: renderProgramsHTML(defaultProgramItems, 'en'), contentRu: renderProgramsHTML(defaultProgramItems, 'ru') }
+    }
+    if (block.type === 'results' && !block.items) {
+      return { ...block, items: defaultResultItems, contentEn: renderResultsHTML(defaultResultItems, 'en'), contentRu: renderResultsHTML(defaultResultItems, 'ru') }
+    }
+    return block
+  }
+  
+  const migrateAllBlocks = () => {
+    const migrated = blocks.map(migrateBlock)
+    const changed = migrated.some((b, i) => b !== blocks[i])
+    if (changed) {
+      push(migrated)
+      toast.success(lang === 'ru' ? 'Блоки обновлены до структурированного формата!' : 'Blocks migrated to structured format!')
+    } else {
+      toast.info(lang === 'ru' ? 'Все блоки уже в структурированном формате' : 'All blocks already have structured data')
+    }
+  }
+
   const push = (next: PageBlock[]) => {
     const h = history.slice(0, histIdx + 1)
     h.push(next)
@@ -196,6 +238,7 @@ export default function PageEditorPage() {
           <button onClick={() => setFullscreen(!fullscreen)} className="p-1.5 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800" title="Fullscreen"><Maximize2 className="w-4 h-4" /></button>
           <button onClick={exportJSON} className="p-1.5 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800" title="Export JSON"><Download className="w-4 h-4" /></button>
           <button onClick={importJSON} className="p-1.5 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800" title="Import JSON"><Upload className="w-4 h-4" /></button>
+          <button onClick={migrateAllBlocks} className="p-1.5 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800" title={lang === 'ru' ? 'Мигрировать в структуру' : 'Migrate to structured'}><LayoutList className="w-4 h-4" /></button>
           <Button variant="outline" size="sm" onClick={async () => {
             if (!confirm(lang === 'ru' ? 'Сбросить все блоки к исходным? Несохранённые правки будут потеряны.' : 'Reset all blocks to defaults? Unsaved changes will be lost.')) return
             push(initBlocks)
@@ -275,11 +318,99 @@ export default function PageEditorPage() {
                   {ab.visible ? (lang === 'ru' ? 'Виден' : 'On') : (lang === 'ru' ? 'Скрыт' : 'Off')}
                 </Badge>
                 <Badge variant="outline" className="text-[10px]">{ab.type}</Badge>
+                {/* Mode toggle for structured blocks */}
+                {(ab.type === 'courses' || ab.type === 'programs' || ab.type === 'results') && (
+                  <div className="flex bg-zinc-100 dark:bg-zinc-800 rounded-lg p-0.5">
+                    <button onClick={() => setEditMode('structured')} className={`flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium transition-all ${editMode === 'structured' ? 'bg-white dark:bg-zinc-700 shadow text-teal-600' : 'text-zinc-500'}`}>
+                      <LayoutList className="w-3 h-3" />{lang === 'ru' ? 'Элементы' : 'Items'}
+                    </button>
+                    <button onClick={() => setEditMode('html')} className={`flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium transition-all ${editMode === 'html' ? 'bg-white dark:bg-zinc-700 shadow text-amber-600' : 'text-zinc-500'}`}>
+                      <Code2 className="w-3 h-3" />HTML
+                    </button>
+                  </div>
+                )}
                 <button onClick={() => setShowStyle(!showStyle)} className={`p-1.5 rounded-lg transition-colors ${showStyle ? 'bg-teal-100 text-teal-600 dark:bg-teal-900' : 'hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-500'}`} title={lang === 'ru' ? 'Настройки' : 'Settings'}>
                   <Paintbrush className="w-4 h-4" /></button>
               </CardContent></Card>
-              <RichEditor key={`${ab.id}__${lt}`} content={lt === 'ru' ? ab.contentRu : ab.contentEn}
-                onChange={h => updSilent(ab.id, lt === 'ru' ? { contentRu: h } : { contentEn: h })} minH="450px" lang={lt} />
+
+              {/* Structured Editor for courses/programs/results */}
+              {ab.type === 'courses' && editMode === 'structured' ? (
+                <>
+                  <CoursesBlockEditor
+                    items={(ab.items as CourseItem[]) || defaultCourseItems}
+                    onChange={(items) => {
+                      const contentEn = renderCoursesHTML(items, 'en')
+                      const contentRu = renderCoursesHTML(items, 'ru')
+                      upd(ab.id, { items, contentEn, contentRu, label: `Video Courses (${items.length})`, labelRu: `Видеокурсы (${items.length})` })
+                    }}
+                    lang={lt}
+                  />
+                  {/* Live preview for structured editor */}
+                  <Card className="overflow-hidden">
+                    <CardContent className="p-0">
+                      <div className="flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-teal-50 to-zinc-50 dark:from-teal-900/20 dark:to-zinc-800 border-b border-zinc-200 dark:border-zinc-700">
+                        <Eye className="w-3 h-3 text-teal-500" />
+                        <span className="text-[10px] font-bold text-teal-600 uppercase tracking-widest">{lang === 'ru' ? 'Превью' : 'Live Preview'}</span>
+                      </div>
+                      <div className="bg-white dark:bg-zinc-950 max-h-[400px] overflow-y-auto">
+                        <div dangerouslySetInnerHTML={{ __html: lt === 'ru' ? ab.contentRu : ab.contentEn }} className="pointer-events-none" />
+                      </div>
+                    </CardContent>
+                  </Card>
+                </>
+              ) : ab.type === 'programs' && editMode === 'structured' ? (
+                <>
+                  <ProgramsBlockEditor
+                    items={(ab.items as ProgramItem[]) || defaultProgramItems}
+                    onChange={(items) => {
+                      const contentEn = renderProgramsHTML(items, 'en')
+                      const contentRu = renderProgramsHTML(items, 'ru')
+                      upd(ab.id, { items, contentEn, contentRu, label: `Programs (${items.length})`, labelRu: `Программы (${items.length})` })
+                    }}
+                    lang={lt}
+                  />
+                  {/* Live preview for structured editor */}
+                  <Card className="overflow-hidden">
+                    <CardContent className="p-0">
+                      <div className="flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-teal-50 to-zinc-50 dark:from-teal-900/20 dark:to-zinc-800 border-b border-zinc-200 dark:border-zinc-700">
+                        <Eye className="w-3 h-3 text-teal-500" />
+                        <span className="text-[10px] font-bold text-teal-600 uppercase tracking-widest">{lang === 'ru' ? 'Превью' : 'Live Preview'}</span>
+                      </div>
+                      <div className="bg-white dark:bg-zinc-950 max-h-[400px] overflow-y-auto">
+                        <div dangerouslySetInnerHTML={{ __html: lt === 'ru' ? ab.contentRu : ab.contentEn }} className="pointer-events-none" />
+                      </div>
+                    </CardContent>
+                  </Card>
+                </>
+              ) : ab.type === 'results' && editMode === 'structured' ? (
+                <>
+                  <ResultsBlockEditor
+                    items={(ab.items as ResultItem[]) || defaultResultItems}
+                    onChange={(items) => {
+                      const contentEn = renderResultsHTML(items, 'en')
+                      const contentRu = renderResultsHTML(items, 'ru')
+                      upd(ab.id, { items, contentEn, contentRu, label: `Results (${items.length})`, labelRu: `Результаты (${items.length})` })
+                    }}
+                    lang={lt}
+                  />
+                  {/* Live preview for structured editor */}
+                  <Card className="overflow-hidden">
+                    <CardContent className="p-0">
+                      <div className="flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-teal-50 to-zinc-50 dark:from-teal-900/20 dark:to-zinc-800 border-b border-zinc-200 dark:border-zinc-700">
+                        <Eye className="w-3 h-3 text-teal-500" />
+                        <span className="text-[10px] font-bold text-teal-600 uppercase tracking-widest">{lang === 'ru' ? 'Превью' : 'Live Preview'}</span>
+                      </div>
+                      <div className="bg-white dark:bg-zinc-950 max-h-[400px] overflow-y-auto">
+                        <div dangerouslySetInnerHTML={{ __html: lt === 'ru' ? ab.contentRu : ab.contentEn }} className="pointer-events-none" />
+                      </div>
+                    </CardContent>
+                  </Card>
+                </>
+              ) : (
+                <RichEditor key={`${ab.id}__${lt}`} content={lt === 'ru' ? ab.contentRu : ab.contentEn}
+                  onChange={h => updSilent(ab.id, lt === 'ru' ? { contentRu: h } : { contentEn: h })} minH="450px" lang={lt} />
+              )}
+
               {/* Live section style preview */}
               {styleToCSS(ab.style) && (
                 <Card className="overflow-hidden">
