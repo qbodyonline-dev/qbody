@@ -1,4 +1,4 @@
-import type { CourseItem, ProgramItem, ResultItem } from './types'
+import type { CourseItem, ProgramItem, ResultItem, HeaderData, HeroData, AboutData } from './types'
 
 /* ═══════════ HTML RENDERERS ═══════════ */
 /* These functions generate HTML from structured data */
@@ -109,7 +109,74 @@ export function renderResultsHTML(items: ResultItem[], lang: 'en' | 'ru'): strin
   return `<div style="padding:60px 20px;"><div style="text-align:center;margin-bottom:40px;"><p style="color:#14b8a6;font-weight:600;font-size:14px;margin-bottom:12px;">⭐ ${sectionLabel}</p><h2 style="font-size:36px;font-weight:800;color:#18181b;margin-bottom:8px;">${title}</h2></div><div style="display:grid;grid-template-columns:${gridCols};gap:24px;max-width:1000px;margin:0 auto;">${resultsHtml}</div><div style="text-align:center;margin-top:40px;"><a href="/auth/register" style="padding:14px 36px;border-radius:16px;background:linear-gradient(135deg,#14b8a6,#0d9488);color:white;font-weight:600;font-size:16px;text-decoration:none;">${ctaLabel}</a></div></div>`
 }
 
+/* ─────────── HEADER RENDERER ─────────── */
+export function renderHeaderHTML(data: HeaderData, lang: 'en' | 'ru'): string {
+  const navLinksHtml = data.navLinks.map(link => {
+    const label = lang === 'ru' ? link.labelRu : link.label
+    return `<a href="${link.href}" style="color:#52525b;text-decoration:none;">${label}</a>`
+  }).join('')
+
+  const loginText = lang === 'ru' ? data.loginTextRu : data.loginText
+  const ctaText = lang === 'ru' ? data.ctaTextRu : data.ctaText
+
+  return `<div style="padding:16px 24px;display:flex;align-items:center;justify-content:space-between;background:#fff;border-bottom:1px solid #e4e4e7;"><div style="display:flex;align-items:center;gap:12px;"><div style="width:40px;height:40px;border-radius:12px;background:${data.logoGradient};display:flex;align-items:center;justify-content:center;color:white;font-weight:bold;font-size:18px;">${data.logoIcon}</div><span style="font-weight:600;font-size:16px;color:#18181b;">${data.logoText}</span></div><div style="display:flex;gap:24px;font-size:14px;">${navLinksHtml}</div><div style="display:flex;gap:8px;"><a href="${data.loginLink}" style="padding:8px 16px;border-radius:12px;border:1px solid #e4e4e7;font-size:14px;color:#18181b;text-decoration:none;">${loginText}</a><a href="${data.ctaLink}" style="padding:8px 16px;border-radius:12px;background:#14b8a6;color:white;font-size:14px;text-decoration:none;">${ctaText}</a></div></div>`
+}
+
+/* ─────────── HERO RENDERER ─────────── */
+export function renderHeroHTML(data: HeroData, lang: 'en' | 'ru'): string {
+  const badge = lang === 'ru' ? data.badgeRu : data.badge
+  const title = lang === 'ru' ? data.titleRu : data.title
+  const subtitle = lang === 'ru' ? data.subtitleRu : data.subtitle
+  const description = lang === 'ru' ? data.descriptionRu : data.description
+  const primaryBtn = lang === 'ru' ? data.primaryBtnTextRu : data.primaryBtnText
+  const secondaryBtn = lang === 'ru' ? data.secondaryBtnTextRu : data.secondaryBtnText
+  const features = lang === 'ru' ? data.featuresRu : data.features
+
+  const featuresHtml = features.map(f => `✓ ${f}`).join('&nbsp;&nbsp;')
+
+  return `<div style="text-align:center;padding:60px 20px;background:${data.gradient};color:white;"><p style="color:#2dd4bf;font-weight:600;font-size:14px;margin-bottom:16px;">⭐ ${badge}</p><h1 style="font-size:48px;font-weight:800;margin-bottom:8px;">${title}</h1><h1 style="font-size:48px;font-weight:800;color:#2dd4bf;margin-bottom:24px;">${subtitle}</h1><p style="color:#d4d4d8;font-size:18px;max-width:600px;margin:0 auto 32px;">${description}</p><div style="display:flex;gap:12px;justify-content:center;margin-bottom:24px;"><a href="${data.primaryBtnLink}" style="padding:12px 32px;border-radius:16px;background:#14b8a6;color:white;font-weight:600;font-size:16px;text-decoration:none;">${primaryBtn}</a><a href="${data.secondaryBtnLink}" style="padding:12px 32px;border-radius:16px;border:1px solid rgba(255,255,255,0.3);color:white;font-size:16px;text-decoration:none;">${secondaryBtn}</a></div><p style="font-size:14px;color:#a1a1aa;">${featuresHtml}</p></div>`
+}
+
+/* ─────────── ABOUT RENDERER ─────────── */
+export function renderAboutHTML(data: AboutData, lang: 'en' | 'ru'): string {
+  const sectionLabel = lang === 'ru' ? data.sectionLabelRu : data.sectionLabel
+  const tagline = lang === 'ru' ? data.taglineRu : data.tagline
+  const certificationsTitle = lang === 'ru' ? data.certificationsTitleRu : data.certificationsTitle
+  const certifications = lang === 'ru' ? data.certificationsRu : data.certifications
+  const careerTitle = lang === 'ru' ? data.careerTitleRu : data.careerTitle
+  const career = lang === 'ru' ? data.careerRu : data.career
+  const footer = lang === 'ru' ? data.footerRu : data.footer
+
+  const certificationsHtml = certifications.map(c => 
+    `<li style="padding:4px 0;color:#52525b;font-size:14px;">✅ ${c}</li>`
+  ).join('')
+
+  const careerHtml = career.map(c => 
+    `<li style="padding:4px 0;color:#52525b;font-size:14px;">${c}</li>`
+  ).join('')
+
+  return `<div style="padding:60px 20px;"><div style="display:grid;grid-template-columns:1fr 1fr;gap:40px;max-width:1000px;margin:0 auto;"><div><img src="${data.image}" alt="Coach" style="width:100%;border-radius:24px;aspect-ratio:4/5;object-fit:cover;" /></div><div><p style="color:#14b8a6;font-weight:600;font-size:14px;margin-bottom:12px;">${sectionLabel}</p><h2 style="font-size:36px;font-weight:800;color:#18181b;margin-bottom:4px;">${data.name}</h2><p style="font-size:18px;color:#14b8a6;font-weight:500;margin-bottom:24px;">${tagline}</p><h3 style="font-size:18px;font-weight:700;color:#18181b;margin-bottom:12px;">${certificationsTitle}</h3><ul style="list-style:none;padding:0;margin:0 0 24px;">${certificationsHtml}</ul><h3 style="font-size:18px;font-weight:700;color:#18181b;margin-bottom:12px;">${careerTitle}</h3><ul style="list-style:none;padding:0;margin:0 0 24px;">${careerHtml}</ul><p style="font-size:14px;color:#52525b;">${footer}</p></div></div></div>`
+}
+
 /* ─────────── GRADIENTS PRESETS ─────────── */
+export const HERO_GRADIENTS = [
+  'linear-gradient(135deg,#0f766e 0%,#115e59 25%,#134e4a 50%,#18181b 100%)',
+  'linear-gradient(135deg,#1e3a8a 0%,#1e40af 25%,#1d4ed8 50%,#18181b 100%)',
+  'linear-gradient(135deg,#7c2d12 0%,#9a3412 25%,#c2410c 50%,#18181b 100%)',
+  'linear-gradient(135deg,#581c87 0%,#6b21a8 25%,#7c3aed 50%,#18181b 100%)',
+  'linear-gradient(135deg,#18181b 0%,#27272a 50%,#3f3f46 100%)',
+  'linear-gradient(135deg,#14532d 0%,#166534 25%,#15803d 50%,#18181b 100%)',
+]
+
+export const LOGO_GRADIENTS = [
+  'linear-gradient(135deg,#2dd4bf,#0d9488)',
+  'linear-gradient(135deg,#60a5fa,#3b82f6)',
+  'linear-gradient(135deg,#f472b6,#ec4899)',
+  'linear-gradient(135deg,#a78bfa,#8b5cf6)',
+  'linear-gradient(135deg,#fbbf24,#f59e0b)',
+  'linear-gradient(135deg,#34d399,#10b981)',
+]
+
 export const COURSE_GRADIENTS = [
   'linear-gradient(135deg,#ec4899,#f43f5e)',
   'linear-gradient(135deg,#8b5cf6,#7c3aed)',

@@ -2,8 +2,8 @@ import {
   Square, Zap, LayoutGrid, Columns2, Play, MessageSquare,
   Heart, Hash, Mail, Camera
 } from 'lucide-react'
-import type { PageBlock, SectionStyle, CourseItem, ProgramItem, ResultItem } from './types'
-import { renderCoursesHTML, renderProgramsHTML, renderResultsHTML } from './renderers'
+import type { PageBlock, SectionStyle, CourseItem, ProgramItem, ResultItem, HeaderData, HeroData, AboutData } from './types'
+import { renderCoursesHTML, renderProgramsHTML, renderResultsHTML, renderHeaderHTML, renderHeroHTML, renderAboutHTML } from './renderers'
 
 /* ═══════════ BLOCK CONTENT DATA ═══════════ */
 
@@ -210,16 +210,95 @@ export const defaultResultItems: ResultItem[] = [
   }
 ]
 
+/* ═══════════ DEFAULT SECTION DATA (Header, Hero, About) ═══════════ */
+
+export const defaultHeaderData: HeaderData = {
+  logoText: 'Qbody',
+  logoIcon: 'Q',
+  logoGradient: 'linear-gradient(135deg,#2dd4bf,#0d9488)',
+  navLinks: [
+    { id: 'nav_programs', label: 'Programs', labelRu: 'Программы', href: '#programs' },
+    { id: 'nav_courses', label: 'Courses', labelRu: 'Курсы', href: '#courses' },
+    { id: 'nav_about', label: 'About', labelRu: 'О тренере', href: '#about' },
+    { id: 'nav_results', label: 'Results', labelRu: 'Результаты', href: '#results' }
+  ],
+  loginText: 'Log in',
+  loginTextRu: 'Вход',
+  loginLink: '/auth/login',
+  ctaText: 'Get started',
+  ctaTextRu: 'Начать',
+  ctaLink: '/auth/register'
+}
+
+export const defaultHeroData: HeroData = {
+  badge: '⭐ NASM CERTIFIED PERSONAL TRAINER',
+  badgeRu: '⭐ СЕРТИФИЦИРОВАННЫЙ NASM ТРЕНЕР',
+  title: 'Transform Your Body',
+  titleRu: 'Преобрази тело',
+  subtitle: 'Transform Your Life',
+  subtitleRu: 'Преобрази жизнь',
+  description: '17+ years of experience. 1000+ clients. Personalized programs and recovery courses for women of any fitness level.',
+  descriptionRu: '17+ лет опыта. 1000+ клиентов. Персональные программы для женщин.',
+  primaryBtnText: 'Start training',
+  primaryBtnTextRu: 'Начать',
+  primaryBtnLink: '/auth/register',
+  secondaryBtnText: 'View programs →',
+  secondaryBtnTextRu: 'Программы →',
+  secondaryBtnLink: '#programs',
+  features: ['Personal approach', 'Online & in-person', 'Proven results'],
+  featuresRu: ['Инд. подход', 'Онлайн и офлайн', 'Результаты'],
+  gradient: 'linear-gradient(135deg,#0f766e 0%,#115e59 25%,#134e4a 50%,#18181b 100%)'
+}
+
+export const defaultAboutData: AboutData = {
+  image: '/images/hero-alexandra.jpg',
+  sectionLabel: 'ABOUT THE TRAINER',
+  sectionLabelRu: 'О ТРЕНЕРЕ',
+  name: 'Aleksandra Khavanskaia',
+  tagline: 'Coach. Athlete. Mom.',
+  taglineRu: 'Тренер. Спортсменка. Мама.',
+  certificationsTitle: '🏆 Certifications',
+  certificationsTitleRu: '🏆 Сертификаты',
+  certifications: [
+    "Master's Physical Culture",
+    'NASM CPT',
+    'CES, PBC, CNSC',
+    'Pre/Post-Natal Fitness',
+    'Rehabilitation'
+  ],
+  certificationsRu: [
+    'Магистр физкультуры',
+    'NASM CPT',
+    'CES, PBC, CNSC',
+    'Пре/постнатальный',
+    'Реабилитация'
+  ],
+  careerTitle: '🏅 Career',
+  careerTitleRu: '🏅 Карьера',
+  career: [
+    '🥈 Olympia & Arnold Amateur',
+    '🏆 5× NPC Champion',
+    '🥇 NPC National Gold'
+  ],
+  careerRu: [
+    '🥈 Олимпия и Арнольд',
+    '🏆 5× чемпион NPC',
+    '🥇 Золото NPC'
+  ],
+  footer: '📍 Las Vegas · 👶 Mom of 2 · 💪 17+ years',
+  footerRu: '📍 Лас-Вегас · 👶 Мама 2 детей · 💪 17+ лет'
+}
+
 /* ═══════════ INIT BLOCKS ═══════════ */
 const D = getDefaultContent()
 const S0: SectionStyle = {}
 
 export const initBlocks: PageBlock[] = [
-  { id: 'header', type: 'header', label: 'Header', labelRu: 'Шапка', visible: true, contentEn: D.en.header, contentRu: D.ru.header, style: S0 },
-  { id: 'hero', type: 'hero', label: 'Hero', labelRu: 'Баннер', visible: true, contentEn: D.en.hero, contentRu: D.ru.hero, style: S0 },
+  { id: 'header', type: 'header', label: 'Header', labelRu: 'Шапка', visible: true, contentEn: renderHeaderHTML(defaultHeaderData, 'en'), contentRu: renderHeaderHTML(defaultHeaderData, 'ru'), style: S0, data: defaultHeaderData },
+  { id: 'hero', type: 'hero', label: 'Hero', labelRu: 'Баннер', visible: true, contentEn: renderHeroHTML(defaultHeroData, 'en'), contentRu: renderHeroHTML(defaultHeroData, 'ru'), style: S0, data: defaultHeroData },
   { id: 'programs', type: 'programs', label: 'Programs (5)', labelRu: 'Программы (5)', visible: true, contentEn: renderProgramsHTML(defaultProgramItems, 'en'), contentRu: renderProgramsHTML(defaultProgramItems, 'ru'), style: { bgColor: '#fafafa' }, items: defaultProgramItems },
   { id: 'courses', type: 'courses', label: 'Video Courses', labelRu: 'Видеокурсы', visible: true, contentEn: renderCoursesHTML(defaultCourseItems, 'en'), contentRu: renderCoursesHTML(defaultCourseItems, 'ru'), style: S0, items: defaultCourseItems },
-  { id: 'about', type: 'about', label: 'About', labelRu: 'О тренере', visible: true, contentEn: D.en.about, contentRu: D.ru.about, style: { bgColor: '#fafafa' } },
+  { id: 'about', type: 'about', label: 'About', labelRu: 'О тренере', visible: true, contentEn: renderAboutHTML(defaultAboutData, 'en'), contentRu: renderAboutHTML(defaultAboutData, 'ru'), style: { bgColor: '#fafafa' }, data: defaultAboutData },
   { id: 'results', type: 'results', label: 'Results', labelRu: 'Результаты', visible: true, contentEn: renderResultsHTML(defaultResultItems, 'en'), contentRu: renderResultsHTML(defaultResultItems, 'ru'), style: S0, items: defaultResultItems },
   { id: 'footer', type: 'footer', label: 'Footer', labelRu: 'Подвал', visible: true, contentEn: D.en.footer, contentRu: D.ru.footer, style: S0 },
 ]

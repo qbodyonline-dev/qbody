@@ -7,8 +7,8 @@ import {
   Plus, Trash2, Copy, GripVertical, ChevronDown, ChevronUp, X, Check
 } from 'lucide-react'
 
-import type { CourseItem, ProgramItem, ResultItem } from './types'
-import { COURSE_GRADIENTS, PROGRAM_GRADIENTS, EMOJI_ICONS } from './renderers'
+import type { CourseItem, ProgramItem, ResultItem, HeaderData, HeroData, AboutData, NavLink } from './types'
+import { COURSE_GRADIENTS, PROGRAM_GRADIENTS, EMOJI_ICONS, HERO_GRADIENTS, LOGO_GRADIENTS } from './renderers'
 
 /* ═══════════ SHARED COMPONENTS ═══════════ */
 
@@ -680,6 +680,338 @@ export function ResultsBlockEditor({ items, onChange, lang }: ResultsBlockEditor
               lang={lang} isExpanded={expanded === item.id} onToggle={() => setExpanded(expanded === item.id ? null : item.id)}
               onDragStart={() => setDragId(item.id)} onDragOver={e => onDragOver(e, item.id)} onDragEnd={() => setDragId(null)} isDragging={dragId === item.id} />
           ))}
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   SECTION EDITORS (Header, Hero, About)
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+/* ─────────── NAV LINK EDITOR ─────────── */
+interface NavLinkEditorProps {
+  link: NavLink
+  onChange: (link: NavLink) => void
+  onDelete: () => void
+  lang: 'en' | 'ru'
+}
+
+function NavLinkEditor({ link, onChange, onDelete, lang }: NavLinkEditorProps) {
+  return (
+    <div className="flex gap-2 items-center p-2 bg-zinc-50 dark:bg-zinc-800 rounded-lg">
+      <GripVertical className="w-4 h-4 text-zinc-300 cursor-grab flex-shrink-0" />
+      <Input value={link.label} onChange={e => onChange({ ...link, label: e.target.value })} placeholder="Label EN" className="text-xs h-7 flex-1" />
+      <Input value={link.labelRu} onChange={e => onChange({ ...link, labelRu: e.target.value })} placeholder="Label RU" className="text-xs h-7 flex-1" />
+      <Input value={link.href} onChange={e => onChange({ ...link, href: e.target.value })} placeholder="/link" className="text-xs h-7 w-24" />
+      <button onClick={onDelete} className="p-1 rounded hover:bg-red-100"><Trash2 className="w-3.5 h-3.5 text-red-500" /></button>
+    </div>
+  )
+}
+
+/* ─────────── HEADER EDITOR ─────────── */
+interface HeaderEditorProps {
+  data: HeaderData
+  onChange: (data: HeaderData) => void
+  lang: 'en' | 'ru'
+}
+
+export function HeaderEditor({ data, onChange, lang }: HeaderEditorProps) {
+  const [showLogoPicker, setShowLogoPicker] = useState(false)
+
+  const addNavLink = () => {
+    const newLink: NavLink = { id: `nav_${Date.now()}`, label: 'Link', labelRu: 'Ссылка', href: '/' }
+    onChange({ ...data, navLinks: [...data.navLinks, newLink] })
+  }
+
+  const updateNavLink = (id: string, link: NavLink) => {
+    onChange({ ...data, navLinks: data.navLinks.map(l => l.id === id ? link : l) })
+  }
+
+  const removeNavLink = (id: string) => {
+    onChange({ ...data, navLinks: data.navLinks.filter(l => l.id !== id) })
+  }
+
+  return (
+    <Card>
+      <CardContent className="p-4 space-y-4">
+        <h3 className="text-sm font-semibold text-zinc-700 dark:text-zinc-300 flex items-center gap-2">
+          🧭 {lang === 'ru' ? 'Настройки шапки' : 'Header Settings'}
+        </h3>
+
+        {/* Logo Section */}
+        <div className="p-3 bg-zinc-50 dark:bg-zinc-800 rounded-lg space-y-3">
+          <label className="text-xs font-medium text-zinc-500 block">{lang === 'ru' ? 'Логотип' : 'Logo'}</label>
+          <div className="flex gap-3 items-center">
+            <div className="relative">
+              <button onClick={() => setShowLogoPicker(!showLogoPicker)}
+                className="w-12 h-12 rounded-xl flex items-center justify-center text-white font-bold text-lg border-2 border-zinc-200 dark:border-zinc-600 hover:scale-105 transition-transform"
+                style={{ background: data.logoGradient }}>
+                {data.logoIcon}
+              </button>
+              {showLogoPicker && (
+                <div className="absolute top-full left-0 mt-1 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl shadow-xl z-50 p-3 space-y-2">
+                  <label className="text-xs text-zinc-500 block">{lang === 'ru' ? 'Цвет' : 'Color'}</label>
+                  <div className="grid grid-cols-3 gap-1.5">
+                    {LOGO_GRADIENTS.map(g => (
+                      <button key={g} onClick={() => onChange({ ...data, logoGradient: g })}
+                        className={`w-10 h-10 rounded-lg border-2 ${data.logoGradient === g ? 'border-teal-500 scale-105' : 'border-zinc-200'}`}
+                        style={{ background: g }} />
+                    ))}
+                  </div>
+                  <label className="text-xs text-zinc-500 block mt-2">{lang === 'ru' ? 'Иконка' : 'Icon'}</label>
+                  <Input value={data.logoIcon} onChange={e => onChange({ ...data, logoIcon: e.target.value })} placeholder="A or 💪" className="text-xs h-8" maxLength={2} />
+                  <button onClick={() => setShowLogoPicker(false)} className="w-full p-1.5 text-xs bg-teal-500 text-white rounded-lg mt-2"><Check className="w-3 h-3 inline mr-1" />{lang === 'ru' ? 'Готово' : 'Done'}</button>
+                </div>
+              )}
+            </div>
+            <Input value={data.logoText} onChange={e => onChange({ ...data, logoText: e.target.value })} placeholder={lang === 'ru' ? 'Название сайта' : 'Site name'} className="text-sm h-10 flex-1" />
+          </div>
+        </div>
+
+        {/* Navigation Links */}
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <label className="text-xs font-medium text-zinc-500">{lang === 'ru' ? 'Навигация' : 'Navigation'}</label>
+            <button onClick={addNavLink} className="p-1 rounded-lg hover:bg-teal-50 text-teal-500"><Plus className="w-4 h-4" /></button>
+          </div>
+          <div className="space-y-1.5">
+            {data.navLinks.map(link => (
+              <NavLinkEditor key={link.id} link={link} onChange={l => updateNavLink(link.id, l)} onDelete={() => removeNavLink(link.id)} lang={lang} />
+            ))}
+          </div>
+        </div>
+
+        {/* Buttons */}
+        <div className="grid grid-cols-2 gap-3">
+          <div className="p-3 bg-zinc-50 dark:bg-zinc-800 rounded-lg space-y-2">
+            <label className="text-xs font-medium text-zinc-500 block">{lang === 'ru' ? 'Кнопка входа' : 'Login Button'}</label>
+            <Input value={data.loginText} onChange={e => onChange({ ...data, loginText: e.target.value })} placeholder="EN" className="text-xs h-8" />
+            <Input value={data.loginTextRu} onChange={e => onChange({ ...data, loginTextRu: e.target.value })} placeholder="RU" className="text-xs h-8" />
+            <Input value={data.loginLink} onChange={e => onChange({ ...data, loginLink: e.target.value })} placeholder="/auth/login" className="text-xs h-8" />
+          </div>
+          <div className="p-3 bg-zinc-50 dark:bg-zinc-800 rounded-lg space-y-2">
+            <label className="text-xs font-medium text-zinc-500 block">{lang === 'ru' ? 'Кнопка CTA' : 'CTA Button'}</label>
+            <Input value={data.ctaText} onChange={e => onChange({ ...data, ctaText: e.target.value })} placeholder="EN" className="text-xs h-8" />
+            <Input value={data.ctaTextRu} onChange={e => onChange({ ...data, ctaTextRu: e.target.value })} placeholder="RU" className="text-xs h-8" />
+            <Input value={data.ctaLink} onChange={e => onChange({ ...data, ctaLink: e.target.value })} placeholder="/auth/register" className="text-xs h-8" />
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
+
+/* ─────────── HERO EDITOR ─────────── */
+interface HeroEditorProps {
+  data: HeroData
+  onChange: (data: HeroData) => void
+  lang: 'en' | 'ru'
+}
+
+export function HeroEditor({ data, onChange, lang }: HeroEditorProps) {
+  const [showGradientPicker, setShowGradientPicker] = useState(false)
+
+  return (
+    <Card>
+      <CardContent className="p-4 space-y-4">
+        <h3 className="text-sm font-semibold text-zinc-700 dark:text-zinc-300 flex items-center gap-2">
+          🦸 {lang === 'ru' ? 'Настройки Hero' : 'Hero Settings'}
+        </h3>
+
+        {/* Background Gradient */}
+        <div className="p-3 bg-zinc-50 dark:bg-zinc-800 rounded-lg space-y-2">
+          <label className="text-xs font-medium text-zinc-500 block">{lang === 'ru' ? 'Фоновый градиент' : 'Background Gradient'}</label>
+          <div className="relative">
+            <button onClick={() => setShowGradientPicker(!showGradientPicker)}
+              className="w-full h-16 rounded-xl border-2 border-zinc-200 dark:border-zinc-600"
+              style={{ background: data.gradient }} />
+            {showGradientPicker && (
+              <GradientPicker value={data.gradient} options={HERO_GRADIENTS} onChange={g => onChange({ ...data, gradient: g })} onClose={() => setShowGradientPicker(false)} />
+            )}
+          </div>
+        </div>
+
+        {/* Badge */}
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="text-xs text-zinc-500 block mb-1">{lang === 'ru' ? 'Бейдж EN' : 'Badge EN'}</label>
+            <Input value={data.badge} onChange={e => onChange({ ...data, badge: e.target.value })} className="text-xs h-8" placeholder="CERTIFIED TRAINER" />
+          </div>
+          <div>
+            <label className="text-xs text-zinc-500 block mb-1">{lang === 'ru' ? 'Бейдж RU' : 'Badge RU'}</label>
+            <Input value={data.badgeRu} onChange={e => onChange({ ...data, badgeRu: e.target.value })} className="text-xs h-8" placeholder="СЕРТИФИКАЦИЯ" />
+          </div>
+        </div>
+
+        {/* Title */}
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="text-xs text-zinc-500 block mb-1">{lang === 'ru' ? 'Заголовок EN' : 'Title EN'}</label>
+            <Input value={data.title} onChange={e => onChange({ ...data, title: e.target.value })} className="text-sm h-10" placeholder="Main title" />
+          </div>
+          <div>
+            <label className="text-xs text-zinc-500 block mb-1">{lang === 'ru' ? 'Заголовок RU' : 'Title RU'}</label>
+            <Input value={data.titleRu} onChange={e => onChange({ ...data, titleRu: e.target.value })} className="text-sm h-10" placeholder="Заголовок" />
+          </div>
+        </div>
+
+        {/* Subtitle (colored) */}
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="text-xs text-zinc-500 block mb-1">{lang === 'ru' ? 'Подзаголовок EN (цветной)' : 'Subtitle EN (colored)'}</label>
+            <Input value={data.subtitle} onChange={e => onChange({ ...data, subtitle: e.target.value })} className="text-sm h-10" />
+          </div>
+          <div>
+            <label className="text-xs text-zinc-500 block mb-1">{lang === 'ru' ? 'Подзаголовок RU (цветной)' : 'Subtitle RU (colored)'}</label>
+            <Input value={data.subtitleRu} onChange={e => onChange({ ...data, subtitleRu: e.target.value })} className="text-sm h-10" />
+          </div>
+        </div>
+
+        {/* Description */}
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="text-xs text-zinc-500 block mb-1">{lang === 'ru' ? 'Описание EN' : 'Description EN'}</label>
+            <textarea value={data.description} onChange={e => onChange({ ...data, description: e.target.value })}
+              className="w-full text-xs p-2 rounded-lg border border-zinc-200 dark:border-zinc-700 dark:bg-zinc-900 resize-none" rows={2} />
+          </div>
+          <div>
+            <label className="text-xs text-zinc-500 block mb-1">{lang === 'ru' ? 'Описание RU' : 'Description RU'}</label>
+            <textarea value={data.descriptionRu} onChange={e => onChange({ ...data, descriptionRu: e.target.value })}
+              className="w-full text-xs p-2 rounded-lg border border-zinc-200 dark:border-zinc-700 dark:bg-zinc-900 resize-none" rows={2} />
+          </div>
+        </div>
+
+        {/* Buttons */}
+        <div className="grid grid-cols-2 gap-3">
+          <div className="p-3 bg-zinc-50 dark:bg-zinc-800 rounded-lg space-y-2">
+            <label className="text-xs font-medium text-zinc-500 block">{lang === 'ru' ? 'Основная кнопка' : 'Primary Button'}</label>
+            <Input value={data.primaryBtnText} onChange={e => onChange({ ...data, primaryBtnText: e.target.value })} placeholder="EN" className="text-xs h-8" />
+            <Input value={data.primaryBtnTextRu} onChange={e => onChange({ ...data, primaryBtnTextRu: e.target.value })} placeholder="RU" className="text-xs h-8" />
+            <Input value={data.primaryBtnLink} onChange={e => onChange({ ...data, primaryBtnLink: e.target.value })} placeholder="/link" className="text-xs h-8" />
+          </div>
+          <div className="p-3 bg-zinc-50 dark:bg-zinc-800 rounded-lg space-y-2">
+            <label className="text-xs font-medium text-zinc-500 block">{lang === 'ru' ? 'Второстепенная кнопка' : 'Secondary Button'}</label>
+            <Input value={data.secondaryBtnText} onChange={e => onChange({ ...data, secondaryBtnText: e.target.value })} placeholder="EN" className="text-xs h-8" />
+            <Input value={data.secondaryBtnTextRu} onChange={e => onChange({ ...data, secondaryBtnTextRu: e.target.value })} placeholder="RU" className="text-xs h-8" />
+            <Input value={data.secondaryBtnLink} onChange={e => onChange({ ...data, secondaryBtnLink: e.target.value })} placeholder="/link" className="text-xs h-8" />
+          </div>
+        </div>
+
+        {/* Features */}
+        <div className="grid grid-cols-2 gap-3">
+          <FeaturesEditor features={data.features} onChange={f => onChange({ ...data, features: f })} lang="en" />
+          <FeaturesEditor features={data.featuresRu} onChange={f => onChange({ ...data, featuresRu: f })} lang="ru" />
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
+
+/* ─────────── ABOUT EDITOR ─────────── */
+interface AboutEditorProps {
+  data: AboutData
+  onChange: (data: AboutData) => void
+  lang: 'en' | 'ru'
+}
+
+export function AboutEditor({ data, onChange, lang }: AboutEditorProps) {
+  return (
+    <Card>
+      <CardContent className="p-4 space-y-4">
+        <h3 className="text-sm font-semibold text-zinc-700 dark:text-zinc-300 flex items-center gap-2">
+          👤 {lang === 'ru' ? 'Настройки About' : 'About Settings'}
+        </h3>
+
+        {/* Image */}
+        <div className="p-3 bg-zinc-50 dark:bg-zinc-800 rounded-lg space-y-2">
+          <label className="text-xs font-medium text-zinc-500 block">{lang === 'ru' ? 'Фото тренера' : 'Coach Photo'}</label>
+          <div className="flex gap-3 items-center">
+            <div className="w-20 h-24 rounded-xl overflow-hidden bg-zinc-200 dark:bg-zinc-700 flex-shrink-0">
+              {data.image && <img src={data.image} alt="Coach" className="w-full h-full object-cover" />}
+            </div>
+            <Input value={data.image} onChange={e => onChange({ ...data, image: e.target.value })}
+              placeholder="/images/coach.jpg" className="text-xs h-8 flex-1" />
+          </div>
+        </div>
+
+        {/* Section Label */}
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="text-xs text-zinc-500 block mb-1">{lang === 'ru' ? 'Лейбл секции EN' : 'Section Label EN'}</label>
+            <Input value={data.sectionLabel} onChange={e => onChange({ ...data, sectionLabel: e.target.value })} className="text-xs h-8" placeholder="Your coach" />
+          </div>
+          <div>
+            <label className="text-xs text-zinc-500 block mb-1">{lang === 'ru' ? 'Лейбл секции RU' : 'Section Label RU'}</label>
+            <Input value={data.sectionLabelRu} onChange={e => onChange({ ...data, sectionLabelRu: e.target.value })} className="text-xs h-8" placeholder="Ваш тренер" />
+          </div>
+        </div>
+
+        {/* Name */}
+        <div>
+          <label className="text-xs text-zinc-500 block mb-1">{lang === 'ru' ? 'Имя тренера' : 'Coach Name'}</label>
+          <Input value={data.name} onChange={e => onChange({ ...data, name: e.target.value })} className="text-sm h-10" placeholder="Alexandra Ivanova" />
+        </div>
+
+        {/* Tagline */}
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="text-xs text-zinc-500 block mb-1">{lang === 'ru' ? 'Слоган EN' : 'Tagline EN'}</label>
+            <Input value={data.tagline} onChange={e => onChange({ ...data, tagline: e.target.value })} className="text-xs h-8" placeholder="Certified fitness expert" />
+          </div>
+          <div>
+            <label className="text-xs text-zinc-500 block mb-1">{lang === 'ru' ? 'Слоган RU' : 'Tagline RU'}</label>
+            <Input value={data.taglineRu} onChange={e => onChange({ ...data, taglineRu: e.target.value })} className="text-xs h-8" placeholder="Фитнес эксперт" />
+          </div>
+        </div>
+
+        {/* Certifications */}
+        <div className="p-3 bg-zinc-50 dark:bg-zinc-800 rounded-lg space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs text-zinc-500 block mb-1">{lang === 'ru' ? 'Заголовок секции EN' : 'Section Title EN'}</label>
+              <Input value={data.certificationsTitle} onChange={e => onChange({ ...data, certificationsTitle: e.target.value })} className="text-xs h-8" />
+            </div>
+            <div>
+              <label className="text-xs text-zinc-500 block mb-1">{lang === 'ru' ? 'Заголовок секции RU' : 'Section Title RU'}</label>
+              <Input value={data.certificationsTitleRu} onChange={e => onChange({ ...data, certificationsTitleRu: e.target.value })} className="text-xs h-8" />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <FeaturesEditor features={data.certifications} onChange={f => onChange({ ...data, certifications: f })} lang="en" />
+            <FeaturesEditor features={data.certificationsRu} onChange={f => onChange({ ...data, certificationsRu: f })} lang="ru" />
+          </div>
+        </div>
+
+        {/* Career */}
+        <div className="p-3 bg-zinc-50 dark:bg-zinc-800 rounded-lg space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs text-zinc-500 block mb-1">{lang === 'ru' ? 'Карьера заголовок EN' : 'Career Title EN'}</label>
+              <Input value={data.careerTitle} onChange={e => onChange({ ...data, careerTitle: e.target.value })} className="text-xs h-8" />
+            </div>
+            <div>
+              <label className="text-xs text-zinc-500 block mb-1">{lang === 'ru' ? 'Карьера заголовок RU' : 'Career Title RU'}</label>
+              <Input value={data.careerTitleRu} onChange={e => onChange({ ...data, careerTitleRu: e.target.value })} className="text-xs h-8" />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <FeaturesEditor features={data.career} onChange={f => onChange({ ...data, career: f })} lang="en" />
+            <FeaturesEditor features={data.careerRu} onChange={f => onChange({ ...data, careerRu: f })} lang="ru" />
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="text-xs text-zinc-500 block mb-1">{lang === 'ru' ? 'Футер EN' : 'Footer EN'}</label>
+            <Input value={data.footer} onChange={e => onChange({ ...data, footer: e.target.value })} className="text-xs h-8" placeholder="📍 Location / info" />
+          </div>
+          <div>
+            <label className="text-xs text-zinc-500 block mb-1">{lang === 'ru' ? 'Футер RU' : 'Footer RU'}</label>
+            <Input value={data.footerRu} onChange={e => onChange({ ...data, footerRu: e.target.value })} className="text-xs h-8" placeholder="📍 Местоположение" />
+          </div>
         </div>
       </CardContent>
     </Card>

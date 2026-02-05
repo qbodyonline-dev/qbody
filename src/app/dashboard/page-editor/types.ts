@@ -72,7 +72,69 @@ export interface ResultItem {
   icon: string
 }
 
+/* ═══════════ SECTION DATA TYPES ═══════════ */
+
+export interface NavLink {
+  id: string
+  label: string
+  labelRu: string
+  href: string
+}
+
+export interface HeaderData {
+  logoText: string
+  logoIcon: string  // emoji or letter
+  logoGradient: string
+  navLinks: NavLink[]
+  loginText: string
+  loginTextRu: string
+  loginLink: string
+  ctaText: string
+  ctaTextRu: string
+  ctaLink: string
+}
+
+export interface HeroData {
+  badge: string
+  badgeRu: string
+  title: string
+  titleRu: string
+  subtitle: string
+  subtitleRu: string
+  description: string
+  descriptionRu: string
+  primaryBtnText: string
+  primaryBtnTextRu: string
+  primaryBtnLink: string
+  secondaryBtnText: string
+  secondaryBtnTextRu: string
+  secondaryBtnLink: string
+  features: string[]
+  featuresRu: string[]
+  gradient: string
+}
+
+export interface AboutData {
+  image: string
+  sectionLabel: string
+  sectionLabelRu: string
+  name: string
+  tagline: string
+  taglineRu: string
+  certificationsTitle: string
+  certificationsTitleRu: string
+  certifications: string[]
+  certificationsRu: string[]
+  careerTitle: string
+  careerTitleRu: string
+  career: string[]
+  careerRu: string[]
+  footer: string
+  footerRu: string
+}
+
 export type StructuredItems = CourseItem[] | ProgramItem[] | ResultItem[]
+export type SectionData = HeaderData | HeroData | AboutData
 
 export type BlockType = 'header' | 'hero' | 'programs' | 'courses' | 'about' | 'results' | 'footer' | 'custom'
 
@@ -87,6 +149,8 @@ export interface PageBlock {
   style: SectionStyle
   // Structured items for courses, programs, results blocks
   items?: StructuredItems
+  // Section data for header, hero, about blocks
+  data?: SectionData
 }
 
 /* Block type → icon mapping */
