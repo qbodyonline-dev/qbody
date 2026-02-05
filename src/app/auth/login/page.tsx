@@ -1,5 +1,5 @@
 'use client'
-import React, { useState, Suspense } from 'react'
+import React, { useState, Suspense, useEffect } from 'react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { Button } from '@/components/ui/button'
@@ -12,11 +12,40 @@ import { Mail, Lock, ArrowLeft } from 'lucide-react'
 import { toast } from 'sonner'
 
 function LoginForm() {
-  const { t } = useTranslation()
+  const { t, locale } = useTranslation()
   const searchParams = useSearchParams()
   const { signIn } = useAuth()
   const [isLoading, setIsLoading] = useState(false)
   const [formData, setFormData] = useState({ email: '', password: '' })
+
+  const ru = locale === 'ru'
+
+  // Handle auth callback errors
+  useEffect(() => {
+    const error = searchParams.get('error')
+    if (error === 'auth_callback_error') {
+      // Check hash for more details
+      const hash = window.location.hash
+      if (hash.includes('otp_expired')) {
+        toast.error(ru 
+          ? 'Ссылка для сброса пароля истекла. Запросите новую.' 
+          : 'Password reset link has expired. Please request a new one.'
+        )
+      } else if (hash.includes('access_denied')) {
+        toast.error(ru 
+          ? 'Ссылка недействительна. Запросите новую.' 
+          : 'Link is invalid. Please request a new one.'
+        )
+      } else {
+        toast.error(ru 
+          ? 'Ошибка авторизации. Попробуйте снова.' 
+          : 'Authentication error. Please try again.'
+        )
+      }
+      // Clean URL
+      window.history.replaceState({}, '', '/auth/login')
+    }
+  }, [searchParams, ru])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
