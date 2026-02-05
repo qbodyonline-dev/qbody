@@ -2,7 +2,7 @@
 import React, { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Home, BookOpen, TrendingUp, User, Menu, X, LogOut, Bell, Trash2 } from 'lucide-react'
+import { Home, BookOpen, TrendingUp, User, Menu, X, LogOut, Bell, Trash2, MessageCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Avatar } from '@/components/ui/avatar'
 import { LanguageSwitcher } from '@/components/ui/language-switcher'
@@ -31,6 +31,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
     { name: t('client.nav.home'), href: '/client/home', icon: Home },
     { name: t('client.nav.courses'), href: '/client/courses', icon: BookOpen },
     { name: t('client.nav.progress'), href: '/client/progress', icon: TrendingUp },
+    { name: ru ? 'Поддержка' : 'Support', href: '/client/messages', icon: MessageCircle },
     { name: t('client.nav.profile'), href: '/client/profile', icon: User },
   ]
 
