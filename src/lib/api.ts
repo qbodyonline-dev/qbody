@@ -1,3 +1,23 @@
+import { createClient } from '@/lib/supabase'
+
+// Helper for authenticated API requests
+export async function fetchWithAuth(url: string, options: RequestInit = {}) {
+  const supabase = createClient()
+  const { data: { session } } = await supabase.auth.getSession()
+  
+  if (!session?.access_token) {
+    throw new Error('No session')
+  }
+  
+  const headers = {
+    ...options.headers,
+    'Authorization': `Bearer ${session.access_token}`,
+    'Content-Type': 'application/json',
+  }
+  
+  return fetch(url, { ...options, headers })
+}
+
 // Dashboard stats — via API route (server-side, bypasses RLS)
 export async function getDashboardStats() {
   try {

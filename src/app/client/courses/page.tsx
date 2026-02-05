@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { useTranslation } from '@/lib/i18n'
 import { useAuth } from '@/lib/auth'
-import { createClient } from '@/lib/supabase'
+import { fetchWithAuth } from '@/lib/api'
 import { BookOpen, Clock, Heart, Baby, ArrowRight, CheckCircle2, ShoppingBag, Loader2, Play } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -61,7 +61,7 @@ function CoursesContent() {
 
     const load = async () => {
       try {
-        const res = await fetch('/api/progress')
+        const res = await fetchWithAuth('/api/progress')
         if (res.ok) {
           const data = await res.json()
           setPurchasedCourses(data.courses || [])

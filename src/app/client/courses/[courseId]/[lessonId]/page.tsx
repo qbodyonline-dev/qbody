@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { useTranslation } from '@/lib/i18n'
 import { useAuth } from '@/lib/auth'
+import { fetchWithAuth } from '@/lib/api'
 import { Play, CheckCircle2, ArrowLeft, ArrowRight, BookOpen, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -61,7 +62,7 @@ export default function LessonPage() {
 
     const loadData = async () => {
       try {
-        const res = await fetch(`/api/progress?course_slug=${courseSlug}`)
+        const res = await fetchWithAuth(`/api/progress?course_slug=${courseSlug}`)
         if (res.ok) {
           const data = await res.json()
           if (data.courses && data.courses.length > 0) {
@@ -100,9 +101,8 @@ export default function LessonPage() {
 
     setSaving(true)
     try {
-      const res = await fetch('/api/progress', {
+      const res = await fetchWithAuth('/api/progress', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           lesson_id: lessonId,
           completed: true,

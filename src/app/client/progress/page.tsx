@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge'
 import { useTranslation } from '@/lib/i18n'
 import { useAuth } from '@/lib/auth'
 import { createClient } from '@/lib/supabase'
+import { fetchWithAuth } from '@/lib/api'
 import { BookOpen, Clock, Trophy, ShoppingBag, Heart, Baby, Calendar, ArrowRight, Loader2, CheckCircle2, Play, BarChart3 } from 'lucide-react'
 
 const coursesMeta: Record<string, { icon: any; color: string }> = {
@@ -40,7 +41,7 @@ export default function ProgressPage() {
     const load = async () => {
       try {
         // Load courses with progress
-        const progressRes = await fetch('/api/progress')
+        const progressRes = await fetchWithAuth('/api/progress')
         if (progressRes.ok) {
           const progressData = await progressRes.json()
           setCourses(progressData.courses || [])

@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { useTranslation } from '@/lib/i18n'
 import { useAuth } from '@/lib/auth'
+import { fetchWithAuth } from '@/lib/api'
 import { Play, CheckCircle2, Clock, ArrowLeft, BookOpen, Loader2, ChevronDown, ChevronRight } from 'lucide-react'
 
 type Lesson = {
@@ -53,7 +54,7 @@ export default function CoursePage() {
 
     const loadProgress = async () => {
       try {
-        const res = await fetch(`/api/progress?course_slug=${courseSlug}`)
+        const res = await fetchWithAuth(`/api/progress?course_slug=${courseSlug}`)
         if (res.ok) {
           const data = await res.json()
           if (data.courses && data.courses.length > 0) {
