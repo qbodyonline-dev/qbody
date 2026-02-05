@@ -7,19 +7,75 @@ import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { useTranslation } from '@/lib/i18n'
 import { LanguageSwitcher } from '@/components/ui/language-switcher'
-import { Lock, ArrowLeft, CheckCircle2 } from 'lucide-react'
+import { Lock, ArrowLeft, CheckCircle2, Loader2, AlertCircle } from 'lucide-react'
 import { toast } from 'sonner'
 import { createClient } from '@/lib/supabase'
 
 export default function ResetPasswordPage() {
-  const { t, locale } = useTranslation()
+  const { locale } = useTranslation()
   const router = useRouter()
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [isSuccess, setIsSuccess] = useState(false)
+  const [isVerifying, setIsVerifying] = useState(true)
+  const [sessionError, setSessionError] = useState(false)
 
   const ru = locale === 'ru'
+
+  // Handle the recovery token from URL on mount
+  useEffect(() => {
+    const handleRecoveryToken = async () => {
+      const supabase = createClient()
+      
+      // Check if we have a hash with tokens (Supabase puts tokens in URL hash)
+      const hash = window.location.hash
+      if (hash && hash.includes('access_token')) {
+        // Parse the hash to get tokens
+        const params = new URLSearchParams(hash.substring(1))
+        const accessToken = params.get('access_token')
+        const refreshToken = params.get('refresh_token')
+        
+        if (accessToken && refreshToken) {
+          const { error } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken,
+          })
+          
+          if (error) {
+            console.error('Session error:', error)
+            setSessionError(true)
+          }
+        }
+      }
+      
+      // Also check for code parameter (newer PKCE flow)
+      const url = new URL(window.location.href)
+      const code = url.searchParams.get('code')
+      if (code) {
+        const { error } = await supabase.auth.exchangeCodeForSession(code)
+        if (error) {
+          console.error('Code exchange error:', error)
+          setSessionError(true)
+        }
+      }
+      
+      // Verify we have a valid session
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) {
+        // Wait a bit and try again (tokens might still be processing)
+        await new Promise(resolve => setTimeout(resolve, 1000))
+        const { data: { session: retrySession } } = await supabase.auth.getSession()
+        if (!retrySession) {
+          setSessionError(true)
+        }
+      }
+      
+      setIsVerifying(false)
+    }
+    
+    handleRecoveryToken()
+  }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -45,6 +101,9 @@ export default function ResetPasswordPage() {
         setIsLoading(false)
         return
       }
+      
+      // Sign out after password change so user logs in with new password
+      await supabase.auth.signOut()
       
       setIsSuccess(true)
       toast.success(ru ? 'Пароль успешно изменён!' : 'Password updated successfully!')
@@ -86,7 +145,31 @@ export default function ResetPasswordPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {isSuccess ? (
+          {isVerifying ? (
+            <div className="text-center py-6">
+              <Loader2 className="w-8 h-8 animate-spin text-teal-500 mx-auto mb-4" />
+              <p className="text-zinc-500">
+                {ru ? 'Проверка ссылки...' : 'Verifying link...'}
+              </p>
+            </div>
+          ) : sessionError ? (
+            <div className="text-center py-6">
+              <div className="w-16 h-16 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-4">
+                <AlertCircle className="w-8 h-8 text-red-500" />
+              </div>
+              <h3 className="text-lg font-semibold text-zinc-900 mb-2">
+                {ru ? 'Ссылка недействительна' : 'Invalid or expired link'}
+              </h3>
+              <p className="text-zinc-500 mb-6">
+                {ru ? 'Ссылка для сброса пароля истекла или уже была использована.' : 'The password reset link has expired or has already been used.'}
+              </p>
+              <Link href="/auth/forgot-password">
+                <Button variant="outline" className="w-full">
+                  {ru ? 'Запросить новую ссылку' : 'Request new link'}
+                </Button>
+              </Link>
+            </div>
+          ) : isSuccess ? (
             <div className="text-center py-6">
               <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-4">
                 <CheckCircle2 className="w-8 h-8 text-green-500" />
