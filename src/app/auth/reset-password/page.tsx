@@ -12,14 +12,14 @@ import { toast } from 'sonner'
 import { createClient } from '@/lib/supabase'
 
 export default function ResetPasswordPage() {
-  const { t, language } = useTranslation()
+  const { t, locale } = useTranslation()
   const router = useRouter()
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [isSuccess, setIsSuccess] = useState(false)
 
-  const ru = language === 'ru'
+  const ru = locale === 'ru'
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
