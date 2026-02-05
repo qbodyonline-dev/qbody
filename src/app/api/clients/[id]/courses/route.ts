@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase-server'
+import { sendCourseAccessGranted, sendCourseAccessRevoked } from '@/lib/email'
+import { COURSES, CourseSlug } from '@/lib/stripe'
 
 // GET - Get client's course access with progress
 export async function GET(
@@ -131,6 +133,29 @@ export async function POST(
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
+    // Get user profile for email notification
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('full_name, email')
+      .eq('id', userId)
+      .single()
+
+    // Get course name
+    const course = COURSES[course_slug as CourseSlug]
+    const courseName = course?.name || course_slug
+
+    // Send email notification
+    if (profile?.email) {
+      await sendCourseAccessGranted(
+        profile.email,
+        profile.full_name || 'User',
+        {
+          courseName,
+          courseSlug: course_slug,
+        }
+      )
+    }
+
     return NextResponse.json(data)
   } catch (err: any) {
     console.error('POST /api/clients/[id]/courses error:', err)
@@ -186,6 +211,13 @@ export async function DELETE(
       return NextResponse.json({ error: 'course_slug is required' }, { status: 400 })
     }
 
+    // Get user profile before deletion for email notification
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('full_name, email')
+      .eq('id', userId)
+      .single()
+
     const { error } = await supabase
       .from('course_access')
       .delete()
@@ -195,6 +227,21 @@ export async function DELETE(
     if (error) {
       console.error('Error revoking course access:', error)
       return NextResponse.json({ error: error.message }, { status: 500 })
+    }
+
+    // Get course name
+    const course = COURSES[courseSlug as CourseSlug]
+    const courseName = course?.name || courseSlug
+
+    // Send email notification
+    if (profile?.email) {
+      await sendCourseAccessRevoked(
+        profile.email,
+        profile.full_name || 'User',
+        {
+          courseName,
+        }
+      )
     }
 
     return NextResponse.json({ success: true })

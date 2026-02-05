@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase-server'
+import { sendNewMessageToClient, sendNewMessageToAdmin } from '@/lib/email'
 
 // GET - fetch messages for a conversation
 export async function GET(
@@ -90,14 +91,14 @@ export async function POST(
       return NextResponse.json({ error: 'Message content or attachments required' }, { status: 400 })
     }
     
-    // Get user profile
-    const { data: profile } = await supabase
+    // Get sender profile
+    const { data: senderProfile } = await supabase
       .from('profiles')
-      .select('role')
+      .select('role, full_name, email')
       .eq('id', user.id)
       .single()
     
-    const isAdmin = profile?.role === 'admin' || profile?.role === 'trainer'
+    const isAdmin = senderProfile?.role === 'admin' || senderProfile?.role === 'trainer'
     
     // Verify access to conversation
     const { data: conversation } = await supabase
@@ -137,6 +138,38 @@ export async function POST(
       .update({ status: 'open' })
       .eq('id', id)
       .eq('status', 'closed')
+
+    // Send email notification to the recipient
+    const messagePreview = content?.trim() || '[Attachment]'
+
+    if (isAdmin) {
+      // Admin sent message → notify client
+      const { data: clientProfile } = await supabase
+        .from('profiles')
+        .select('full_name, email')
+        .eq('id', conversation.client_id)
+        .single()
+
+      if (clientProfile?.email) {
+        await sendNewMessageToClient(
+          clientProfile.email,
+          clientProfile.full_name || 'Client',
+          {
+            senderName: senderProfile?.full_name || 'Your Trainer',
+            messagePreview,
+            conversationId: id,
+          }
+        )
+      }
+    } else {
+      // Client sent message → notify admin
+      await sendNewMessageToAdmin({
+        clientName: senderProfile?.full_name || 'Client',
+        clientEmail: senderProfile?.email || '',
+        messagePreview,
+        conversationId: id,
+      })
+    }
     
     return NextResponse.json(message)
   } catch (error: any) {

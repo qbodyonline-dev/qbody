@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase-server'
+import { sendAccountDeleted, sendAccountDeletedAdmin } from '@/lib/email'
 
 export async function DELETE(request: NextRequest) {
   try {
@@ -10,6 +11,16 @@ export async function DELETE(request: NextRequest) {
     }
 
     const supabase = createServerClient()
+
+    // Get user profile before deletion for email notification
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('full_name, email')
+      .eq('id', userId)
+      .single()
+
+    const clientName = profile?.full_name || 'User'
+    const clientEmail = profile?.email || ''
 
     // Delete course access
     await supabase.from('course_access').delete().eq('user_id', userId)
@@ -26,6 +37,18 @@ export async function DELETE(request: NextRequest) {
     if (error) {
       console.error('Error deleting user:', error)
       return NextResponse.json({ error: 'Failed to delete account' }, { status: 500 })
+    }
+
+    // Send email notifications
+    if (clientEmail) {
+      // Confirm to client
+      await sendAccountDeleted(clientEmail, clientName)
+      
+      // Notify admin
+      await sendAccountDeletedAdmin({
+        clientName,
+        clientEmail,
+      })
     }
 
     return NextResponse.json({ success: true })

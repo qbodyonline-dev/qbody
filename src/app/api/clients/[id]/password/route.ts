@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase-server'
+import { sendPasswordChangedByAdmin } from '@/lib/email'
 
 export async function POST(
   request: Request,
@@ -20,6 +21,22 @@ export async function POST(
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 })
+    }
+
+    // Get user profile for email notification
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('full_name, email')
+      .eq('id', id)
+      .single()
+
+    // Send email notification with new password
+    if (profile?.email) {
+      await sendPasswordChangedByAdmin(
+        profile.email,
+        profile.full_name || 'User',
+        body.password
+      )
     }
 
     return NextResponse.json({ success: true })
