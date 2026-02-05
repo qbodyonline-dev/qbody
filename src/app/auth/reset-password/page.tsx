@@ -23,58 +23,24 @@ export default function ResetPasswordPage() {
 
   const ru = locale === 'ru'
 
-  // Handle the recovery token from URL on mount
+  // Check for valid session on mount
   useEffect(() => {
-    const handleRecoveryToken = async () => {
+    const checkSession = async () => {
       const supabase = createClient()
       
-      // Check if we have a hash with tokens (Supabase puts tokens in URL hash)
-      const hash = window.location.hash
-      if (hash && hash.includes('access_token')) {
-        // Parse the hash to get tokens
-        const params = new URLSearchParams(hash.substring(1))
-        const accessToken = params.get('access_token')
-        const refreshToken = params.get('refresh_token')
-        
-        if (accessToken && refreshToken) {
-          const { error } = await supabase.auth.setSession({
-            access_token: accessToken,
-            refresh_token: refreshToken,
-          })
-          
-          if (error) {
-            console.error('Session error:', error)
-            setSessionError(true)
-          }
-        }
-      }
+      // Small delay to ensure session is set
+      await new Promise(resolve => setTimeout(resolve, 500))
       
-      // Also check for code parameter (newer PKCE flow)
-      const url = new URL(window.location.href)
-      const code = url.searchParams.get('code')
-      if (code) {
-        const { error } = await supabase.auth.exchangeCodeForSession(code)
-        if (error) {
-          console.error('Code exchange error:', error)
-          setSessionError(true)
-        }
-      }
-      
-      // Verify we have a valid session
       const { data: { session } } = await supabase.auth.getSession()
+      
       if (!session) {
-        // Wait a bit and try again (tokens might still be processing)
-        await new Promise(resolve => setTimeout(resolve, 1000))
-        const { data: { session: retrySession } } = await supabase.auth.getSession()
-        if (!retrySession) {
-          setSessionError(true)
-        }
+        setSessionError(true)
       }
       
       setIsVerifying(false)
     }
     
-    handleRecoveryToken()
+    checkSession()
   }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
