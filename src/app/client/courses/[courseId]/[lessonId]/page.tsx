@@ -1,88 +1,311 @@
 'use client'
-import React, { useState } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
-import { useParams } from 'next/navigation'
+import { useParams, useRouter } from 'next/navigation'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { useTranslation } from '@/lib/i18n'
-import { Play, CheckCircle2, ArrowLeft, ArrowRight, BookOpen } from 'lucide-react'
+import { useAuth } from '@/lib/auth'
+import { Play, CheckCircle2, ArrowLeft, ArrowRight, BookOpen, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
+
+type Lesson = {
+  id: string
+  title: string
+  title_ru: string
+  duration_minutes: number
+  completed: boolean
+  watched_seconds: number
+  video_url?: string
+  content?: any
+  content_ru?: any
+}
+
+type Module = {
+  id: string
+  title: string
+  title_ru: string
+  lessons: Lesson[]
+}
+
+type CourseProgress = {
+  course_slug: string
+  course_id: string
+  course_title: string
+  course_title_ru: string
+  modules: Module[]
+}
 
 export default function LessonPage() {
   const { t, locale } = useTranslation()
+  const { user } = useAuth()
   const params = useParams()
-  const courseId = params.courseId as string
+  const router = useRouter()
+  const courseSlug = params.courseId as string
   const lessonId = params.lessonId as string
-  const [isCompleted, setIsCompleted] = useState(false)
 
-  const lesson = {
-    id: parseInt(lessonId),
-    title: 'Back Strengthening Exercises',
-    titleRu: 'Упражнения для укрепления спины',
-    duration: '15 min',
-    description: 'In this lesson, you will learn safe and effective exercises to strengthen your back muscles after surgery.',
-    descriptionRu: 'В этом уроке вы узнаете безопасные и эффективные упражнения для укрепления мышц спины после операции.',
-    videoUrl: '',
+  const [course, setCourse] = useState<CourseProgress | null>(null)
+  const [currentLesson, setCurrentLesson] = useState<Lesson | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [prevLesson, setPrevLesson] = useState<Lesson | null>(null)
+  const [nextLesson, setNextLesson] = useState<Lesson | null>(null)
+  const [lessonIndex, setLessonIndex] = useState(0)
+  const [totalLessons, setTotalLessons] = useState(0)
+
+  const ru = locale === 'ru'
+
+  useEffect(() => {
+    if (!user) return
+
+    const loadData = async () => {
+      try {
+        const res = await fetch(`/api/progress?course_slug=${courseSlug}`)
+        if (res.ok) {
+          const data = await res.json()
+          if (data.courses && data.courses.length > 0) {
+            const courseData = data.courses[0]
+            setCourse(courseData)
+
+            // Find current lesson and neighbors
+            const allLessons: Lesson[] = []
+            courseData.modules.forEach((m: Module) => {
+              m.lessons.forEach(l => allLessons.push(l))
+            })
+
+            setTotalLessons(allLessons.length)
+            const currentIndex = allLessons.findIndex(l => l.id === lessonId)
+            
+            if (currentIndex >= 0) {
+              setCurrentLesson(allLessons[currentIndex])
+              setLessonIndex(currentIndex + 1)
+              setPrevLesson(currentIndex > 0 ? allLessons[currentIndex - 1] : null)
+              setNextLesson(currentIndex < allLessons.length - 1 ? allLessons[currentIndex + 1] : null)
+            }
+          }
+        }
+      } catch (err) {
+        console.error('Failed to load lesson:', err)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    loadData()
+  }, [user, courseSlug, lessonId])
+
+  const handleComplete = useCallback(async () => {
+    if (!currentLesson || currentLesson.completed) return
+
+    setSaving(true)
+    try {
+      const res = await fetch('/api/progress', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          lesson_id: lessonId,
+          completed: true,
+          watched_seconds: (currentLesson.duration_minutes || 10) * 60, // Assume full watch
+        }),
+      })
+
+      if (!res.ok) throw new Error('Failed to save progress')
+
+      // Update local state
+      setCurrentLesson(prev => prev ? { ...prev, completed: true } : null)
+      toast.success(ru ? 'Урок отмечен как пройденный!' : 'Lesson marked as complete!')
+
+      // Auto-navigate to next lesson after delay
+      if (nextLesson) {
+        setTimeout(() => {
+          router.push(`/client/courses/${courseSlug}/${nextLesson.id}`)
+        }, 1500)
+      }
+    } catch (err) {
+      console.error('Failed to save progress:', err)
+      toast.error(ru ? 'Ошибка сохранения прогресса' : 'Failed to save progress')
+    } finally {
+      setSaving(false)
+    }
+  }, [currentLesson, lessonId, nextLesson, courseSlug, router, ru])
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <Loader2 className="w-8 h-8 animate-spin text-teal-500" />
+      </div>
+    )
   }
 
-  const handleComplete = () => {
-    setIsCompleted(true)
-    toast.success(locale === 'ru' ? 'Урок отмечен как пройденный!' : 'Lesson marked as complete!')
+  if (!course || !currentLesson) {
+    return (
+      <div className="text-center py-20">
+        <BookOpen className="w-16 h-16 mx-auto text-zinc-300 mb-4" />
+        <h2 className="text-xl font-semibold text-zinc-900 mb-2">
+          {ru ? 'Урок не найден' : 'Lesson not found'}
+        </h2>
+        <Link href={`/client/courses/${courseSlug}`}>
+          <Button variant="outline">
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            {ru ? 'Назад к курсу' : 'Back to course'}
+          </Button>
+        </Link>
+      </div>
+    )
   }
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <Link href={`/client/courses/${courseId}`}><Button variant="ghost" size="sm"><ArrowLeft className="w-4 h-4 mr-2" />{t('client.lesson.backToCourse')}</Button></Link>
+      {/* Navigation */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <Link href={`/client/courses/${courseSlug}`}>
+          <Button variant="ghost" size="sm">
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            {t('client.lesson.backToCourse')}
+          </Button>
+        </Link>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" disabled><ArrowLeft className="w-4 h-4 mr-1" />{t('client.lesson.previousLesson')}</Button>
-          <Button variant="outline" size="sm"><ArrowRight className="w-4 h-4 mr-1" />{t('client.lesson.nextLesson')}</Button>
+          {prevLesson ? (
+            <Link href={`/client/courses/${courseSlug}/${prevLesson.id}`}>
+              <Button variant="outline" size="sm">
+                <ArrowLeft className="w-4 h-4 mr-1" />
+                {t('client.lesson.previousLesson')}
+              </Button>
+            </Link>
+          ) : (
+            <Button variant="outline" size="sm" disabled>
+              <ArrowLeft className="w-4 h-4 mr-1" />
+              {t('client.lesson.previousLesson')}
+            </Button>
+          )}
+          {nextLesson ? (
+            <Link href={`/client/courses/${courseSlug}/${nextLesson.id}`}>
+              <Button variant="outline" size="sm">
+                {t('client.lesson.nextLesson')}
+                <ArrowRight className="w-4 h-4 ml-1" />
+              </Button>
+            </Link>
+          ) : (
+            <Button variant="outline" size="sm" disabled>
+              {t('client.lesson.nextLesson')}
+              <ArrowRight className="w-4 h-4 ml-1" />
+            </Button>
+          )}
         </div>
       </div>
 
       <div className="grid lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 space-y-6">
-          {/* Video Player Placeholder */}
+          {/* Video Player */}
           <div className="aspect-video bg-zinc-900 rounded-2xl flex items-center justify-center relative overflow-hidden">
-            <div className="text-center">
-              <Play className="w-16 h-16 text-white/50 mx-auto mb-4" />
-              <p className="text-white/50">Video Player</p>
-              <p className="text-white/30 text-sm">Protected video content</p>
-            </div>
+            {currentLesson.video_url ? (
+              <video
+                src={currentLesson.video_url}
+                controls
+                className="w-full h-full object-contain"
+              />
+            ) : (
+              <div className="text-center">
+                <Play className="w-16 h-16 text-white/50 mx-auto mb-4" />
+                <p className="text-white/50">{ru ? 'Видео контент' : 'Video Player'}</p>
+                <p className="text-white/30 text-sm">{ru ? 'Защищённый контент' : 'Protected video content'}</p>
+              </div>
+            )}
           </div>
 
+          {/* Lesson Info */}
           <div>
-            <div className="flex items-center gap-4 mb-4">
-              <Badge variant="secondary">{t('client.course.lessons')} {lesson.id}</Badge>
-              <Badge variant="outline">{lesson.duration}</Badge>
-              {isCompleted && <Badge variant="success"><CheckCircle2 className="w-3 h-3 mr-1" />{t('client.lesson.completed')}</Badge>}
+            <div className="flex flex-wrap items-center gap-3 mb-4">
+              <Badge variant="secondary">
+                {ru ? 'Урок' : 'Lesson'} {lessonIndex}/{totalLessons}
+              </Badge>
+              <Badge variant="outline">
+                {currentLesson.duration_minutes} {ru ? 'мин' : 'min'}
+              </Badge>
+              {currentLesson.completed && (
+                <Badge variant="success">
+                  <CheckCircle2 className="w-3 h-3 mr-1" />
+                  {t('client.lesson.completed')}
+                </Badge>
+              )}
             </div>
-            <h1 className="text-2xl font-bold text-zinc-900 mb-4">{locale === 'ru' ? lesson.titleRu : lesson.title}</h1>
-            <p className="text-zinc-600">{locale === 'ru' ? lesson.descriptionRu : lesson.description}</p>
+            <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100 mb-4">
+              {ru ? currentLesson.title_ru || currentLesson.title : currentLesson.title}
+            </h1>
           </div>
 
-          {!isCompleted && (
-            <Button variant="gradient" size="lg" onClick={handleComplete}>
-              <CheckCircle2 className="w-5 h-5 mr-2" />
+          {/* Complete Button */}
+          {!currentLesson.completed && (
+            <Button 
+              variant="gradient" 
+              size="lg" 
+              onClick={handleComplete}
+              disabled={saving}
+            >
+              {saving ? (
+                <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+              ) : (
+                <CheckCircle2 className="w-5 h-5 mr-2" />
+              )}
               {t('client.lesson.markComplete')}
             </Button>
           )}
+
+          {currentLesson.completed && nextLesson && (
+            <Link href={`/client/courses/${courseSlug}/${nextLesson.id}`}>
+              <Button variant="gradient" size="lg">
+                {ru ? 'Следующий урок' : 'Next Lesson'}
+                <ArrowRight className="w-5 h-5 ml-2" />
+              </Button>
+            </Link>
+          )}
+
+          {currentLesson.completed && !nextLesson && (
+            <div className="p-6 bg-green-50 dark:bg-green-900/20 rounded-2xl text-center">
+              <CheckCircle2 className="w-12 h-12 text-green-500 mx-auto mb-3" />
+              <h3 className="text-lg font-semibold text-green-700 dark:text-green-400 mb-2">
+                {ru ? 'Поздравляем!' : 'Congratulations!'}
+              </h3>
+              <p className="text-green-600 dark:text-green-500">
+                {ru ? 'Вы завершили этот курс!' : 'You have completed this course!'}
+              </p>
+              <Link href={`/client/courses/${courseSlug}`}>
+                <Button variant="outline" className="mt-4">
+                  {ru ? 'Вернуться к курсу' : 'Back to Course'}
+                </Button>
+              </Link>
+            </div>
+          )}
         </div>
 
+        {/* Sidebar */}
         <div>
           <Card>
             <CardContent className="p-6">
-              <h3 className="font-semibold text-zinc-900 mb-4">{t('client.lesson.resources')}</h3>
+              <h3 className="font-semibold text-zinc-900 dark:text-zinc-100 mb-4">
+                {ru ? course.course_title_ru : course.course_title}
+              </h3>
+              
+              {/* Mini progress */}
               <div className="space-y-3">
-                <div className="p-3 bg-zinc-50 rounded-xl">
-                  <p className="font-medium text-zinc-900 text-sm">Exercise Guide PDF</p>
-                  <p className="text-xs text-zinc-500">Download</p>
-                </div>
-                <div className="p-3 bg-zinc-50 rounded-xl">
-                  <p className="font-medium text-zinc-900 text-sm">Workout Checklist</p>
-                  <p className="text-xs text-zinc-500">Download</p>
-                </div>
+                {course.modules.map((module) => {
+                  const completedInModule = module.lessons.filter(l => l.completed).length
+                  return (
+                    <div key={module.id} className="text-sm">
+                      <div className="flex justify-between text-zinc-600 dark:text-zinc-400 mb-1">
+                        <span className="truncate">{ru ? module.title_ru || module.title : module.title}</span>
+                        <span>{completedInModule}/{module.lessons.length}</span>
+                      </div>
+                      <div className="h-1.5 bg-zinc-200 dark:bg-zinc-700 rounded-full overflow-hidden">
+                        <div 
+                          className="h-full bg-teal-500 rounded-full transition-all"
+                          style={{ width: `${module.lessons.length > 0 ? (completedInModule / module.lessons.length) * 100 : 0}%` }}
+                        />
+                      </div>
+                    </div>
+                  )
+                })}
               </div>
             </CardContent>
           </Card>
