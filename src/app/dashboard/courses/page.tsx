@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge'
 import { Modal } from '@/components/ui/modal'
 import { Input } from '@/components/ui/input'
 import { useTranslation } from '@/lib/i18n'
-import { Plus, Edit, Eye, BookOpen, DollarSign, Clock, Trash2, Loader2, Layers, FileText } from 'lucide-react'
+import { Plus, Edit, Eye, EyeOff, BookOpen, DollarSign, Clock, Trash2, Loader2, Layers, FileText, Globe } from 'lucide-react'
 import { toast } from 'sonner'
 
 type Course = {
@@ -174,6 +174,23 @@ export default function CoursesAdminPage() {
     setIsEditOpen(true)
   }
 
+  const togglePublish = async (course: Course) => {
+    try {
+      const res = await fetch(`/api/courses/${course.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ is_published: !course.is_published }),
+      })
+      if (!res.ok) throw new Error('Failed')
+      toast.success(course.is_published 
+        ? (ru ? 'Курс снят с публикации' : 'Course unpublished') 
+        : (ru ? 'Курс опубликован!' : 'Course published!'))
+      loadCourses()
+    } catch {
+      toast.error(ru ? 'Ошибка' : 'Error')
+    }
+  }
+
   const CourseForm = ({ onSubmit, submitLabel }: { onSubmit: (e: React.FormEvent) => void, submitLabel: string }) => (
     <form onSubmit={onSubmit} className="space-y-4">
       <div className="grid grid-cols-2 gap-4">
@@ -282,9 +299,18 @@ export default function CoursesAdminPage() {
                           </span>
                         </div>
                       </div>
-                      <Badge variant={course.is_published ? 'success' : 'secondary'}>
+                      <button
+                        onClick={() => togglePublish(course)}
+                        className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                          course.is_published 
+                            ? 'bg-green-100 text-green-700 hover:bg-green-200 dark:bg-green-900/30 dark:text-green-400' 
+                            : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200 dark:bg-zinc-700 dark:text-zinc-400'
+                        }`}
+                        title={course.is_published ? (ru ? 'Нажмите чтобы снять с публикации' : 'Click to unpublish') : (ru ? 'Нажмите чтобы опубликовать' : 'Click to publish')}
+                      >
+                        {course.is_published ? <Globe className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
                         {course.is_published ? (ru ? 'Опубликован' : 'Published') : (ru ? 'Черновик' : 'Draft')}
-                      </Badge>
+                      </button>
                     </div>
                     <div className="flex flex-wrap gap-2 mt-4">
                       <Link href={`/dashboard/courses/${course.id}/page-editor`}>
