@@ -1,5 +1,5 @@
 'use client'
-import React, { useState, useRef, useEffect } from 'react'
+import React, { useState, useRef, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { 
@@ -16,9 +16,10 @@ import { LanguageSwitcher } from '@/components/ui/language-switcher'
 import { useTranslation } from '@/lib/i18n'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/lib/auth'
+import { createClient } from '@/lib/supabase'
 
 type NavItem = {
-  name: string; href: string; icon: any
+  name: string; href: string; icon: any; badge?: number
   children?: { name: string; href: string; icon: any }[]
 }
 
@@ -57,21 +58,105 @@ function SidebarNavItem({ item, isActive, isSidebarOpen, pathname, onNavigate }:
 
   return (
     <Link href={item.href} onClick={onNavigate}
-      className={cn('flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200', isActive ? 'bg-teal-500 text-white shadow-lg shadow-teal-500/25' : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800')}>
-      <Icon className="w-5 h-5 flex-shrink-0" />
-      {isSidebarOpen && <span className="font-medium flex-1">{item.name}</span>}
+      className={cn('flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 relative', isActive ? 'bg-teal-500 text-white shadow-lg shadow-teal-500/25' : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800')}>
+      <div className="relative">
+        <Icon className="w-5 h-5 flex-shrink-0" />
+        {item.badge && item.badge > 0 && !isSidebarOpen && (
+          <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+            {item.badge > 9 ? '9+' : item.badge}
+          </span>
+        )}
+      </div>
+      {isSidebarOpen && (
+        <>
+          <span className="font-medium flex-1">{item.name}</span>
+          {item.badge && item.badge > 0 && (
+            <span className={cn(
+              "px-2 py-0.5 text-xs font-bold rounded-full",
+              isActive ? "bg-white/20 text-white" : "bg-red-500 text-white"
+            )}>
+              {item.badge > 99 ? '99+' : item.badge}
+            </span>
+          )}
+        </>
+      )}
     </Link>
   )
 }
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { t, locale } = useTranslation()
-  const { profile, signOut, loading, isClient } = useAuth()
+  const { profile, signOut, loading, isClient, session } = useAuth()
   const pathname = usePathname()
   const router = useRouter()
   const [isSidebarOpen, setIsSidebarOpen] = useState(true)
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false)
   const [isDark, setIsDark] = useState(false)
+  const [unreadMessages, setUnreadMessages] = useState(0)
+  const supabaseRef = useRef<ReturnType<typeof createClient> | null>(null)
+
+  // Initialize Supabase client
+  useEffect(() => {
+    if (typeof window !== 'undefined' && !supabaseRef.current) {
+      supabaseRef.current = createClient()
+    }
+  }, [])
+
+  // Fetch unread messages count
+  const fetchUnreadCount = useCallback(async () => {
+    if (!session?.access_token) return
+    
+    try {
+      const res = await fetch('/api/conversations', {
+        headers: { 'Authorization': `Bearer ${session.access_token}` }
+      })
+      if (res.ok) {
+        const conversations = await res.json()
+        if (Array.isArray(conversations)) {
+          const totalUnread = conversations.reduce((sum: number, c: any) => sum + (c.unread_count || 0), 0)
+          setUnreadMessages(totalUnread)
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching unread count:', error)
+    }
+  }, [session?.access_token])
+
+  // Fetch unread count on mount and when session changes
+  useEffect(() => {
+    if (session?.access_token) {
+      fetchUnreadCount()
+    }
+  }, [session?.access_token, fetchUnreadCount])
+
+  // Real-time subscription for new messages
+  useEffect(() => {
+    if (!supabaseRef.current || !session?.access_token) return
+
+    const channel = supabaseRef.current
+      .channel('admin-messages-count')
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'messages' },
+        () => {
+          // Refetch unread count when new message arrives
+          fetchUnreadCount()
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'messages' },
+        () => {
+          // Refetch when messages are marked as read
+          fetchUnreadCount()
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabaseRef.current?.removeChannel(channel)
+    }
+  }, [session?.access_token, fetchUnreadCount])
 
   // Redirect clients away from admin dashboard
   useEffect(() => {
@@ -113,7 +198,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         { name: t('sidebar.exercises'), href: '/dashboard/exercises', icon: Dumbbell },
       ]
     },
-    { name: t('messages.title'), href: '/dashboard/messages', icon: MessageSquare },
+    { name: t('messages.title'), href: '/dashboard/messages', icon: MessageSquare, badge: unreadMessages },
     { name: t('payments.title'), href: '/dashboard/payments', icon: CreditCard },
     { name: ru ? 'Редактор страницы' : 'Page Editor', href: '/dashboard/page-editor', icon: FileText },
     { name: ru ? 'Конструктор форм' : 'Form Builder', href: '/dashboard/form-builder', icon: FormInput },

@@ -1,5 +1,5 @@
 'use client'
-import React, { useState, useRef, useEffect } from 'react'
+import React, { useState, useRef, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { Home, BookOpen, TrendingUp, User, Menu, X, LogOut, Bell, Trash2, MessageCircle } from 'lucide-react'
@@ -8,18 +8,21 @@ import { Avatar } from '@/components/ui/avatar'
 import { LanguageSwitcher } from '@/components/ui/language-switcher'
 import { useTranslation } from '@/lib/i18n'
 import { useAuth } from '@/lib/auth'
+import { createClient } from '@/lib/supabase'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
 
 export default function ClientLayout({ children }: { children: React.ReactNode }) {
   const { t, locale } = useTranslation()
-  const { user, profile, signOut } = useAuth()
+  const { user, profile, signOut, session } = useAuth()
   const pathname = usePathname()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [showUserMenu, setShowUserMenu] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [deleteLoading, setDeleteLoading] = useState(false)
+  const [unreadMessages, setUnreadMessages] = useState(0)
   const menuRef = useRef<HTMLDivElement>(null)
+  const supabaseRef = useRef<ReturnType<typeof createClient> | null>(null)
 
   const ru = locale === 'ru'
 
@@ -27,12 +30,72 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
     ? profile.full_name.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2)
     : user?.email?.slice(0, 2).toUpperCase() || 'U'
 
+  // Initialize Supabase client
+  useEffect(() => {
+    if (typeof window !== 'undefined' && !supabaseRef.current) {
+      supabaseRef.current = createClient()
+    }
+  }, [])
+
+  // Fetch unread messages count
+  const fetchUnreadCount = useCallback(async () => {
+    if (!session?.access_token) return
+    
+    try {
+      const res = await fetch('/api/conversations', {
+        headers: { 'Authorization': `Bearer ${session.access_token}` }
+      })
+      if (res.ok) {
+        const conversation = await res.json()
+        if (conversation && conversation.unread_count !== undefined) {
+          setUnreadMessages(conversation.unread_count)
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching unread count:', error)
+    }
+  }, [session?.access_token])
+
+  // Fetch unread count on mount
+  useEffect(() => {
+    if (session?.access_token) {
+      fetchUnreadCount()
+    }
+  }, [session?.access_token, fetchUnreadCount])
+
+  // Real-time subscription for new messages
+  useEffect(() => {
+    if (!supabaseRef.current || !session?.access_token) return
+
+    const channel = supabaseRef.current
+      .channel('client-messages-count')
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'messages' },
+        () => {
+          fetchUnreadCount()
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'messages' },
+        () => {
+          fetchUnreadCount()
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabaseRef.current?.removeChannel(channel)
+    }
+  }, [session?.access_token, fetchUnreadCount])
+
   const navigation = [
-    { name: t('client.nav.home'), href: '/client/home', icon: Home },
-    { name: t('client.nav.courses'), href: '/client/courses', icon: BookOpen },
-    { name: t('client.nav.progress'), href: '/client/progress', icon: TrendingUp },
-    { name: ru ? 'Поддержка' : 'Support', href: '/client/messages', icon: MessageCircle },
-    { name: t('client.nav.profile'), href: '/client/profile', icon: User },
+    { name: t('client.nav.home'), href: '/client/home', icon: Home, badge: 0 },
+    { name: t('client.nav.courses'), href: '/client/courses', icon: BookOpen, badge: 0 },
+    { name: t('client.nav.progress'), href: '/client/progress', icon: TrendingUp, badge: 0 },
+    { name: ru ? 'Поддержка' : 'Support', href: '/client/messages', icon: MessageCircle, badge: unreadMessages },
+    { name: t('client.nav.profile'), href: '/client/profile', icon: User, badge: 0 },
   ]
 
   // Close menu on outside click
@@ -89,8 +152,16 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
                 const Icon = item.icon
                 const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
                 return (
-                  <Link key={item.name} href={item.href} className={cn('flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all', isActive ? 'bg-teal-500/10 text-teal-600' : 'text-zinc-600 hover:bg-zinc-100')}>
-                    <Icon className="w-4 h-4" />{item.name}
+                  <Link key={item.name} href={item.href} className={cn('flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all relative', isActive ? 'bg-teal-500/10 text-teal-600' : 'text-zinc-600 hover:bg-zinc-100')}>
+                    <div className="relative">
+                      <Icon className="w-4 h-4" />
+                      {item.badge > 0 && (
+                        <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+                          {item.badge > 9 ? '9+' : item.badge}
+                        </span>
+                      )}
+                    </div>
+                    {item.name}
                   </Link>
                 )
               })}
@@ -141,8 +212,13 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
               </div>
 
               {/* Mobile hamburger */}
-              <button className="md:hidden p-2" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}>
+              <button className="md:hidden p-2 relative" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}>
                 {isMobileMenuOpen ? <X className="w-6 h-6 text-zinc-600" /> : <Menu className="w-6 h-6 text-zinc-600" />}
+                {unreadMessages > 0 && !isMobileMenuOpen && (
+                  <span className="absolute top-1 right-1 w-4 h-4 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+                    {unreadMessages > 9 ? '9+' : unreadMessages}
+                  </span>
+                )}
               </button>
             </div>
           </div>
@@ -157,7 +233,20 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
                 const isActive = pathname === item.href
                 return (
                   <Link key={item.name} href={item.href} onClick={() => setIsMobileMenuOpen(false)} className={cn('flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-all', isActive ? 'bg-teal-500/10 text-teal-600' : 'text-zinc-600 hover:bg-zinc-100')}>
-                    <Icon className="w-5 h-5" />{item.name}
+                    <div className="relative">
+                      <Icon className="w-5 h-5" />
+                      {item.badge > 0 && (
+                        <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+                          {item.badge > 9 ? '9+' : item.badge}
+                        </span>
+                      )}
+                    </div>
+                    {item.name}
+                    {item.badge > 0 && (
+                      <span className="ml-auto px-2 py-0.5 text-xs font-bold bg-red-500 text-white rounded-full">
+                        {item.badge}
+                      </span>
+                    )}
                   </Link>
                 )
               })}
