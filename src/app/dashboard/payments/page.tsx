@@ -22,6 +22,7 @@ type Order = {
   user_id: string
   user_email: string
   user_name: string
+  user_avatar_url: string | null
   course_slug: string
   amount: number
   currency: string
@@ -209,7 +210,7 @@ export default function PaymentsPage() {
                   <tr key={order.id} className="border-b border-zinc-100 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-800/50">
                     <td className="py-4 px-6">
                       <div className="flex items-center gap-3">
-                        <Avatar fallback={getInitials(order.user_name)} size="sm" />
+                        <Avatar src={order.user_avatar_url || undefined} fallback={getInitials(order.user_name)} size="sm" />
                         <div>
                           <span className="font-medium text-zinc-900 dark:text-zinc-100">{order.user_name}</span>
                           <p className="text-xs text-zinc-400">{order.user_email}</p>
@@ -267,7 +268,7 @@ export default function PaymentsPage() {
         {viewOrder && (
           <div className="space-y-6">
             <div className="flex items-center gap-4">
-              <Avatar fallback={getInitials(viewOrder.user_name)} size="lg" />
+              <Avatar src={viewOrder.user_avatar_url || undefined} fallback={getInitials(viewOrder.user_name)} size="lg" />
               <div>
                 <h3 className="text-xl font-bold text-zinc-900 dark:text-zinc-100">{viewOrder.user_name}</h3>
                 <p className="text-sm text-zinc-500">{viewOrder.user_email}</p>

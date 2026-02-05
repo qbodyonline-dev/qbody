@@ -90,7 +90,7 @@ export default function ClientsPage() {
                   <tr key={client.id} className="border-b border-zinc-100 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-800/30">
                     <td className="py-4 px-6">
                       <div className="flex items-center gap-3">
-                        <Avatar fallback={getInitials(client)} size="sm" />
+                        <Avatar src={client.avatar_url || undefined} fallback={getInitials(client)} size="sm" />
                         <span className="font-medium text-zinc-900 dark:text-zinc-100">{client.full_name || (ru ? 'Без имени' : 'No name')}</span>
                       </div>
                     </td>

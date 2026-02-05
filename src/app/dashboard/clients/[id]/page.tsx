@@ -49,6 +49,7 @@ type Client = {
   full_name: string | null
   email: string
   phone: string | null
+  avatar_url: string | null
   role: string
   created_at: string
   courses: CourseAccess[]
@@ -325,7 +326,7 @@ export default function ClientDetailPage() {
           <Link href="/dashboard/clients">
             <Button variant="ghost" size="icon"><ArrowLeft className="w-5 h-5" /></Button>
           </Link>
-          <Avatar fallback={initials} size="lg" />
+          <Avatar src={client.avatar_url || undefined} fallback={initials} size="lg" />
           <div>
             <div className="flex items-center gap-3">
               <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">

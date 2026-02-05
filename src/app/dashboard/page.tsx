@@ -124,7 +124,7 @@ export default function DashboardPage() {
                     : client.email?.slice(0, 2).toUpperCase() || 'U'
                   return (
                     <div key={client.id} className="flex items-center gap-3 p-3 rounded-xl bg-zinc-50 dark:bg-zinc-800/50">
-                      <Avatar fallback={initials} size="sm" />
+                      <Avatar src={client.avatar_url || undefined} fallback={initials} size="sm" />
                       <div className="flex-1 min-w-0">
                         <p className="font-medium text-zinc-900 dark:text-zinc-100 truncate">{client.full_name || client.email}</p>
                         <p className="text-sm text-zinc-500 truncate">{client.email}</p>
