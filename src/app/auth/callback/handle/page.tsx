@@ -1,12 +1,12 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase'
 import { Card, CardContent } from '@/components/ui/card'
 import { Loader2 } from 'lucide-react'
 
-export default function AuthCallbackHandler() {
+function CallbackHandler() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [status, setStatus] = useState('Verifying...')
@@ -120,5 +120,22 @@ export default function AuthCallbackHandler() {
         </CardContent>
       </Card>
     </div>
+  )
+}
+
+export default function AuthCallbackPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen hero-gradient flex items-center justify-center p-4">
+        <Card className="w-full max-w-md">
+          <CardContent className="py-16 text-center">
+            <Loader2 className="w-8 h-8 animate-spin text-teal-500 mx-auto mb-4" />
+            <p className="text-zinc-600">Loading...</p>
+          </CardContent>
+        </Card>
+      </div>
+    }>
+      <CallbackHandler />
+    </Suspense>
   )
 }
