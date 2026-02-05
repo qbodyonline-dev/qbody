@@ -128,22 +128,33 @@ function CoursesContent() {
                     </div>
                     
                     {/* Progress bar */}
-                    <div className="mb-4">
-                      <div className="h-2 bg-zinc-200 dark:bg-zinc-700 rounded-full overflow-hidden">
-                        <div 
-                          className={`h-full rounded-full transition-all duration-500 ${
-                            course.progress_percent === 100 
-                              ? 'bg-green-500' 
-                              : 'bg-gradient-to-r from-teal-500 to-emerald-500'
-                          }`}
-                          style={{ width: `${course.progress_percent}%` }}
-                        />
+                    {course.total_lessons > 0 ? (
+                      <div className="mb-4">
+                        <div className="h-2 bg-zinc-200 dark:bg-zinc-700 rounded-full overflow-hidden">
+                          <div 
+                            className={`h-full rounded-full transition-all duration-500 ${
+                              course.progress_percent === 100 
+                                ? 'bg-green-500' 
+                                : 'bg-gradient-to-r from-teal-500 to-emerald-500'
+                            }`}
+                            style={{ width: `${course.progress_percent}%` }}
+                          />
+                        </div>
                       </div>
-                    </div>
+                    ) : (
+                      <div className="mb-4 text-sm text-amber-600 dark:text-amber-400">
+                        {ru ? '⏳ Контент готовится...' : '⏳ Content coming soon...'}
+                      </div>
+                    )}
                     
                     <Link href={`/client/courses/${course.course_slug}`}>
                       <Button variant="gradient" className="w-full">
-                        {course.progress_percent === 0 ? (
+                        {course.total_lessons === 0 ? (
+                          <>
+                            {ru ? 'Подробнее' : 'View Details'}
+                            <ArrowRight className="w-4 h-4 ml-2" />
+                          </>
+                        ) : course.progress_percent === 0 ? (
                           <>
                             <Play className="w-4 h-4 mr-2" />
                             {ru ? 'Начать курс' : 'Start Course'}

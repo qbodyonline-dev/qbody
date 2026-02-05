@@ -90,13 +90,29 @@ export async function GET(request: NextRequest) {
     const progressMap = new Map(progressData?.map(p => [p.lesson_id, p]) || [])
 
     // Build response with course -> modules -> lessons structure
-    const courseMap = new Map(courses?.map(c => [c.id, c]) || [])
+    const courseMap = new Map(courses?.map(c => [c.slug, c]) || [])
+    
+    // Fallback course titles for known courses
+    const fallbackTitles: Record<string, { title: string; title_ru: string }> = {
+      'breast-augmentation-recovery': { 
+        title: 'Breast Augmentation Recovery', 
+        title_ru: 'Восстановление после увеличения груди' 
+      },
+      'cesarean-recovery': { 
+        title: 'C-Section Recovery', 
+        title_ru: 'Восстановление после кесарева сечения' 
+      },
+    }
     
     const result = accessData.map(access => {
-      const course = Array.from(courseMap.values()).find(c => c.slug === access.course_slug)
-      if (!course) return null
+      const course = courseMap.get(access.course_slug)
+      const fallback = fallbackTitles[access.course_slug]
+      
+      // Get course title from DB or fallback
+      const courseTitle = course?.title || fallback?.title || access.course_slug
+      const courseTitleRu = course?.title_ru || fallback?.title_ru || access.course_slug
 
-      const courseModules = modules
+      const courseModules = course ? (modules
         ?.filter(m => m.course_id === course.id)
         .sort((a, b) => a.sort_order - b.sort_order)
         .map(m => ({
@@ -118,7 +134,7 @@ export async function GET(request: NextRequest) {
                 last_watched_at: progress?.last_watched_at || null,
               }
             })
-        })) || []
+        })) || []) : []
 
       const totalLessons = courseModules.reduce((sum, m) => sum + m.lessons.length, 0)
       const completedLessons = courseModules.reduce(
@@ -127,9 +143,9 @@ export async function GET(request: NextRequest) {
 
       return {
         course_slug: access.course_slug,
-        course_id: course.id,
-        course_title: course.title,
-        course_title_ru: course.title_ru,
+        course_id: course?.id || null,
+        course_title: courseTitle,
+        course_title_ru: courseTitleRu,
         granted_at: access.granted_at,
         is_active: access.is_active !== false,
         total_lessons: totalLessons,
@@ -137,7 +153,7 @@ export async function GET(request: NextRequest) {
         progress_percent: totalLessons > 0 ? Math.round((completedLessons / totalLessons) * 100) : 0,
         modules: courseModules,
       }
-    }).filter(Boolean)
+    })
 
     return NextResponse.json({ courses: result })
   } catch (err: any) {

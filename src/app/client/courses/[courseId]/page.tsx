@@ -103,7 +103,7 @@ export default function CoursePage() {
     return (
       <div className="text-center py-20">
         <BookOpen className="w-16 h-16 mx-auto text-zinc-300 mb-4" />
-        <h2 className="text-xl font-semibold text-zinc-900 mb-2">
+        <h2 className="text-xl font-semibold text-zinc-900 dark:text-zinc-100 mb-2">
           {ru ? 'Курс не найден' : 'Course not found'}
         </h2>
         <p className="text-zinc-500 mb-6">
@@ -115,6 +115,45 @@ export default function CoursePage() {
             {ru ? 'К моим курсам' : 'Back to my courses'}
           </Button>
         </Link>
+      </div>
+    )
+  }
+
+  // Course exists but has no modules yet
+  if (course.modules.length === 0) {
+    return (
+      <div className="space-y-8">
+        <div className="flex items-center gap-4">
+          <Link href="/client/courses">
+            <Button variant="ghost" size="sm">
+              <ArrowLeft className="w-4 h-4 mr-2" />{t('common.back')}
+            </Button>
+          </Link>
+        </div>
+
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-bold text-zinc-900 dark:text-zinc-100 mb-2">
+            {ru ? course.course_title_ru : course.course_title}
+          </h1>
+        </div>
+
+        <Card className="p-12 text-center">
+          <Clock className="w-16 h-16 mx-auto text-zinc-300 mb-4" />
+          <h3 className="text-xl font-semibold text-zinc-900 dark:text-zinc-100 mb-2">
+            {ru ? 'Контент готовится' : 'Content Coming Soon'}
+          </h3>
+          <p className="text-zinc-500 mb-6">
+            {ru 
+              ? 'Уроки для этого курса скоро будут добавлены. Мы уведомим вас когда курс будет готов!' 
+              : 'Lessons for this course are being prepared. We will notify you when the course is ready!'}
+          </p>
+          <Link href="/client/courses">
+            <Button variant="outline">
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              {ru ? 'К моим курсам' : 'Back to my courses'}
+            </Button>
+          </Link>
+        </Card>
       </div>
     )
   }
