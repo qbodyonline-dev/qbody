@@ -57,7 +57,7 @@ type Conversation = {
 }
 
 export default function ClientMessagesPage() {
-  const { locale } = useTranslation()
+  const { t, locale } = useTranslation()
   const { session, user, profile } = useAuth()
   const isRussian = locale === 'ru'
   
