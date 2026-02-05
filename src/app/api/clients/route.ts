@@ -8,7 +8,7 @@ export async function GET() {
     // Get all client profiles
     const { data: profiles, error } = await supabase
       .from('profiles')
-      .select('id, full_name, email, phone, role, created_at')
+      .select('id, full_name, email, phone, role, avatar_url, created_at')
       .eq('role', 'client')
       .order('created_at', { ascending: false })
 

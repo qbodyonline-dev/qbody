@@ -89,7 +89,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST - create a new conversation (client only)
+// POST - create a new conversation (client or admin)
 export async function POST(request: NextRequest) {
   try {
     const supabase = createServerClient()
@@ -106,14 +106,26 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid token' }, { status: 401 })
     }
     
-    const body = await request.json()
-    const { message } = body
+    // Get user profile to check role
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single()
     
-    // Check if conversation already exists
+    const isAdmin = profile?.role === 'admin' || profile?.role === 'trainer'
+    
+    const body = await request.json()
+    const { message, client_id } = body
+    
+    // Determine which client this conversation is for
+    const targetClientId = isAdmin && client_id ? client_id : user.id
+    
+    // Check if conversation already exists for this client
     const { data: existing } = await supabase
       .from('conversations')
-      .select('id')
-      .eq('client_id', user.id)
+      .select('*')
+      .eq('client_id', targetClientId)
       .single()
     
     if (existing) {
@@ -132,7 +144,8 @@ export async function POST(request: NextRequest) {
     const { data: conversation, error } = await supabase
       .from('conversations')
       .insert({
-        client_id: user.id,
+        client_id: targetClientId,
+        admin_id: isAdmin ? user.id : null,
         status: 'open'
       })
       .select()
