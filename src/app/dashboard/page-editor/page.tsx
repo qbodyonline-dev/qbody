@@ -16,7 +16,7 @@ import {
   Mail, Play, Globe, Columns2, Columns3,
   LayoutGrid, Square, Rows3, PanelTop, ImagePlus, Maximize2, Minimize2,
   Download, Upload, Paintbrush, Hash,
-  DollarSign, Heart, Camera
+  DollarSign, Heart, Camera, Loader2
 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -721,6 +721,28 @@ export default function PageEditorPage() {
   const lang = locale as 'en'|'ru'
   const [blocks, setBlocks] = useState<PB[]>(initBlocks)
   const [active, setActive] = useState('hero')
+  const [loading, setLoading] = useState(true)
+
+  // Load blocks from database on mount
+  useEffect(() => {
+    const loadBlocks = async () => {
+      try {
+        const res = await fetch('/api/page-blocks?page=home')
+        if (res.ok) {
+          const data = await res.json()
+          if (data.blocks && data.blocks.length > 0) {
+            setBlocks(data.blocks)
+            setActive(data.blocks[0]?.id || 'hero')
+          }
+        }
+      } catch (err) {
+        console.error('Failed to load page blocks:', err)
+      } finally {
+        setLoading(false)
+      }
+    }
+    loadBlocks()
+  }, [])
   const [preview, setPreview] = useState(false)
   const [device, setDevice] = useState<'desktop'|'mobile'|'tablet'>('desktop')
   const [lt, setLt] = useState<'en'|'ru'>('ru')
@@ -772,6 +794,10 @@ export default function PageEditorPage() {
   const wrapClass = fullscreen ? 'fixed inset-0 z-50 bg-white dark:bg-zinc-950 overflow-auto p-4' : 'space-y-4'
   const dw = device==='mobile'?'max-w-[390px]':device==='tablet'?'max-w-[768px]':'w-full'
 
+  if (loading) {
+    return <div className="flex items-center justify-center min-h-[60vh]"><Loader2 className="w-8 h-8 animate-spin text-teal-500" /></div>
+  }
+
   return (
     <div className={wrapClass}>
       {/* Header */}
@@ -799,7 +825,17 @@ export default function PageEditorPage() {
           <button onClick={()=>setFullscreen(!fullscreen)} className="p-1.5 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800" title="Fullscreen"><Maximize2 className="w-4 h-4" /></button>
           <button onClick={exportJSON} className="p-1.5 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800" title="Export JSON"><Download className="w-4 h-4" /></button>
           <button onClick={importJSON} className="p-1.5 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800" title="Import JSON"><Upload className="w-4 h-4" /></button>
-          <Button variant="gradient" size="sm" onClick={()=>toast.success(lang==='ru'?'Сохранено!':'Saved!')}><Save className="w-3.5 h-3.5 mr-1.5" />{lang==='ru'?'Сохранить':'Save'}</Button>
+          <Button variant="gradient" size="sm" onClick={async()=>{
+            try {
+              const res = await fetch('/api/page-blocks', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ pageSlug: 'home', blocks })
+              })
+              if (!res.ok) throw new Error('Save failed')
+              toast.success(lang==='ru'?'Сохранено в базу!':'Saved to database!')
+            } catch { toast.error(lang==='ru'?'Ошибка сохранения':'Save failed') }
+          }}><Save className="w-3.5 h-3.5 mr-1.5" />{lang==='ru'?'Сохранить':'Save'}</Button>
         </div>
       </div>
 

@@ -3,9 +3,9 @@ import React, { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { 
-  LayoutDashboard, Users, Dumbbell, BookOpen, Calendar, 
+  LayoutDashboard, Users, Dumbbell, BookOpen,
   MessageSquare, CreditCard, Settings, Menu, X, Bell, 
-  Search, ChevronDown, Video, ListVideo, TrendingUp,
+  Search, ChevronDown, Video, ListVideo,
   Target, Layers, FileText,
   Moon, Sun, FormInput, BellRing, LogOut
 } from 'lucide-react'
@@ -115,7 +115,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     },
     { name: t('messages.title'), href: '/dashboard/messages', icon: MessageSquare },
     { name: t('payments.title'), href: '/dashboard/payments', icon: CreditCard },
-    { name: t('calendar.title'), href: '/dashboard/calendar', icon: Calendar },
     { name: ru ? 'Редактор страницы' : 'Page Editor', href: '/dashboard/page-editor', icon: FileText },
     { name: ru ? 'Конструктор форм' : 'Form Builder', href: '/dashboard/form-builder', icon: FormInput },
     { name: ru ? 'Уведомления' : 'Notifications', href: '/dashboard/notifications', icon: BellRing },
