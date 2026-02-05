@@ -15,31 +15,24 @@ function CallbackHandler() {
     const handleAuth = async () => {
       const supabase = createClient()
       
-      // Check for code in URL params (PKCE flow)
-      const code = searchParams.get('code')
-      const type = searchParams.get('type')
+      // Small delay to let Supabase process any tokens
+      await new Promise(resolve => setTimeout(resolve, 500))
       
-      if (code) {
-        setStatus('Exchanging code...')
-        const { error } = await supabase.auth.exchangeCodeForSession(code)
+      // First, check if user is already authenticated (Supabase may have auto-processed tokens)
+      const { data: { user } } = await supabase.auth.getUser()
+      
+      if (user) {
+        setStatus('Authenticated, redirecting...')
         
-        if (error) {
-          console.error('Code exchange error:', error)
-          router.push('/auth/login?error=auth_callback_error')
-          return
-        }
-        
-        // Check if this is recovery flow
-        if (type === 'recovery') {
-          router.push('/auth/reset-password')
-          return
-        }
-        
-        // Check user recovery status
-        const { data: { user } } = await supabase.auth.getUser()
-        if (user?.recovery_sent_at) {
-          router.push('/auth/reset-password')
-          return
+        // Check if this is a recovery flow
+        if (user.recovery_sent_at) {
+          const recoveryTime = new Date(user.recovery_sent_at).getTime()
+          const now = Date.now()
+          // If recovery was requested in the last hour, redirect to reset password
+          if (now - recoveryTime < 60 * 60 * 1000) {
+            router.push('/auth/reset-password')
+            return
+          }
         }
         
         router.push('/dashboard')
@@ -48,7 +41,7 @@ function CallbackHandler() {
       
       // Check for tokens in hash (older flow)
       const hash = window.location.hash
-      if (hash) {
+      if (hash && hash.length > 1) {
         setStatus('Processing tokens...')
         const params = new URLSearchParams(hash.substring(1))
         const accessToken = params.get('access_token')
@@ -85,23 +78,39 @@ function CallbackHandler() {
             return
           }
           
-          // Check user recovery status
-          const { data: { user } } = await supabase.auth.getUser()
-          if (user?.recovery_sent_at) {
-            router.push('/auth/reset-password')
-            return
-          }
-          
           router.push('/dashboard')
           return
         }
       }
       
-      // Check if already authenticated
-      const { data: { session } } = await supabase.auth.getSession()
-      if (session) {
-        router.push('/dashboard')
-        return
+      // Try code exchange if we have a code (PKCE flow)
+      const code = searchParams.get('code')
+      if (code) {
+        setStatus('Exchanging code...')
+        const { error } = await supabase.auth.exchangeCodeForSession(code)
+        
+        if (!error) {
+          const { data: { user: newUser } } = await supabase.auth.getUser()
+          if (newUser?.recovery_sent_at) {
+            router.push('/auth/reset-password')
+            return
+          }
+          router.push('/dashboard')
+          return
+        }
+        
+        // Code exchange failed, but check if we're authenticated anyway
+        const { data: { user: fallbackUser } } = await supabase.auth.getUser()
+        if (fallbackUser) {
+          if (fallbackUser.recovery_sent_at) {
+            router.push('/auth/reset-password')
+            return
+          }
+          router.push('/dashboard')
+          return
+        }
+        
+        console.error('Code exchange error:', error)
       }
       
       // No valid auth data found
