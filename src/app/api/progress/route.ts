@@ -83,13 +83,13 @@ export async function GET(request: NextRequest) {
       .eq('is_published', true)
       .order('sort_order')
 
-    // Get user's lesson progress
+    // Get user's lesson progress from course_lesson_progress table
     const allLessonIds = modules?.flatMap(m => 
       m.course_lessons?.map((l: any) => l.id) || []
     ) || []
 
     const { data: progressData } = await supabase
-      .from('lesson_progress')
+      .from('course_lesson_progress')
       .select('lesson_id, completed, watched_seconds, last_watched_at')
       .eq('client_id', targetUserId)
       .in('lesson_id', allLessonIds)
@@ -194,9 +194,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'lesson_id is required' }, { status: 400 })
     }
 
-    // Upsert progress
+    // Upsert progress to course_lesson_progress table
     const { data, error } = await supabase
-      .from('lesson_progress')
+      .from('course_lesson_progress')
       .upsert({
         client_id: user.id,
         lesson_id,

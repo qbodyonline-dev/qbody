@@ -26,9 +26,9 @@ export async function GET(
       .from('courses')
       .select('id, slug, title, title_ru')
 
-    // Get lesson progress for this user
+    // Get lesson progress for this user from course_lesson_progress table
     const { data: progressData } = await supabase
-      .from('lesson_progress')
+      .from('course_lesson_progress')
       .select('lesson_id, completed')
       .eq('client_id', userId)
 
