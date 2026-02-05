@@ -181,25 +181,36 @@ export default function HomePage() {
   const { locale } = useTranslation()
   const lang = (locale || 'ru') as 'en' | 'ru'
   const [blocks, setBlocks] = useState<PageBlock[]>([])
+  const [settings, setSettings] = useState<{ branding?: { heroImageUrl?: string; logoUrl?: string; primaryColor?: string } }>({})
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const loadBlocks = async () => {
+    const loadData = async () => {
       try {
-        const res = await fetch('/api/page-blocks?page=home')
-        if (res.ok) {
-          const data = await res.json()
+        // Load page blocks and settings in parallel
+        const [blocksRes, settingsRes] = await Promise.all([
+          fetch('/api/page-blocks?page=home'),
+          fetch('/api/settings')
+        ])
+        
+        if (blocksRes.ok) {
+          const data = await blocksRes.json()
           if (data.blocks && data.blocks.length > 0) {
             setBlocks(data.blocks)
           }
         }
+        
+        if (settingsRes.ok) {
+          const settingsData = await settingsRes.json()
+          setSettings(settingsData)
+        }
       } catch (err) {
-        console.error('Failed to load page blocks:', err)
+        console.error('Failed to load page data:', err)
       } finally {
         setLoading(false)
       }
     }
-    loadBlocks()
+    loadData()
   }, [])
 
   if (loading) return <LoadingSkeleton />
@@ -208,6 +219,21 @@ export default function HomePage() {
   const headerBlock = blocks.find(b => b.type === 'header')
   const footerBlock = blocks.find(b => b.type === 'footer')
   const contentBlocks = blocks.filter(b => b.type !== 'header' && b.type !== 'footer')
+  
+  // Apply hero image from settings to hero block if available
+  const heroImageUrl = settings.branding?.heroImageUrl
+  const processedBlocks = contentBlocks.map(block => {
+    if (block.type === 'hero' && heroImageUrl) {
+      return {
+        ...block,
+        style: {
+          ...block.style,
+          bgImage: heroImageUrl
+        }
+      }
+    }
+    return block
+  })
 
   return (
     <>
@@ -216,7 +242,7 @@ export default function HomePage() {
 
       <main className="min-h-screen">
         {/* Render all content blocks dynamically from the database */}
-        {contentBlocks.map(block => (
+        {processedBlocks.map(block => (
           <DynamicBlock key={block.id} block={block} lang={lang} />
         ))}
       </main>
