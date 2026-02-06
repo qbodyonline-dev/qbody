@@ -216,7 +216,10 @@ export default function PageEditorPage() {
   }
 
   const ph = blocks.filter(b => b.visible).map(b => {
-    const c = lt === 'ru' ? b.contentRu : b.contentEn
+    // About block: always render from data for latest design
+    const c = (b.type === 'about' && b.data)
+      ? renderAboutHTML(b.data as AboutData, lt)
+      : (lt === 'ru' ? b.contentRu : b.contentEn)
     const s = styleToCSS(b.style)
     const a = styleAttrs(b.style)
     return s || a ? `<div${a} style="${s}">${c}</div>` : c
@@ -490,8 +493,8 @@ export default function PageEditorPage() {
                         <Eye className="w-3 h-3 text-teal-500" />
                         <span className="text-[10px] font-bold text-teal-600 uppercase tracking-widest">{lang === 'ru' ? 'Превью' : 'Live Preview'}</span>
                       </div>
-                      <div className="bg-white dark:bg-zinc-950 max-h-[400px] overflow-y-auto">
-                        <div dangerouslySetInnerHTML={{ __html: lt === 'ru' ? ab.contentRu : ab.contentEn }} className="pointer-events-none" />
+                      <div className="bg-white dark:bg-zinc-950 max-h-[600px] overflow-y-auto">
+                        <div dangerouslySetInnerHTML={{ __html: renderAboutHTML((ab.data as AboutData) || defaultAboutData, lt) }} className="pointer-events-none" />
                       </div>
                     </CardContent>
                   </Card>
