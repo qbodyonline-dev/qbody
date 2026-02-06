@@ -216,10 +216,13 @@ export default function PageEditorPage() {
   }
 
   const ph = blocks.filter(b => b.visible).map(b => {
-    // About block: always render from data for latest design
-    const c = (b.type === 'about' && b.data)
-      ? renderAboutHTML(b.data as AboutData, lt)
-      : (lt === 'ru' ? b.contentRu : b.contentEn)
+    // Structured blocks: always render from data/items for latest dark theme
+    let c: string
+    if (b.type === 'about' && b.data) c = renderAboutHTML(b.data as AboutData, lt)
+    else if (b.type === 'courses' && b.items) c = renderCoursesHTML(b.items as any[], lt)
+    else if (b.type === 'programs' && b.items) c = renderProgramsHTML(b.items as any[], lt)
+    else if (b.type === 'results' && b.items) c = renderResultsHTML(b.items as any[], lt)
+    else c = lt === 'ru' ? b.contentRu : b.contentEn
     const s = styleToCSS(b.style)
     const a = styleAttrs(b.style)
     return s || a ? `<div${a} style="${s}">${c}</div>` : c
@@ -283,7 +286,7 @@ export default function PageEditorPage() {
 
       {preview ? (
         <Card><CardContent className="p-0"><div className={`mx-auto transition-all ${dw} ${device !== 'desktop' ? 'border-x border-zinc-200' : ''}`}>
-          <div className="bg-white overflow-hidden" dangerouslySetInnerHTML={{ __html: ph }} />
+          <div className="bg-zinc-950 overflow-hidden" dangerouslySetInnerHTML={{ __html: ph }} />
         </div></CardContent></Card>
       ) : (
         <div className="grid lg:grid-cols-[280px_1fr] gap-4">
@@ -373,8 +376,8 @@ export default function PageEditorPage() {
                         <Eye className="w-3 h-3 text-teal-500" />
                         <span className="text-[10px] font-bold text-teal-600 uppercase tracking-widest">{lang === 'ru' ? 'Превью' : 'Live Preview'}</span>
                       </div>
-                      <div className="bg-white dark:bg-zinc-950 max-h-[400px] overflow-y-auto">
-                        <div dangerouslySetInnerHTML={{ __html: lt === 'ru' ? ab.contentRu : ab.contentEn }} className="pointer-events-none" />
+                      <div className="bg-zinc-950 max-h-[400px] overflow-y-auto">
+                        <div dangerouslySetInnerHTML={{ __html: renderCoursesHTML((ab.items as CourseItem[]) || defaultCourseItems, lt) }} className="pointer-events-none" />
                       </div>
                     </CardContent>
                   </Card>
@@ -397,8 +400,8 @@ export default function PageEditorPage() {
                         <Eye className="w-3 h-3 text-teal-500" />
                         <span className="text-[10px] font-bold text-teal-600 uppercase tracking-widest">{lang === 'ru' ? 'Превью' : 'Live Preview'}</span>
                       </div>
-                      <div className="bg-white dark:bg-zinc-950 max-h-[400px] overflow-y-auto">
-                        <div dangerouslySetInnerHTML={{ __html: lt === 'ru' ? ab.contentRu : ab.contentEn }} className="pointer-events-none" />
+                      <div className="bg-zinc-950 max-h-[400px] overflow-y-auto">
+                        <div dangerouslySetInnerHTML={{ __html: renderProgramsHTML((ab.items as ProgramItem[]) || defaultProgramItems, lt) }} className="pointer-events-none" />
                       </div>
                     </CardContent>
                   </Card>
@@ -421,8 +424,8 @@ export default function PageEditorPage() {
                         <Eye className="w-3 h-3 text-teal-500" />
                         <span className="text-[10px] font-bold text-teal-600 uppercase tracking-widest">{lang === 'ru' ? 'Превью' : 'Live Preview'}</span>
                       </div>
-                      <div className="bg-white dark:bg-zinc-950 max-h-[400px] overflow-y-auto">
-                        <div dangerouslySetInnerHTML={{ __html: lt === 'ru' ? ab.contentRu : ab.contentEn }} className="pointer-events-none" />
+                      <div className="bg-zinc-950 max-h-[400px] overflow-y-auto">
+                        <div dangerouslySetInnerHTML={{ __html: renderResultsHTML((ab.items as ResultItem[]) || defaultResultItems, lt) }} className="pointer-events-none" />
                       </div>
                     </CardContent>
                   </Card>
@@ -445,8 +448,8 @@ export default function PageEditorPage() {
                         <Eye className="w-3 h-3 text-teal-500" />
                         <span className="text-[10px] font-bold text-teal-600 uppercase tracking-widest">{lang === 'ru' ? 'Превью' : 'Live Preview'}</span>
                       </div>
-                      <div className="bg-white dark:bg-zinc-950 max-h-[400px] overflow-y-auto">
-                        <div dangerouslySetInnerHTML={{ __html: lt === 'ru' ? ab.contentRu : ab.contentEn }} className="pointer-events-none" />
+                      <div className="bg-zinc-950 max-h-[400px] overflow-y-auto">
+                        <div dangerouslySetInnerHTML={{ __html: renderHeaderHTML((ab.data as HeaderData) || defaultHeaderData, lt) }} className="pointer-events-none" />
                       </div>
                     </CardContent>
                   </Card>
@@ -469,8 +472,8 @@ export default function PageEditorPage() {
                         <Eye className="w-3 h-3 text-teal-500" />
                         <span className="text-[10px] font-bold text-teal-600 uppercase tracking-widest">{lang === 'ru' ? 'Превью' : 'Live Preview'}</span>
                       </div>
-                      <div className="bg-white dark:bg-zinc-950 max-h-[400px] overflow-y-auto">
-                        <div dangerouslySetInnerHTML={{ __html: lt === 'ru' ? ab.contentRu : ab.contentEn }} className="pointer-events-none" />
+                      <div className="bg-zinc-950 max-h-[400px] overflow-y-auto">
+                        <div dangerouslySetInnerHTML={{ __html: renderHeroHTML((ab.data as HeroData) || defaultHeroData, lt) }} className="pointer-events-none" />
                       </div>
                     </CardContent>
                   </Card>
@@ -493,7 +496,7 @@ export default function PageEditorPage() {
                         <Eye className="w-3 h-3 text-teal-500" />
                         <span className="text-[10px] font-bold text-teal-600 uppercase tracking-widest">{lang === 'ru' ? 'Превью' : 'Live Preview'}</span>
                       </div>
-                      <div className="bg-white dark:bg-zinc-950 max-h-[600px] overflow-y-auto">
+                      <div className="bg-zinc-950 max-h-[600px] overflow-y-auto">
                         <div dangerouslySetInnerHTML={{ __html: renderAboutHTML((ab.data as AboutData) || defaultAboutData, lt) }} className="pointer-events-none" />
                       </div>
                     </CardContent>

@@ -9,8 +9,8 @@ import { LanguageSwitcher } from '@/components/ui/language-switcher'
 import {
   Menu, X, User, LayoutDashboard
 } from 'lucide-react'
-import { renderAboutHTML } from '@/app/dashboard/page-editor/renderers'
-import type { AboutData } from '@/app/dashboard/page-editor/types'
+import { renderAboutHTML, renderCoursesHTML, renderProgramsHTML, renderResultsHTML } from '@/app/dashboard/page-editor/renderers'
+import type { AboutData, CourseItem, ProgramItem, ResultItem } from '@/app/dashboard/page-editor/types'
 
 /* ═══════════ TYPES ═══════════ */
 interface PageBlock {
@@ -171,16 +171,24 @@ function Header({ headerData, lang }: { headerData?: any; lang: 'en' | 'ru' }) {
 function DynamicBlock({ block, lang }: { block: PageBlock; lang: 'en' | 'ru' }) {
   if (!block.visible) return null
 
-  // For About block: always re-render from data to ensure latest design
+  // Re-render structured blocks from data/items to ensure latest dark theme design
   let content: string
   if (block.type === 'about' && block.data) {
     content = renderAboutHTML(block.data as AboutData, lang)
+  } else if (block.type === 'courses' && block.items) {
+    content = renderCoursesHTML(block.items as CourseItem[], lang)
+  } else if (block.type === 'programs' && block.items) {
+    content = renderProgramsHTML(block.items as ProgramItem[], lang)
+  } else if (block.type === 'results' && block.items) {
+    content = renderResultsHTML(block.items as ResultItem[], lang)
   } else {
     content = lang === 'ru' ? block.contentRu : block.contentEn
   }
   if (!content) return null
 
-  const sectionStyle = styleToCSS(block.style || {})
+  // For structured blocks rendered on-the-fly, skip section styles (renderer includes its own bg)
+  const isStructured = ['about', 'courses', 'programs', 'results'].includes(block.type) && (block.data || block.items)
+  const sectionStyle = isStructured ? {} : styleToCSS(block.style || {})
 
   // Map block type to HTML section id for anchor links
   const sectionId = block.type === 'hero' ? undefined
@@ -310,7 +318,7 @@ export default function HomePage() {
       {/* Header reads data from Page Editor DB */}
       <Header headerData={headerBlock?.data} lang={lang} />
 
-      <main className="min-h-screen">
+      <main className="min-h-screen bg-zinc-950">
         {/* Render all content blocks dynamically from the database */}
         {processedBlocks.map(block => (
           <DynamicBlock key={block.id} block={block} lang={lang} />

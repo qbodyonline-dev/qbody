@@ -25,19 +25,19 @@ export function renderCoursesHTML(items: CourseItem[], lang: 'en' | 'ru'): strin
     const features = lang === 'ru' ? course.featuresRu : course.features
 
     const featuresHtml = features.map(f => 
-      `<li style="padding:3px 0;font-size:13px;color:#52525b;">✅ ${f}</li>`
+      `<li style="padding:3px 0;font-size:13px;color:#a1a1aa;">✅ ${f}</li>`
     ).join('')
 
     const priceHtml = course.oldPrice 
-      ? `<span style="font-size:24px;font-weight:700;color:#18181b;">$${course.price}</span> <span style="font-size:14px;color:#a1a1aa;text-decoration:line-through;">$${course.oldPrice}</span>`
-      : `<span style="font-size:24px;font-weight:700;color:#18181b;">$${course.price}</span>`
+      ? `<span style="font-size:24px;font-weight:700;color:#fafafa;">${course.price}</span> <span style="font-size:14px;color:#71717a;text-decoration:line-through;">${course.oldPrice}</span>`
+      : `<span style="font-size:24px;font-weight:700;color:#fafafa;">${course.price}</span>`
 
-    return `<div style="border:1px solid #e4e4e7;border-radius:16px;overflow:hidden;"><div style="background:${course.gradient};padding:40px;text-align:center;color:white;position:relative;"><div style="position:absolute;top:8px;left:8px;display:flex;gap:6px;"><span style="background:rgba(255,255,255,0.9);color:#18181b;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:500;">⏱ ${course.duration}</span><span style="background:rgba(255,255,255,0.9);color:#18181b;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:500;">📖 ${course.lessons} ${lang === 'ru' ? 'уроков' : 'lessons'}</span></div><div style="font-size:40px;margin-bottom:12px;">${course.icon}</div><h3 style="font-size:22px;font-weight:700;margin-bottom:8px;">${t}</h3><p style="font-size:14px;opacity:0.9;">${d}</p></div><div style="padding:24px;"><ul style="list-style:none;padding:0;margin:0 0 16px;">${featuresHtml}</ul><div style="display:flex;justify-content:space-between;align-items:center;border-top:1px solid #e4e4e7;padding-top:16px;"><div>${priceHtml}</div><a href="${course.link}" style="padding:10px 20px;border-radius:12px;background:#14b8a6;color:white;font-size:14px;text-decoration:none;font-weight:600;">${buyLabel}</a></div></div></div>`
+    return `<div style="border:1px solid rgba(255,255,255,0.08);border-radius:16px;overflow:hidden;background:#171717;"><div style="background:${course.gradient};padding:40px;text-align:center;color:white;position:relative;"><div style="position:absolute;top:8px;left:8px;display:flex;gap:6px;"><span style="background:rgba(0,0,0,0.5);color:white;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:500;backdrop-filter:blur(8px);">⏱ ${course.duration}</span><span style="background:rgba(0,0,0,0.5);color:white;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:500;backdrop-filter:blur(8px);">📖 ${course.lessons} ${lang === 'ru' ? 'уроков' : 'lessons'}</span></div><div style="font-size:40px;margin-bottom:12px;">${course.icon}</div><h3 style="font-size:22px;font-weight:700;margin-bottom:8px;">${t}</h3><p style="font-size:14px;opacity:0.9;">${d}</p></div><div style="padding:24px;"><ul style="list-style:none;padding:0;margin:0 0 16px;">${featuresHtml}</ul><div style="display:flex;justify-content:space-between;align-items:center;border-top:1px solid rgba(255,255,255,0.08);padding-top:16px;"><div>${priceHtml}</div><a href="${course.link}" style="padding:10px 20px;border-radius:12px;background:#14b8a6;color:white;font-size:14px;text-decoration:none;font-weight:600;">${buyLabel}</a></div></div></div>`
   }).join('')
 
   const gridCols = items.length === 1 ? '1fr' : items.length === 2 ? '1fr 1fr' : 'repeat(auto-fit, minmax(350px, 1fr))'
 
-  return `<div style="padding:60px 20px;"><div style="text-align:center;margin-bottom:40px;"><p style="color:#14b8a6;font-weight:600;font-size:14px;margin-bottom:12px;">🎬 ${sectionLabel}</p><h2 style="font-size:36px;font-weight:800;color:#18181b;margin-bottom:8px;">${title}</h2><p style="color:#52525b;font-size:16px;">${subtitle}</p></div><div style="display:grid;grid-template-columns:${gridCols};gap:24px;max-width:900px;margin:0 auto;">${coursesHtml}</div></div>`
+  return `<div style="padding:80px 20px;background:#0a0a0a;"><div style="text-align:center;margin-bottom:40px;"><p style="color:#2dd4bf;font-weight:600;font-size:14px;margin-bottom:12px;">🎬 ${sectionLabel}</p><h2 style="font-size:36px;font-weight:800;color:#fafafa;margin-bottom:8px;">${title}</h2><p style="color:#a1a1aa;font-size:16px;">${subtitle}</p></div><div style="display:grid;grid-template-columns:${gridCols};gap:24px;max-width:900px;margin:0 auto;">${coursesHtml}</div></div>`
 }
 
 /* ─────────── PROGRAMS RENDERER ─────────── */
@@ -64,7 +64,7 @@ export function renderProgramsHTML(items: ProgramItem[], lang: 'en' | 'ru'): str
     const soonLabel = 'Soon'
 
     const featuresHtml = features.map(f => 
-      `<li style="padding:3px 0;font-size:13px;color:#52525b;">✅ ${f}</li>`
+      `<li style="padding:3px 0;font-size:13px;color:#a1a1aa;">✅ ${f}</li>`
     ).join('')
 
     const popularBadge = program.popular 
@@ -75,21 +75,20 @@ export function renderProgramsHTML(items: ProgramItem[], lang: 'en' | 'ru'): str
       ? `<div style="position:absolute;top:12px;${program.popular ? 'right:80px' : 'right:12px'};background:#f59e0b;color:white;padding:4px 12px;border-radius:20px;font-size:12px;font-weight:600;">${soonLabel}</div>`
       : ''
 
-    const borderStyle = program.popular ? 'border:2px solid #14b8a6' : program.soon ? 'border:2px solid #f59e0b' : 'border:1px solid #e4e4e7'
+    const borderStyle = program.popular ? 'border:2px solid #14b8a6' : program.soon ? 'border:2px solid #f59e0b' : 'border:1px solid rgba(255,255,255,0.08)'
     
     // Button style and rendering based on soon status
     let buttonHtml: string
     if (program.soon) {
-      // Disabled button style - no link, grayed out
-      buttonHtml = `<span style="padding:8px 16px;border-radius:12px;background:#d4d4d8;color:#71717a;font-size:13px;cursor:not-allowed;">${soonLabel}</span>`
+      buttonHtml = `<span style="padding:8px 16px;border-radius:12px;background:#27272a;color:#71717a;font-size:13px;cursor:not-allowed;">${soonLabel}</span>`
     } else {
       const btnStyle = program.popular 
         ? 'background:#14b8a6;color:white'
-        : 'border:1px solid #e4e4e7;color:#18181b'
+        : 'border:1px solid rgba(255,255,255,0.15);color:#e5e5e5'
       buttonHtml = `<a href="${program.link}" style="padding:8px 16px;border-radius:12px;${btnStyle};font-size:13px;text-decoration:none;">${detailsLabel}</a>`
     }
 
-    return `<div style="background:white;${borderStyle};border-radius:16px;padding:24px;position:relative;">${popularBadge}${soonBadge}<div style="width:48px;height:48px;border-radius:12px;background:${program.gradient};display:flex;align-items:center;justify-content:center;margin-bottom:16px;font-size:20px;">${program.icon}</div><h3 style="font-size:18px;font-weight:700;color:#18181b;margin-bottom:8px;">${t}</h3><p style="color:#52525b;font-size:14px;margin-bottom:12px;">${d}</p><p style="font-size:13px;color:#71717a;margin-bottom:16px;">⏱ ${program.duration} · ${levelLabel}</p><ul style="list-style:none;padding:0;margin:0 0 16px;">${featuresHtml}</ul><div style="border-top:1px solid #e4e4e7;padding-top:16px;display:flex;justify-content:space-between;align-items:center;"><span style="font-size:24px;font-weight:700;color:#18181b;">$${program.price}</span>${buttonHtml}</div></div>`
+    return `<div style="background:#171717;${borderStyle};border-radius:16px;padding:24px;position:relative;">${popularBadge}${soonBadge}<div style="width:48px;height:48px;border-radius:12px;background:${program.gradient};display:flex;align-items:center;justify-content:center;margin-bottom:16px;font-size:20px;">${program.icon}</div><h3 style="font-size:18px;font-weight:700;color:#fafafa;margin-bottom:8px;">${t}</h3><p style="color:#a1a1aa;font-size:14px;margin-bottom:12px;">${d}</p><p style="font-size:13px;color:#71717a;margin-bottom:16px;">⏱ ${program.duration} · ${levelLabel}</p><ul style="list-style:none;padding:0;margin:0 0 16px;">${featuresHtml}</ul><div style="border-top:1px solid rgba(255,255,255,0.08);padding-top:16px;display:flex;justify-content:space-between;align-items:center;"><span style="font-size:24px;font-weight:700;color:#fafafa;">${program.price}</span>${buttonHtml}</div></div>`
   }
 
   const mainHtml = mainPrograms.map(p => renderProgram(p, true)).join('')
@@ -97,7 +96,7 @@ export function renderProgramsHTML(items: ProgramItem[], lang: 'en' | 'ru'): str
     ? `<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:20px;max-width:730px;margin:20px auto 0;">${secondaryPrograms.map(p => renderProgram(p, false)).join('')}</div>`
     : ''
 
-  return `<div style="padding:60px 20px;"><div style="text-align:center;margin-bottom:40px;"><p style="color:#14b8a6;font-weight:600;font-size:14px;margin-bottom:12px;">📱 ${sectionLabel}</p><h2 style="font-size:36px;font-weight:800;color:#18181b;margin-bottom:8px;">${title}</h2><p style="color:#52525b;font-size:16px;">${subtitle}</p></div><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:20px;max-width:1100px;margin:0 auto;">${mainHtml}</div>${secondaryHtml}</div>`
+  return `<div style="padding:80px 20px;background:#0a0a0a;"><div style="text-align:center;margin-bottom:40px;"><p style="color:#2dd4bf;font-weight:600;font-size:14px;margin-bottom:12px;">📱 ${sectionLabel}</p><h2 style="font-size:36px;font-weight:800;color:#fafafa;margin-bottom:8px;">${title}</h2><p style="color:#a1a1aa;font-size:16px;">${subtitle}</p></div><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:20px;max-width:1100px;margin:0 auto;">${mainHtml}</div>${secondaryHtml}</div>`
 }
 
 /* ─────────── RESULTS RENDERER ─────────── */
@@ -115,19 +114,19 @@ export function renderResultsHTML(items: ResultItem[], lang: 'en' | 'ru'): strin
     const r = lang === 'ru' ? result.resultRu : result.result
     const quote = lang === 'ru' ? result.quoteRu : result.quote
 
-    return `<div style="background:#fafafa;border-radius:16px;padding:24px;text-align:center;"><div style="font-size:40px;margin-bottom:12px;">${result.icon}</div><h3 style="font-size:20px;font-weight:700;color:#18181b;">${name}, ${result.age}</h3><p style="color:#14b8a6;font-weight:600;margin-bottom:8px;">${r}</p><p style="color:#71717a;font-size:13px;font-style:italic;">"${quote}"</p><div style="color:#eab308;margin-top:8px;">⭐⭐⭐⭐⭐</div></div>`
+    return `<div style="background:#171717;border:1px solid rgba(255,255,255,0.08);border-radius:16px;padding:24px;text-align:center;"><div style="font-size:40px;margin-bottom:12px;">${result.icon}</div><h3 style="font-size:20px;font-weight:700;color:#fafafa;">${name}, ${result.age}</h3><p style="color:#2dd4bf;font-weight:600;margin-bottom:8px;">${r}</p><p style="color:#a1a1aa;font-size:13px;font-style:italic;">"${quote}"</p><div style="color:#eab308;margin-top:8px;">⭐⭐⭐⭐⭐</div></div>`
   }).join('')
 
   const gridCols = items.length <= 3 ? `repeat(${items.length}, 1fr)` : 'repeat(3, 1fr)'
 
-  return `<div style="padding:60px 20px;"><div style="text-align:center;margin-bottom:40px;"><p style="color:#14b8a6;font-weight:600;font-size:14px;margin-bottom:12px;">⭐ ${sectionLabel}</p><h2 style="font-size:36px;font-weight:800;color:#18181b;margin-bottom:8px;">${title}</h2></div><div style="display:grid;grid-template-columns:${gridCols};gap:24px;max-width:1000px;margin:0 auto;">${resultsHtml}</div><div style="text-align:center;margin-top:40px;"><a href="/auth/register" style="padding:14px 36px;border-radius:16px;background:linear-gradient(135deg,#14b8a6,#0d9488);color:white;font-weight:600;font-size:16px;text-decoration:none;">${ctaLabel}</a></div></div>`
+  return `<div style="padding:80px 20px;background:#0a0a0a;"><div style="text-align:center;margin-bottom:40px;"><p style="color:#2dd4bf;font-weight:600;font-size:14px;margin-bottom:12px;">⭐ ${sectionLabel}</p><h2 style="font-size:36px;font-weight:800;color:#fafafa;margin-bottom:8px;">${title}</h2></div><div style="display:grid;grid-template-columns:${gridCols};gap:24px;max-width:1000px;margin:0 auto;">${resultsHtml}</div><div style="text-align:center;margin-top:40px;"><a href="/auth/register" style="padding:14px 36px;border-radius:16px;background:linear-gradient(135deg,#14b8a6,#0d9488);color:white;font-weight:600;font-size:16px;text-decoration:none;">${ctaLabel}</a></div></div>`
 }
 
 /* ─────────── HEADER RENDERER ─────────── */
 export function renderHeaderHTML(data: HeaderData, lang: 'en' | 'ru'): string {
   const navLinksHtml = data.navLinks.map(link => {
     const label = lang === 'ru' ? link.labelRu : link.label
-    return `<a href="${link.href}" style="color:#52525b;text-decoration:none;">${label}</a>`
+    return `<a href="${link.href}" style="color:#d4d4d8;text-decoration:none;">${label}</a>`
   }).join('')
 
   const loginText = lang === 'ru' ? data.loginTextRu : data.loginText
@@ -137,7 +136,7 @@ export function renderHeaderHTML(data: HeaderData, lang: 'en' | 'ru'): string {
     ? `<img src="${data.logoImage}" alt="${data.logoText}" style="width:40px;height:40px;border-radius:12px;object-fit:contain;" />`
     : `<div style="width:40px;height:40px;border-radius:12px;background:${data.logoGradient};display:flex;align-items:center;justify-content:center;color:white;font-weight:bold;font-size:18px;">${data.logoIcon}</div>`
 
-  return `<div style="padding:16px 24px;display:flex;align-items:center;justify-content:space-between;background:#fff;border-bottom:1px solid #e4e4e7;"><div style="display:flex;align-items:center;gap:12px;">${logoHtml}<span style="font-weight:600;font-size:16px;color:#18181b;">${data.logoText}</span></div><div style="display:flex;gap:24px;font-size:14px;">${navLinksHtml}</div><div style="display:flex;gap:8px;"><a href="${data.loginLink}" style="padding:8px 16px;border-radius:12px;border:1px solid #e4e4e7;font-size:14px;color:#18181b;text-decoration:none;">${loginText}</a><a href="${data.ctaLink}" style="padding:8px 16px;border-radius:12px;background:#14b8a6;color:white;font-size:14px;text-decoration:none;">${ctaText}</a></div></div>`
+  return `<div style="padding:16px 24px;display:flex;align-items:center;justify-content:space-between;background:#0a0a0a;border-bottom:1px solid rgba(255,255,255,0.08);"><div style="display:flex;align-items:center;gap:12px;">${logoHtml}<span style="font-weight:600;font-size:16px;color:#fafafa;">${data.logoText}</span></div><div style="display:flex;gap:24px;font-size:14px;">${navLinksHtml}</div><div style="display:flex;gap:8px;"><a href="${data.loginLink}" style="padding:8px 16px;border-radius:12px;border:1px solid rgba(255,255,255,0.15);font-size:14px;color:#e5e5e5;text-decoration:none;">${loginText}</a><a href="${data.ctaLink}" style="padding:8px 16px;border-radius:12px;background:#14b8a6;color:white;font-size:14px;text-decoration:none;">${ctaText}</a></div></div>`
 }
 
 /* ─────────── HERO RENDERER ─────────── */
