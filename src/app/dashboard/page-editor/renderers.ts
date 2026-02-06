@@ -216,16 +216,206 @@ export function renderAboutHTML(data: AboutData, lang: 'en' | 'ru'): string {
   const careerTitle = lang === 'ru' ? data.careerTitleRu : data.careerTitle
   const career = lang === 'ru' ? data.careerRu : data.career
   const footer = lang === 'ru' ? data.footerRu : data.footer
+  const tags = lang === 'ru' ? (data.tagsRu || data.tags || ['ТРЕНЕР', 'АТЛЕТ']) : (data.tags || ['COACH', 'ATHLETE'])
+  const personalJourneyTitle = lang === 'ru' 
+    ? (data.personalJourneyTitleRu || 'Личный путь') 
+    : (data.personalJourneyTitle || 'Personal Journey')
+  const stats = data.stats || []
 
+  // Split name into first/last for line break
+  const nameParts = data.name.split(' ')
+  const nameHtml = nameParts.length >= 2 
+    ? `${nameParts[0]} <br/>${nameParts.slice(1).join(' ')}` 
+    : data.name
+
+  const aboutId = `about-${Date.now()}`
+
+  // Certifications in 2-column grid
   const certificationsHtml = certifications.map(c => 
-    `<li style="padding:4px 0;color:#52525b;font-size:14px;">✅ ${c}</li>`
+    `<div style="display:flex;align-items:flex-start;gap:10px;">
+      <svg style="width:16px;height:16px;color:#0d9488;flex-shrink:0;margin-top:2px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg>
+      <span style="font-size:14px;font-weight:600;line-height:1.5;color:#d4d4d4;">${c}</span>
+    </div>`
   ).join('')
 
-  const careerHtml = career.map(c => 
-    `<li style="padding:4px 0;color:#52525b;font-size:14px;">${c}</li>`
+  // Career items
+  const careerHtml = career.map(c => {
+    // Check if it starts with emoji or medal
+    return `<div style="display:flex;align-items:center;gap:16px;padding:16px 20px;border-radius:16px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);">
+      <span style="font-size:14px;font-weight:600;color:#e5e5e5;">${c}</span>
+    </div>`
+  }).join('')
+
+  // Tags
+  const tagsHtml = tags.map(tag => 
+    `<span style="padding:4px 14px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:8px;font-size:10px;font-weight:700;letter-spacing:0.15em;color:#a3a3a3;">${tag}</span>`
   ).join('')
 
-  return `<div style="padding:60px 20px;"><div style="display:grid;grid-template-columns:1fr 1fr;gap:40px;max-width:1000px;margin:0 auto;"><div><img src="${data.image}" alt="Coach" style="width:100%;border-radius:24px;aspect-ratio:4/5;object-fit:cover;" /></div><div><p style="color:#14b8a6;font-weight:600;font-size:14px;margin-bottom:12px;">${sectionLabel}</p><h2 style="font-size:36px;font-weight:800;color:#18181b;margin-bottom:4px;">${data.name}</h2><p style="font-size:18px;color:#14b8a6;font-weight:500;margin-bottom:24px;">${tagline}</p><h3 style="font-size:18px;font-weight:700;color:#18181b;margin-bottom:12px;">${certificationsTitle}</h3><ul style="list-style:none;padding:0;margin:0 0 24px;">${certificationsHtml}</ul><h3 style="font-size:18px;font-weight:700;color:#18181b;margin-bottom:12px;">${careerTitle}</h3><ul style="list-style:none;padding:0;margin:0 0 24px;">${careerHtml}</ul><p style="font-size:14px;color:#52525b;">${footer}</p></div></div></div>`
+  // Stats
+  const statsHtml = stats.map(s => {
+    const label = lang === 'ru' ? s.labelRu : s.label
+    return `<div>
+      <p style="font-size:32px;font-weight:800;letter-spacing:-0.05em;color:#0a0a0a;">${s.value}</p>
+      <p style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.15em;opacity:0.6;font-style:italic;color:#0a0a0a;">${label}</p>
+    </div>`
+  }).join('')
+
+  return `
+<style>
+  #${aboutId} { font-family: 'Plus Jakarta Sans', 'Inter', system-ui, sans-serif; }
+
+  /* Photo glow + grayscale hover */
+  #${aboutId} .about-photo-wrap {
+    position: relative;
+  }
+  #${aboutId} .about-photo-glow {
+    position: absolute;
+    inset: -4px;
+    background: linear-gradient(135deg, #2dd4bf, #0d9488);
+    border-radius: 2.5rem;
+    filter: blur(20px);
+    opacity: 0.2;
+    transition: opacity 1s ease;
+    z-index: 0;
+  }
+  #${aboutId} .about-photo-wrap:hover .about-photo-glow {
+    opacity: 0.45;
+  }
+  #${aboutId} .about-photo-inner {
+    position: relative;
+    border-radius: 2.5rem;
+    overflow: hidden;
+    border: 6px solid rgba(255,255,255,0.06);
+    box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
+    z-index: 1;
+  }
+  #${aboutId} .about-photo-inner img {
+    width: 100%;
+    display: block;
+    filter: grayscale(100%);
+    transition: filter 0.7s ease;
+  }
+  #${aboutId} .about-photo-wrap:hover .about-photo-inner img {
+    filter: grayscale(0%);
+  }
+
+  /* Fade-up entrance animations */
+  @keyframes aboutFadeUp {
+    from { opacity: 0; transform: translateY(40px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  #${aboutId} .about-fade-up {
+    opacity: 0;
+    animation: aboutFadeUp 0.8s ease forwards;
+  }
+  #${aboutId} .about-fade-up:nth-child(1) { animation-delay: 0.1s; }
+  #${aboutId} .about-fade-up:nth-child(2) { animation-delay: 0.3s; }
+  #${aboutId} .about-fade-up:nth-child(3) { animation-delay: 0.5s; }
+
+  /* Card hover effects */
+  #${aboutId} .about-card {
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+  }
+  #${aboutId} .about-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 25px 50px -12px rgba(0,0,0,0.4);
+  }
+
+  /* Block number badge */
+  #${aboutId} .about-block-num {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 12px;
+    font-weight: 700;
+    font-size: 14px;
+    flex-shrink: 0;
+  }
+
+  /* Responsive */
+  @media (max-width: 1024px) {
+    #${aboutId} .about-grid { grid-template-columns: 1fr !important; }
+    #${aboutId} .about-left { position: static !important; text-align: center; }
+    #${aboutId} .about-photo-inner { max-width: 360px; margin: 0 auto; }
+    #${aboutId} .about-tags { justify-content: center !important; }
+    #${aboutId} .about-name { text-align: center; }
+  }
+  @media (max-width: 640px) {
+    #${aboutId} .about-certs-grid { grid-template-columns: 1fr !important; }
+    #${aboutId} .about-section-pad { padding: 32px 24px !important; }
+  }
+</style>
+
+<div id="${aboutId}" style="padding:80px 24px;background:#0a0a0a;">
+  <div class="about-grid" style="display:grid;grid-template-columns:1fr 2fr;gap:48px;max-width:1200px;margin:0 auto;align-items:start;">
+    
+    <!-- Left Sticky Side -->
+    <div class="about-left" style="position:sticky;top:112px;">
+      <div class="about-photo-wrap" style="cursor:pointer;">
+        <div class="about-photo-glow"></div>
+        <div class="about-photo-inner">
+          <img src="${data.image}" alt="${data.name}" style="aspect-ratio:4/5;object-fit:cover;" />
+        </div>
+      </div>
+      <div style="margin-top:32px;" class="about-name">
+        <span style="font-size:12px;font-weight:700;color:#0d9488;text-transform:uppercase;letter-spacing:0.2em;">${sectionLabel}</span>
+        <h2 style="font-size:36px;font-weight:800;letter-spacing:-0.04em;margin-top:8px;line-height:1.1;color:#fafafa;">${nameHtml}</h2>
+        <div class="about-tags" style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap;">
+          ${tagsHtml}
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Detailed Side -->
+    <div style="display:flex;flex-direction:column;gap:32px;">
+      
+      <!-- Block 1: Professional Qualifications -->
+      <div class="about-fade-up about-card about-section-pad" style="background:rgba(255,255,255,0.03);padding:48px;border-radius:2.5rem;border:1px solid rgba(255,255,255,0.06);box-shadow:0 10px 40px -10px rgba(0,0,0,0.3);position:relative;overflow:hidden;">
+        <div style="position:absolute;top:0;right:0;padding:32px;opacity:0.04;">
+          <svg style="width:120px;height:120px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
+        </div>
+        <h4 style="font-size:22px;font-weight:800;letter-spacing:-0.02em;margin-bottom:32px;display:flex;align-items:center;gap:14px;color:#fafafa;">
+          <span class="about-block-num" style="background:rgba(45,212,191,0.15);color:#2dd4bf;">01</span>
+          ${certificationsTitle}
+        </h4>
+        <div class="about-certs-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:12px 28px;">
+          ${certificationsHtml}
+        </div>
+      </div>
+
+      <!-- Block 2: Career / Achievements -->
+      <div class="about-fade-up about-card about-section-pad" style="background:#171717;padding:48px;border-radius:2.5rem;border:1px solid rgba(255,255,255,0.06);box-shadow:0 10px 40px -10px rgba(0,0,0,0.4);position:relative;overflow:hidden;">
+        <div style="position:absolute;bottom:-40px;right:-40px;width:200px;height:200px;background:rgba(13,148,136,0.08);filter:blur(80px);border-radius:50%;"></div>
+        <h4 style="font-size:22px;font-weight:800;letter-spacing:-0.02em;margin-bottom:32px;display:flex;align-items:center;gap:14px;color:#fafafa;">
+          <span class="about-block-num" style="background:rgba(255,255,255,0.08);color:#2dd4bf;">02</span>
+          ${careerTitle}
+        </h4>
+        <div style="display:flex;flex-direction:column;gap:12px;position:relative;z-index:1;">
+          ${careerHtml}
+        </div>
+      </div>
+
+      <!-- Block 3: Personal Journey -->
+      <div class="about-fade-up about-card about-section-pad" style="background:linear-gradient(135deg,#2dd4bf,#0d9488);padding:48px;border-radius:2.5rem;color:#0a0a0a;position:relative;overflow:hidden;box-shadow:0 25px 50px -12px rgba(45,212,191,0.25);">
+        <div style="position:absolute;top:0;right:0;padding:32px;opacity:0.15;">
+          <svg style="width:96px;height:96px;" viewBox="0 0 24 24" fill="currentColor"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
+        </div>
+        <h4 style="font-size:22px;font-weight:800;letter-spacing:-0.02em;margin-bottom:24px;color:#0a0a0a;">${personalJourneyTitle}</h4>
+        <div style="display:flex;flex-direction:column;gap:20px;">
+          <p style="font-size:18px;font-weight:700;line-height:1.3;color:#0a0a0a;">${footer}</p>
+          ${stats.length > 0 ? `
+          <div style="height:1px;background:rgba(0,0,0,0.1);"></div>
+          <div style="display:flex;flex-wrap:wrap;gap:32px;">
+            ${statsHtml}
+          </div>` : ''}
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>`
 }
 
 /* ─────────── GRADIENTS PRESETS ─────────── */

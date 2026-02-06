@@ -1387,16 +1387,81 @@ export function AboutEditor({ data, onChange, lang }: AboutEditorProps) {
           </div>
         </div>
 
-        {/* Footer */}
+        {/* Footer / Personal Journey Text */}
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="text-xs text-zinc-500 block mb-1">{lang === 'ru' ? 'Футер EN' : 'Footer EN'}</label>
-            <Input value={data.footer} onChange={e => onChange({ ...data, footer: e.target.value })} className="text-xs h-8" placeholder="📍 Location / info" />
+            <label className="text-xs text-zinc-500 block mb-1">{lang === 'ru' ? 'Текст блока "Личный путь" EN' : 'Personal Journey Text EN'}</label>
+            <Input value={data.footer} onChange={e => onChange({ ...data, footer: e.target.value })} className="text-xs h-8" placeholder="Successfully self-rehabilitated..." />
           </div>
           <div>
-            <label className="text-xs text-zinc-500 block mb-1">{lang === 'ru' ? 'Футер RU' : 'Footer RU'}</label>
-            <Input value={data.footerRu} onChange={e => onChange({ ...data, footerRu: e.target.value })} className="text-xs h-8" placeholder="📍 Местоположение" />
+            <label className="text-xs text-zinc-500 block mb-1">{lang === 'ru' ? 'Текст блока "Личный путь" RU' : 'Personal Journey Text RU'}</label>
+            <Input value={data.footerRu} onChange={e => onChange({ ...data, footerRu: e.target.value })} className="text-xs h-8" placeholder="Успешно восстановилась..." />
           </div>
+        </div>
+
+        {/* Personal Journey Title */}
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="text-xs text-zinc-500 block mb-1">{lang === 'ru' ? 'Заголовок блока EN' : 'Journey Block Title EN'}</label>
+            <Input value={data.personalJourneyTitle || ''} onChange={e => onChange({ ...data, personalJourneyTitle: e.target.value })} className="text-xs h-8" placeholder="Personal Journey" />
+          </div>
+          <div>
+            <label className="text-xs text-zinc-500 block mb-1">{lang === 'ru' ? 'Заголовок блока RU' : 'Journey Block Title RU'}</label>
+            <Input value={data.personalJourneyTitleRu || ''} onChange={e => onChange({ ...data, personalJourneyTitleRu: e.target.value })} className="text-xs h-8" placeholder="Личный путь" />
+          </div>
+        </div>
+
+        {/* Tags */}
+        <div className="p-3 bg-zinc-50 dark:bg-zinc-800 rounded-lg space-y-3">
+          <label className="text-xs font-medium text-zinc-500 block">{lang === 'ru' ? 'Теги (под именем)' : 'Tags (below name)'}</label>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs text-zinc-500 block mb-1">EN ({lang === 'ru' ? 'через запятую' : 'comma separated'})</label>
+              <Input 
+                value={(data.tags || []).join(', ')} 
+                onChange={e => onChange({ ...data, tags: e.target.value.split(',').map(s => s.trim()).filter(Boolean) })} 
+                className="text-xs h-8" placeholder="COACH, ATHLETE, MOM" />
+            </div>
+            <div>
+              <label className="text-xs text-zinc-500 block mb-1">RU ({lang === 'ru' ? 'через запятую' : 'comma separated'})</label>
+              <Input 
+                value={(data.tagsRu || []).join(', ')} 
+                onChange={e => onChange({ ...data, tagsRu: e.target.value.split(',').map(s => s.trim()).filter(Boolean) })} 
+                className="text-xs h-8" placeholder="ТРЕНЕР, АТЛЕТ, МАМА" />
+            </div>
+          </div>
+        </div>
+
+        {/* Stats */}
+        <div className="p-3 bg-zinc-50 dark:bg-zinc-800 rounded-lg space-y-3">
+          <div className="flex items-center justify-between">
+            <label className="text-xs font-medium text-zinc-500">{lang === 'ru' ? 'Статистика (блок "Личный путь")' : 'Stats (Personal Journey block)'}</label>
+            <button onClick={() => onChange({ ...data, stats: [...(data.stats || []), { value: '', label: '', labelRu: '' }] })}
+              className="text-xs text-teal-500 hover:text-teal-400 flex items-center gap-1"><Plus className="w-3 h-3" /> {lang === 'ru' ? 'Добавить' : 'Add'}</button>
+          </div>
+          {(data.stats || []).map((stat, i) => (
+            <div key={i} className="flex gap-2 items-center">
+              <Input value={stat.value} onChange={e => {
+                const newStats = [...(data.stats || [])]
+                newStats[i] = { ...stat, value: e.target.value }
+                onChange({ ...data, stats: newStats })
+              }} className="text-xs h-8 w-20" placeholder="30+" />
+              <Input value={stat.label} onChange={e => {
+                const newStats = [...(data.stats || [])]
+                newStats[i] = { ...stat, label: e.target.value }
+                onChange({ ...data, stats: newStats })
+              }} className="text-xs h-8 flex-1" placeholder="Years Experience" />
+              <Input value={stat.labelRu} onChange={e => {
+                const newStats = [...(data.stats || [])]
+                newStats[i] = { ...stat, labelRu: e.target.value }
+                onChange({ ...data, stats: newStats })
+              }} className="text-xs h-8 flex-1" placeholder="Лет опыта" />
+              <button onClick={() => {
+                const newStats = (data.stats || []).filter((_, idx) => idx !== i)
+                onChange({ ...data, stats: newStats })
+              }} className="text-red-400 hover:text-red-500 p-1"><Trash2 className="w-3 h-3" /></button>
+            </div>
+          ))}
         </div>
       </CardContent>
     </Card>

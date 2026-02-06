@@ -294,8 +294,16 @@ export const defaultAboutData: AboutData = {
     '🏆 5× чемпион NPC',
     '🥇 Золото NPC'
   ],
-  footer: '📍 Las Vegas · 👶 Mom of 2 · 💪 17+ years',
-  footerRu: '📍 Лас-Вегас · 👶 Мама 2 детей · 💪 17+ лет'
+  footer: 'Successfully self-rehabilitated through 5 major surgeries.',
+  footerRu: 'Успешно восстановилась после 5 крупных операций.',
+  tags: ['COACH', 'ATHLETE', 'MOM'],
+  tagsRu: ['ТРЕНЕР', 'АТЛЕТ', 'МАМА'],
+  personalJourneyTitle: 'Personal Journey',
+  personalJourneyTitleRu: 'Личный путь',
+  stats: [
+    { value: '17+', label: 'Years Experience', labelRu: 'Лет опыта' },
+    { value: '02', label: 'Children raised', labelRu: 'Детей' }
+  ]
 }
 
 /* ═══════════ INIT BLOCKS ═══════════ */

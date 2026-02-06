@@ -243,6 +243,38 @@ export default function HomePage() {
     loadData()
   }, [])
 
+  // Observe .about-fade-up elements for scroll-triggered animations
+  useEffect(() => {
+    if (loading) return
+    const timer = setTimeout(() => {
+      const items = document.querySelectorAll('.about-fade-up')
+      if (!items.length) return
+      // Remove CSS animation, use IntersectionObserver instead
+      items.forEach(el => {
+        ;(el as HTMLElement).style.animation = 'none'
+        ;(el as HTMLElement).style.opacity = '0'
+        ;(el as HTMLElement).style.transform = 'translateY(40px)'
+        ;(el as HTMLElement).style.transition = 'opacity 0.8s ease, transform 0.8s ease'
+      })
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            const el = entry.target as HTMLElement
+            el.style.opacity = '1'
+            el.style.transform = 'translateY(0)'
+            observer.unobserve(el)
+          }
+        })
+      }, { threshold: 0.15, rootMargin: '0px 0px -60px 0px' })
+      items.forEach((item, i) => {
+        ;(item as HTMLElement).style.transitionDelay = `${i * 0.15}s`
+        observer.observe(item)
+      })
+      return () => observer.disconnect()
+    }, 100)
+    return () => clearTimeout(timer)
+  }, [loading, blocks])
+
   if (loading) return <LoadingSkeleton />
 
   // Separate header blocks from content blocks

@@ -126,6 +126,12 @@ export interface HeroData {
   imageObjectFit?: 'cover' | 'contain' | 'fill' | 'none'
 }
 
+export interface AboutStat {
+  value: string
+  label: string
+  labelRu: string
+}
+
 export interface AboutData {
   image: string
   sectionLabel: string
@@ -133,6 +139,8 @@ export interface AboutData {
   name: string
   tagline: string
   taglineRu: string
+  tags?: string[]
+  tagsRu?: string[]
   certificationsTitle: string
   certificationsTitleRu: string
   certifications: string[]
@@ -143,6 +151,9 @@ export interface AboutData {
   careerRu: string[]
   footer: string
   footerRu: string
+  personalJourneyTitle?: string
+  personalJourneyTitleRu?: string
+  stats?: AboutStat[]
 }
 
 export type StructuredItems = CourseItem[] | ProgramItem[] | ResultItem[]
