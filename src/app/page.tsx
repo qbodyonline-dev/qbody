@@ -20,6 +20,8 @@ interface PageBlock {
   contentEn: string
   contentRu: string
   style: Record<string, any>
+  data?: any
+  items?: any
 }
 
 /* ═══════════ Convert style object → inline CSS string ═══════════ */
@@ -46,12 +48,13 @@ function styleToCSS(s: Record<string, any>): React.CSSProperties {
   return css
 }
 
-/* ═══════════ HEADER (always rendered, not from DB content) ═══════════ */
-function Header() {
+/* ═══════════ HEADER (reads data from DB, falls back to defaults) ═══════════ */
+function Header({ headerData, lang }: { headerData?: any; lang: 'en' | 'ru' }) {
   const { t } = useTranslation()
   const { user, loading: authLoading } = useAuth()
   const [isScrolled, setIsScrolled] = React.useState(false)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false)
+  const ru = lang === 'ru'
 
   React.useEffect(() => {
     const handleScroll = () => setIsScrolled(window.scrollY > 50)
@@ -59,14 +62,25 @@ function Header() {
     return () => window.removeEventListener('scroll', handleScroll)
   }, [])
 
-  const navigation = [
-    { name: t('nav.home'), href: '/' },
-    { name: t('nav.programs'), href: '#programs' },
-    { name: t('nav.courses'), href: '#courses' },
-    { name: t('nav.about'), href: '#about' },
-    { name: t('nav.results'), href: '#results' },
-    { name: t('nav.contacts'), href: '#contacts' },
-  ]
+  // Use DB data if available, otherwise defaults
+  const d = headerData
+  const navigation = d?.navLinks?.length
+    ? d.navLinks.map((link: any) => ({ name: ru ? (link.labelRu || link.label) : link.label, href: link.href }))
+    : [
+        { name: t('nav.home'), href: '/' },
+        { name: t('nav.programs'), href: '#programs' },
+        { name: t('nav.courses'), href: '#courses' },
+        { name: t('nav.about'), href: '#about' },
+        { name: t('nav.results'), href: '#results' },
+        { name: t('nav.contacts'), href: '#contacts' },
+      ]
+
+  const loginText = d ? (ru ? (d.loginTextRu || d.loginText) : d.loginText) : t('nav.login')
+  const loginLink = d?.loginLink || '/auth/login'
+  const ctaText = d ? (ru ? (d.ctaTextRu || d.ctaText) : d.ctaText) : t('nav.getStarted')
+  const ctaLink = d?.ctaLink || '#programs'
+  const logoText = d?.logoText || 'Qbody'
+  const logoIcon = d?.logoIcon || 'Q'
 
   return (
     <header role="banner" className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
@@ -75,17 +89,17 @@ function Header() {
       <nav className="container-custom">
         <div className="flex items-center justify-between h-20">
           <Link href="/" className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-teal-400 to-teal-600 flex items-center justify-center">
-              <span className="text-white font-bold text-lg">Q</span>
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${d?.logoGradient || 'bg-gradient-to-br from-teal-400 to-teal-600'}`}>
+              <span className="text-white font-bold text-lg">{logoIcon}</span>
             </div>
             <div className="hidden sm:block">
-              <span className="text-white font-semibold text-lg">Qbody</span>
+              <span className="text-white font-semibold text-lg">{logoText}</span>
               <span className="text-teal-400 text-sm block -mt-1">by Khavanskaia</span>
             </div>
           </Link>
 
           <div className="hidden lg:flex items-center gap-8">
-            {navigation.map((item) => (
+            {navigation.map((item: any) => (
               <Link key={item.name} href={item.href} className="text-zinc-300 hover:text-white transition-colors text-sm font-medium">
                 {item.name}
               </Link>
@@ -103,14 +117,14 @@ function Header() {
               </Link>
             ) : (
               <>
-                <Link href="/auth/login" className="hidden sm:block">
+                <Link href={loginLink} className="hidden sm:block">
                   <Button variant="ghost" className="text-zinc-300 hover:text-white">
                     <User className="w-4 h-4 mr-2" />
-                    {t('nav.login')}
+                    {loginText}
                   </Button>
                 </Link>
-                <Link href="#programs" className="hidden sm:block">
-                  <Button variant="gradient">{t('nav.getStarted')}</Button>
+                <Link href={ctaLink} className="hidden sm:block">
+                  <Button variant="gradient">{ctaText}</Button>
                 </Link>
               </>
             )}
@@ -122,12 +136,24 @@ function Header() {
 
         {isMobileMenuOpen && (
           <div className="lg:hidden py-4 border-t border-zinc-800">
-            {navigation.map((item) => (
+            {navigation.map((item: any) => (
               <Link key={item.name} href={item.href} onClick={() => setIsMobileMenuOpen(false)}
                 className="block text-zinc-300 hover:text-white px-4 py-3 rounded-xl">
                 {item.name}
               </Link>
             ))}
+            {!authLoading && !user && (
+              <>
+                <Link href={loginLink} onClick={() => setIsMobileMenuOpen(false)}
+                  className="block text-zinc-300 hover:text-white px-4 py-3 rounded-xl">
+                  {loginText}
+                </Link>
+                <Link href={ctaLink} onClick={() => setIsMobileMenuOpen(false)}
+                  className="block text-teal-400 hover:text-teal-300 px-4 py-3 rounded-xl font-medium">
+                  {ctaText}
+                </Link>
+              </>
+            )}
           </div>
         )}
       </nav>
@@ -237,8 +263,8 @@ export default function HomePage() {
 
   return (
     <>
-      {/* Always use the React Header component for navigation (auth, language switcher, etc.) */}
-      <Header />
+      {/* Header reads data from Page Editor DB */}
+      <Header headerData={headerBlock?.data} lang={lang} />
 
       <main className="min-h-screen">
         {/* Render all content blocks dynamically from the database */}
