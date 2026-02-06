@@ -9,6 +9,8 @@ import { LanguageSwitcher } from '@/components/ui/language-switcher'
 import {
   Menu, X, User, LayoutDashboard
 } from 'lucide-react'
+import { renderAboutHTML } from '@/app/dashboard/page-editor/renderers'
+import type { AboutData } from '@/app/dashboard/page-editor/types'
 
 /* ═══════════ TYPES ═══════════ */
 interface PageBlock {
@@ -169,7 +171,13 @@ function Header({ headerData, lang }: { headerData?: any; lang: 'en' | 'ru' }) {
 function DynamicBlock({ block, lang }: { block: PageBlock; lang: 'en' | 'ru' }) {
   if (!block.visible) return null
 
-  const content = lang === 'ru' ? block.contentRu : block.contentEn
+  // For About block: always re-render from data to ensure latest design
+  let content: string
+  if (block.type === 'about' && block.data) {
+    content = renderAboutHTML(block.data as AboutData, lang)
+  } else {
+    content = lang === 'ru' ? block.contentRu : block.contentEn
+  }
   if (!content) return null
 
   const sectionStyle = styleToCSS(block.style || {})
