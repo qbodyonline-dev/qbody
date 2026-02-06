@@ -14,30 +14,59 @@ export function renderCoursesHTML(items: CourseItem[], lang: 'en' | 'ru'): strin
     return `<div style="padding:60px 20px;text-align:center;"><p style="color:#71717a;">No courses yet. Add your first course!</p></div>`
   }
 
-  const title = lang === 'ru' ? 'Специализированные курсы' : 'Specialized courses'
-  const subtitle = lang === 'ru' ? 'Программы восстановления.' : 'Recovery programs for women.'
-  const sectionLabel = lang === 'ru' ? 'Видеокурсы' : 'Video courses'
-  const buyLabel = lang === 'ru' ? 'Купить →' : 'Buy →'
+  const title = lang === 'ru' ? 'Специализированное восстановление' : 'Specialized Recovery'
+  const subtitle = lang === 'ru' ? 'Клинически обоснованные программы восстановления под руководством тренера.' : 'Clinically inspired, trainer-led recovery programs for the modern woman.'
+  const sectionLabel = lang === 'ru' ? 'Экспертные видеокурсы' : 'Expert Video Courses'
+  const buyLabel = lang === 'ru' ? 'Купить' : 'Buy Now'
+
+  const courseId = `courses-${Date.now()}`
 
   const coursesHtml = items.map(course => {
     const t = lang === 'ru' ? course.titleRu : course.title
     const d = lang === 'ru' ? course.descriptionRu : course.description
     const features = lang === 'ru' ? course.featuresRu : course.features
 
-    const featuresHtml = features.map(f => 
-      `<li style="padding:3px 0;font-size:13px;color:#a1a1aa;">✅ ${f}</li>`
+    const featuresHtml = features.map(f =>
+      `<div style="display:flex;align-items:center;gap:10px;padding:6px 0;"><svg style="width:16px;height:16px;color:#2dd4bf;flex-shrink:0;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg><span style="font-size:15px;color:#d4d4d8;">${f}</span></div>`
     ).join('')
 
-    const priceHtml = course.oldPrice 
-      ? `<span style="font-size:24px;font-weight:700;color:#fafafa;">${course.price}</span> <span style="font-size:14px;color:#71717a;text-decoration:line-through;">${course.oldPrice}</span>`
-      : `<span style="font-size:24px;font-weight:700;color:#fafafa;">${course.price}</span>`
+    const priceHtml = course.oldPrice
+      ? `<span style="font-size:32px;font-weight:800;color:#fafafa;letter-spacing:-0.02em;">${course.price}</span> <span style="font-size:16px;color:#52525b;text-decoration:line-through;margin-left:4px;">${course.oldPrice}</span>`
+      : `<span style="font-size:32px;font-weight:800;color:#fafafa;letter-spacing:-0.02em;">${course.price}</span>`
 
-    return `<div style="border:1px solid rgba(255,255,255,0.08);border-radius:16px;overflow:hidden;background:#171717;"><div style="background:${course.gradient};padding:40px;text-align:center;color:white;position:relative;"><div style="position:absolute;top:8px;left:8px;display:flex;gap:6px;"><span style="background:rgba(0,0,0,0.5);color:white;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:500;backdrop-filter:blur(8px);">⏱ ${course.duration}</span><span style="background:rgba(0,0,0,0.5);color:white;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:500;backdrop-filter:blur(8px);">📖 ${course.lessons} ${lang === 'ru' ? 'уроков' : 'lessons'}</span></div><div style="font-size:40px;margin-bottom:12px;">${course.icon}</div><h3 style="font-size:22px;font-weight:700;margin-bottom:8px;">${t}</h3><p style="font-size:14px;opacity:0.9;">${d}</p></div><div style="padding:24px;"><ul style="list-style:none;padding:0;margin:0 0 16px;">${featuresHtml}</ul><div style="display:flex;justify-content:space-between;align-items:center;border-top:1px solid rgba(255,255,255,0.08);padding-top:16px;"><div>${priceHtml}</div><a href="${course.link}" style="padding:10px 20px;border-radius:12px;background:#14b8a6;color:white;font-size:14px;text-decoration:none;font-weight:600;">${buyLabel}</a></div></div></div>`
+    // Split title — last word italic teal
+    const words = t.split(' ')
+    const lastW = words.pop() || ''
+    const mainT = words.join(' ')
+    const titleHtml = mainT ? `${mainT} <em style="font-style:italic;color:#2dd4bf;">${lastW}</em>` : `<em style="font-style:italic;color:#2dd4bf;">${lastW}</em>`
+
+    return `<div class="course-card" style="background:#171717;border:1px solid rgba(255,255,255,0.06);border-radius:24px;padding:40px 36px;display:flex;flex-direction:column;position:relative;transition:transform 0.3s ease,box-shadow 0.3s ease;">
+      <div style="width:52px;height:52px;border-radius:16px;background:rgba(45,212,191,0.1);display:flex;align-items:center;justify-content:center;font-size:24px;margin-bottom:28px;">${course.icon}</div>
+      <div style="position:absolute;top:36px;right:36px;display:flex;gap:14px;">
+        <span style="display:flex;align-items:center;gap:5px;color:#71717a;font-size:13px;"><svg style="width:14px;height:14px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>${course.duration}</span>
+        <span style="display:flex;align-items:center;gap:5px;color:#71717a;font-size:13px;"><svg style="width:14px;height:14px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg>${course.lessons} ${lang === 'ru' ? 'уроков' : 'lessons'}</span>
+      </div>
+      <h3 style="font-size:26px;font-weight:800;color:#fafafa;margin-bottom:12px;letter-spacing:-0.02em;line-height:1.2;">${titleHtml}</h3>
+      <p style="font-size:15px;color:#71717a;line-height:1.6;margin-bottom:28px;">${d}</p>
+      <div style="margin-bottom:32px;flex-grow:1;">${featuresHtml}</div>
+      <div style="height:1px;background:rgba(255,255,255,0.06);margin-bottom:24px;"></div>
+      <div style="display:flex;justify-content:space-between;align-items:center;"><div>${priceHtml}</div><a href="${course.link}" class="course-btn" style="padding:12px 28px;border-radius:14px;border:1px solid rgba(255,255,255,0.15);color:#fafafa;font-size:15px;font-weight:600;text-decoration:none;transition:all 0.2s ease;">${buyLabel}</a></div>
+    </div>`
   }).join('')
 
-  const gridCols = items.length === 1 ? '1fr' : items.length === 2 ? '1fr 1fr' : 'repeat(auto-fit, minmax(350px, 1fr))'
+  const gridCols = items.length === 1 ? '1fr' : items.length === 2 ? '1fr 1fr' : 'repeat(auto-fit, minmax(400px, 1fr))'
 
-  return `<div style="padding:80px 20px;background:#0a0a0a;"><div style="text-align:center;margin-bottom:40px;"><p style="color:#2dd4bf;font-weight:600;font-size:14px;margin-bottom:12px;">🎬 ${sectionLabel}</p><h2 style="font-size:36px;font-weight:800;color:#fafafa;margin-bottom:8px;">${title}</h2><p style="color:#a1a1aa;font-size:16px;">${subtitle}</p></div><div style="display:grid;grid-template-columns:${gridCols};gap:24px;max-width:900px;margin:0 auto;">${coursesHtml}</div></div>`
+  return `<style>
+    #${courseId} .course-card:hover { transform: translateY(-6px); box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); }
+    #${courseId} .course-card:hover .course-btn { background: #14b8a6 !important; border-color: #14b8a6 !important; }
+    @media (max-width: 900px) { #${courseId} .courses-grid { grid-template-columns: 1fr !important; } }
+  </style>
+  <div id="${courseId}" style="padding:100px 24px;background:#0a0a0a;">
+    <div style="max-width:1100px;margin:0 auto;">
+      <div style="margin-bottom:56px;"><p style="color:#2dd4bf;font-weight:700;font-size:12px;letter-spacing:0.2em;text-transform:uppercase;margin-bottom:16px;">🎬 ${sectionLabel}</p><h2 style="font-size:44px;font-weight:800;color:#fafafa;margin-bottom:12px;letter-spacing:-0.03em;line-height:1.1;">${title}</h2><p style="color:#71717a;font-size:17px;font-style:italic;max-width:520px;">${subtitle}</p></div>
+      <div class="courses-grid" style="display:grid;grid-template-columns:${gridCols};gap:28px;">${coursesHtml}</div>
+    </div>
+  </div>`
 }
 
 /* ─────────── PROGRAMS RENDERER ─────────── */
