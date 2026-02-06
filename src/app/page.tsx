@@ -89,9 +89,13 @@ function Header({ headerData, lang }: { headerData?: any; lang: 'en' | 'ru' }) {
       <nav className="container-custom">
         <div className="flex items-center justify-between h-20">
           <Link href="/" className="flex items-center gap-3">
-            <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${d?.logoGradient || 'bg-gradient-to-br from-teal-400 to-teal-600'}`}>
-              <span className="text-white font-bold text-lg">{logoIcon}</span>
-            </div>
+            {d?.logoImage ? (
+              <img src={d.logoImage} alt={logoText} className="w-10 h-10 rounded-xl object-contain" />
+            ) : (
+              <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${d?.logoGradient || 'bg-gradient-to-br from-teal-400 to-teal-600'}`}>
+                <span className="text-white font-bold text-lg">{logoIcon}</span>
+              </div>
+            )}
             <div className="hidden sm:block">
               <span className="text-white font-semibold text-lg">{logoText}</span>
               <span className="text-teal-400 text-sm block -mt-1">by Khavanskaia</span>

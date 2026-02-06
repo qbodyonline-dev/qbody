@@ -725,6 +725,40 @@ interface HeaderEditorProps {
 
 export function HeaderEditor({ data, onChange, lang }: HeaderEditorProps) {
   const [showLogoPicker, setShowLogoPicker] = useState(false)
+  const [logoUploading, setLogoUploading] = useState(false)
+  const logoFileRef = useRef<HTMLInputElement>(null)
+
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (!file.type.startsWith('image/')) {
+      toast.error(lang === 'ru' ? 'Выберите изображение' : 'Please select an image file')
+      return
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error(lang === 'ru' ? 'Файл слишком большой (макс. 5MB)' : 'File too large (max 5MB)')
+      return
+    }
+    setLogoUploading(true)
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+      formData.append('folder', 'logo')
+      const res = await fetch('/api/upload', { method: 'POST', body: formData })
+      if (!res.ok) {
+        const err = await res.json()
+        throw new Error(err.error || 'Upload failed')
+      }
+      const { url } = await res.json()
+      onChange({ ...data, logoImage: url })
+      toast.success(lang === 'ru' ? 'Логотип загружен!' : 'Logo uploaded!')
+    } catch (err: any) {
+      toast.error(err.message || (lang === 'ru' ? 'Ошибка загрузки' : 'Upload failed'))
+    } finally {
+      setLogoUploading(false)
+      if (logoFileRef.current) logoFileRef.current.value = ''
+    }
+  }
 
   const addNavLink = () => {
     const newLink: NavLink = { id: `nav_${Date.now()}`, label: 'Link', labelRu: 'Ссылка', href: '/' }
@@ -751,12 +785,22 @@ export function HeaderEditor({ data, onChange, lang }: HeaderEditorProps) {
           <label className="text-xs font-medium text-zinc-500 block">{lang === 'ru' ? 'Логотип' : 'Logo'}</label>
           <div className="flex gap-3 items-center">
             <div className="relative">
-              <button onClick={() => setShowLogoPicker(!showLogoPicker)}
-                className="w-12 h-12 rounded-xl flex items-center justify-center text-white font-bold text-lg border-2 border-zinc-200 dark:border-zinc-600 hover:scale-105 transition-transform"
-                style={{ background: data.logoGradient }}>
-                {data.logoIcon}
-              </button>
-              {showLogoPicker && (
+              {data.logoImage ? (
+                <div className="w-12 h-12 rounded-xl overflow-hidden border-2 border-zinc-200 dark:border-zinc-600 relative group">
+                  <img src={data.logoImage} alt="Logo" className="w-full h-full object-contain" />
+                  <button onClick={() => onChange({ ...data, logoImage: undefined })}
+                    className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center text-xs hover:bg-red-600 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <X className="w-3 h-3" />
+                  </button>
+                </div>
+              ) : (
+                <button onClick={() => setShowLogoPicker(!showLogoPicker)}
+                  className="w-12 h-12 rounded-xl flex items-center justify-center text-white font-bold text-lg border-2 border-zinc-200 dark:border-zinc-600 hover:scale-105 transition-transform"
+                  style={{ background: data.logoGradient }}>
+                  {data.logoIcon}
+                </button>
+              )}
+              {showLogoPicker && !data.logoImage && (
                 <div className="absolute top-full left-0 mt-1 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl shadow-xl z-50 p-3 space-y-2">
                   <label className="text-xs text-zinc-500 block">{lang === 'ru' ? 'Цвет' : 'Color'}</label>
                   <div className="grid grid-cols-3 gap-1.5">
@@ -772,7 +816,26 @@ export function HeaderEditor({ data, onChange, lang }: HeaderEditorProps) {
                 </div>
               )}
             </div>
-            <Input value={data.logoText} onChange={e => onChange({ ...data, logoText: e.target.value })} placeholder={lang === 'ru' ? 'Название сайта' : 'Site name'} className="text-sm h-10 flex-1" />
+            <div className="flex-1 space-y-2">
+              <Input value={data.logoText} onChange={e => onChange({ ...data, logoText: e.target.value })} placeholder={lang === 'ru' ? 'Название сайта' : 'Site name'} className="text-sm h-10" />
+              <div className="flex gap-2">
+                <button
+                  onClick={() => logoFileRef.current?.click()}
+                  disabled={logoUploading}
+                  className="h-8 px-3 rounded-lg bg-teal-500 hover:bg-teal-600 text-white text-xs font-medium flex items-center gap-1.5 transition-colors disabled:opacity-50">
+                  {logoUploading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Upload className="w-3 h-3" />}
+                  {logoUploading ? '...' : (lang === 'ru' ? 'Загрузить лого' : 'Upload logo')}
+                </button>
+                {data.logoImage && (
+                  <button onClick={() => onChange({ ...data, logoImage: undefined })}
+                    className="h-8 px-3 rounded-lg bg-zinc-200 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-300 text-xs font-medium flex items-center gap-1.5 hover:bg-zinc-300 dark:hover:bg-zinc-600 transition-colors">
+                    <X className="w-3 h-3" />
+                    {lang === 'ru' ? 'Удалить' : 'Remove'}
+                  </button>
+                )}
+              </div>
+              <input ref={logoFileRef} type="file" accept="image/*" className="hidden" onChange={handleLogoUpload} />
+            </div>
           </div>
         </div>
 

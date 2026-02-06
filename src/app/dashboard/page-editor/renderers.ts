@@ -133,7 +133,11 @@ export function renderHeaderHTML(data: HeaderData, lang: 'en' | 'ru'): string {
   const loginText = lang === 'ru' ? data.loginTextRu : data.loginText
   const ctaText = lang === 'ru' ? data.ctaTextRu : data.ctaText
 
-  return `<div style="padding:16px 24px;display:flex;align-items:center;justify-content:space-between;background:#fff;border-bottom:1px solid #e4e4e7;"><div style="display:flex;align-items:center;gap:12px;"><div style="width:40px;height:40px;border-radius:12px;background:${data.logoGradient};display:flex;align-items:center;justify-content:center;color:white;font-weight:bold;font-size:18px;">${data.logoIcon}</div><span style="font-weight:600;font-size:16px;color:#18181b;">${data.logoText}</span></div><div style="display:flex;gap:24px;font-size:14px;">${navLinksHtml}</div><div style="display:flex;gap:8px;"><a href="${data.loginLink}" style="padding:8px 16px;border-radius:12px;border:1px solid #e4e4e7;font-size:14px;color:#18181b;text-decoration:none;">${loginText}</a><a href="${data.ctaLink}" style="padding:8px 16px;border-radius:12px;background:#14b8a6;color:white;font-size:14px;text-decoration:none;">${ctaText}</a></div></div>`
+  const logoHtml = data.logoImage
+    ? `<img src="${data.logoImage}" alt="${data.logoText}" style="width:40px;height:40px;border-radius:12px;object-fit:contain;" />`
+    : `<div style="width:40px;height:40px;border-radius:12px;background:${data.logoGradient};display:flex;align-items:center;justify-content:center;color:white;font-weight:bold;font-size:18px;">${data.logoIcon}</div>`
+
+  return `<div style="padding:16px 24px;display:flex;align-items:center;justify-content:space-between;background:#fff;border-bottom:1px solid #e4e4e7;"><div style="display:flex;align-items:center;gap:12px;">${logoHtml}<span style="font-weight:600;font-size:16px;color:#18181b;">${data.logoText}</span></div><div style="display:flex;gap:24px;font-size:14px;">${navLinksHtml}</div><div style="display:flex;gap:8px;"><a href="${data.loginLink}" style="padding:8px 16px;border-radius:12px;border:1px solid #e4e4e7;font-size:14px;color:#18181b;text-decoration:none;">${loginText}</a><a href="${data.ctaLink}" style="padding:8px 16px;border-radius:12px;background:#14b8a6;color:white;font-size:14px;text-decoration:none;">${ctaText}</a></div></div>`
 }
 
 /* ─────────── HERO RENDERER ─────────── */

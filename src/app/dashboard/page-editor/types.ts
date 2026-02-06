@@ -86,6 +86,7 @@ export interface HeaderData {
   logoText: string
   logoIcon: string  // emoji or letter
   logoGradient: string
+  logoImage?: string  // uploaded logo image URL
   navLinks: NavLink[]
   loginText: string
   loginTextRu: string
