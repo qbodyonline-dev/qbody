@@ -75,57 +75,79 @@ export function renderProgramsHTML(items: ProgramItem[], lang: 'en' | 'ru'): str
     return `<div style="padding:60px 20px;text-align:center;"><p style="color:#71717a;">No programs yet. Add your first program!</p></div>`
   }
 
-  const title = lang === 'ru' ? 'Программы тренировок' : 'Ready-made training programs'
-  const subtitle = lang === 'ru' ? 'Выберите программу.' : 'Choose a program for your goal and start training today.'
-  const sectionLabel = lang === 'ru' ? 'В приложении QbodyFit' : 'Available in QbodyFit app'
+  const title = lang === 'ru' ? 'Готовые программы тренировок' : 'Ready-Made Training Programs'
+  const subtitle = lang === 'ru' ? 'Выберите программу под вашу цель и начните тренироваться уже сегодня.' : 'Choose a program for your goal and start training today.'
+  const sectionLabel = lang === 'ru' ? 'В приложении QbodyFit' : 'Available in QbodyFit App'
   const detailsLabel = lang === 'ru' ? 'Подробнее' : 'Details'
   const popularLabel = lang === 'ru' ? 'Хит' : 'Popular'
 
-  // Split into main (first 3) and secondary programs
-  const mainPrograms = items.slice(0, 3)
-  const secondaryPrograms = items.slice(3)
+  const progId = `programs-${Date.now()}`
 
-  const renderProgram = (program: ProgramItem, isMain: boolean) => {
+  const renderProgram = (program: ProgramItem) => {
     const t = lang === 'ru' ? program.titleRu : program.title
     const d = lang === 'ru' ? program.descriptionRu : program.description
     const features = lang === 'ru' ? program.featuresRu : program.features
     const levelLabel = LEVEL_LABELS[lang][program.level]
-    const soonLabel = 'Soon'
+    const soonLabel = lang === 'ru' ? 'Скоро' : 'Soon'
 
-    const featuresHtml = features.map(f => 
-      `<li style="padding:3px 0;font-size:13px;color:#a1a1aa;">✅ ${f}</li>`
+    const featuresHtml = features.map(f =>
+      `<div style="display:flex;align-items:center;gap:10px;padding:5px 0;"><svg style="width:16px;height:16px;color:#2dd4bf;flex-shrink:0;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg><span style="font-size:14px;color:#d4d4d8;">${f}</span></div>`
     ).join('')
 
-    const popularBadge = program.popular 
-      ? `<div style="position:absolute;top:12px;right:12px;background:#14b8a6;color:white;padding:4px 12px;border-radius:20px;font-size:12px;font-weight:600;">${popularLabel}</div>`
-      : ''
-    
-    const soonBadge = program.soon 
-      ? `<div style="position:absolute;top:12px;${program.popular ? 'right:80px' : 'right:12px'};background:#f59e0b;color:white;padding:4px 12px;border-radius:20px;font-size:12px;font-weight:600;">${soonLabel}</div>`
+    // Split title — last word italic teal
+    const words = t.split(' ')
+    const lastW = words.pop() || ''
+    const mainT = words.join(' ')
+    const titleHtml = mainT ? `${mainT} <em style="font-style:italic;color:#2dd4bf;">${lastW}</em>` : `<em style="font-style:italic;color:#2dd4bf;">${lastW}</em>`
+
+    const popularBadge = program.popular
+      ? `<div style="position:absolute;top:28px;right:28px;background:#14b8a6;color:white;padding:5px 14px;border-radius:20px;font-size:12px;font-weight:700;letter-spacing:0.02em;">${popularLabel}</div>`
       : ''
 
-    const borderStyle = program.popular ? 'border:2px solid #14b8a6' : program.soon ? 'border:2px solid #f59e0b' : 'border:1px solid rgba(255,255,255,0.08)'
-    
-    // Button style and rendering based on soon status
+    const soonBadge = program.soon
+      ? `<div style="position:absolute;top:28px;${program.popular ? 'right:100px' : 'right:28px'};background:#f59e0b;color:white;padding:5px 14px;border-radius:20px;font-size:12px;font-weight:700;">${soonLabel}</div>`
+      : ''
+
+    const borderStyle = program.popular ? 'border:2px solid rgba(20,184,166,0.4)' : program.soon ? 'border:2px solid rgba(245,158,11,0.4)' : 'border:1px solid rgba(255,255,255,0.06)'
+
     let buttonHtml: string
     if (program.soon) {
-      buttonHtml = `<span style="padding:8px 16px;border-radius:12px;background:#27272a;color:#71717a;font-size:13px;cursor:not-allowed;">${soonLabel}</span>`
+      buttonHtml = `<span style="padding:12px 28px;border-radius:14px;background:#27272a;color:#52525b;font-size:15px;font-weight:600;cursor:not-allowed;">${soonLabel}</span>`
     } else {
-      const btnStyle = program.popular 
-        ? 'background:#14b8a6;color:white'
-        : 'border:1px solid rgba(255,255,255,0.15);color:#e5e5e5'
-      buttonHtml = `<a href="${program.link}" style="padding:8px 16px;border-radius:12px;${btnStyle};font-size:13px;text-decoration:none;">${detailsLabel}</a>`
+      buttonHtml = `<a href="${program.link}" class="prog-btn" style="padding:12px 28px;border-radius:14px;border:1px solid rgba(255,255,255,0.15);color:#fafafa;font-size:15px;font-weight:600;text-decoration:none;transition:all 0.2s ease;">${detailsLabel}</a>`
     }
 
-    return `<div style="background:#171717;${borderStyle};border-radius:16px;padding:24px;position:relative;">${popularBadge}${soonBadge}<div style="width:48px;height:48px;border-radius:12px;background:${program.gradient};display:flex;align-items:center;justify-content:center;margin-bottom:16px;font-size:20px;">${program.icon}</div><h3 style="font-size:18px;font-weight:700;color:#fafafa;margin-bottom:8px;">${t}</h3><p style="color:#a1a1aa;font-size:14px;margin-bottom:12px;">${d}</p><p style="font-size:13px;color:#71717a;margin-bottom:16px;">⏱ ${program.duration} · ${levelLabel}</p><ul style="list-style:none;padding:0;margin:0 0 16px;">${featuresHtml}</ul><div style="border-top:1px solid rgba(255,255,255,0.08);padding-top:16px;display:flex;justify-content:space-between;align-items:center;"><span style="font-size:24px;font-weight:700;color:#fafafa;">${program.price}</span>${buttonHtml}</div></div>`
+    return `<div class="prog-card" style="background:#171717;${borderStyle};border-radius:24px;padding:36px 32px;position:relative;display:flex;flex-direction:column;transition:transform 0.3s ease,box-shadow 0.3s ease;">
+      ${popularBadge}${soonBadge}
+      <div style="width:52px;height:52px;border-radius:16px;background:${program.gradient};display:flex;align-items:center;justify-content:center;margin-bottom:24px;font-size:24px;">${program.icon}</div>
+      <h3 style="font-size:22px;font-weight:800;color:#fafafa;margin-bottom:10px;letter-spacing:-0.02em;line-height:1.2;">${titleHtml}</h3>
+      <p style="font-size:14px;color:#71717a;line-height:1.6;margin-bottom:16px;">${d}</p>
+      <div style="display:flex;align-items:center;gap:14px;margin-bottom:20px;">
+        <span style="display:flex;align-items:center;gap:5px;color:#71717a;font-size:13px;"><svg style="width:14px;height:14px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>${program.duration}</span>
+        <span style="width:3px;height:3px;border-radius:50%;background:#52525b;"></span>
+        <span style="color:#71717a;font-size:13px;">${levelLabel}</span>
+      </div>
+      <div style="margin-bottom:28px;flex-grow:1;">${featuresHtml}</div>
+      <div style="height:1px;background:rgba(255,255,255,0.06);margin-bottom:20px;"></div>
+      <div style="display:flex;justify-content:space-between;align-items:center;"><span style="font-size:28px;font-weight:800;color:#fafafa;letter-spacing:-0.02em;">${program.price}</span>${buttonHtml}</div>
+    </div>`
   }
 
-  const mainHtml = mainPrograms.map(p => renderProgram(p, true)).join('')
-  const secondaryHtml = secondaryPrograms.length > 0 
-    ? `<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:20px;max-width:730px;margin:20px auto 0;">${secondaryPrograms.map(p => renderProgram(p, false)).join('')}</div>`
-    : ''
+  const allHtml = items.map(p => renderProgram(p)).join('')
+  const gridCols = items.length <= 3 ? `repeat(${items.length}, 1fr)` : 'repeat(3, 1fr)'
 
-  return `<div style="padding:80px 20px;background:#0a0a0a;"><div style="text-align:center;margin-bottom:40px;"><p style="color:#2dd4bf;font-weight:600;font-size:14px;margin-bottom:12px;">📱 ${sectionLabel}</p><h2 style="font-size:36px;font-weight:800;color:#fafafa;margin-bottom:8px;">${title}</h2><p style="color:#a1a1aa;font-size:16px;">${subtitle}</p></div><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:20px;max-width:1100px;margin:0 auto;">${mainHtml}</div>${secondaryHtml}</div>`
+  return `<style>
+    #${progId} .prog-card:hover { transform: translateY(-6px); box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); }
+    #${progId} .prog-card:hover .prog-btn { background: #14b8a6 !important; border-color: #14b8a6 !important; }
+    @media (max-width: 1024px) { #${progId} .prog-grid { grid-template-columns: repeat(2, 1fr) !important; } }
+    @media (max-width: 640px) { #${progId} .prog-grid { grid-template-columns: 1fr !important; } }
+  </style>
+  <div id="${progId}" style="padding:100px 24px;background:#0a0a0a;">
+    <div style="max-width:1100px;margin:0 auto;">
+      <div style="margin-bottom:56px;"><p style="color:#2dd4bf;font-weight:700;font-size:12px;letter-spacing:0.2em;text-transform:uppercase;margin-bottom:16px;">📱 ${sectionLabel}</p><h2 style="font-size:44px;font-weight:800;color:#fafafa;margin-bottom:12px;letter-spacing:-0.03em;line-height:1.1;">${title}</h2><p style="color:#71717a;font-size:17px;font-style:italic;max-width:520px;">${subtitle}</p></div>
+      <div class="prog-grid" style="display:grid;grid-template-columns:${gridCols};gap:28px;">${allHtml}</div>
+    </div>
+  </div>`
 }
 
 /* ─────────── RESULTS RENDERER ─────────── */
@@ -135,20 +157,45 @@ export function renderResultsHTML(items: ResultItem[], lang: 'en' | 'ru'): strin
   }
 
   const title = lang === 'ru' ? 'Результаты клиентов' : 'Client Results'
-  const sectionLabel = lang === 'ru' ? 'Реальные результаты' : 'Real transformations'
-  const ctaLabel = lang === 'ru' ? 'Начать →' : 'Start →'
+  const subtitle = lang === 'ru' ? 'Реальные истории трансформации наших клиенток.' : 'Real transformation stories from our clients.'
+  const sectionLabel = lang === 'ru' ? 'Реальные трансформации' : 'Real Transformations'
+  const ctaLabel = lang === 'ru' ? 'Начать сейчас' : 'Start Now'
+
+  const resId = `results-${Date.now()}`
+
+  // Generate stars SVG
+  const starSvg = `<svg style="width:16px;height:16px;color:#eab308;" viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>`
+  const starsHtml = Array(5).fill(starSvg).join('')
 
   const resultsHtml = items.map(result => {
     const name = lang === 'ru' ? result.nameRu : result.name
     const r = lang === 'ru' ? result.resultRu : result.result
     const quote = lang === 'ru' ? result.quoteRu : result.quote
 
-    return `<div style="background:#171717;border:1px solid rgba(255,255,255,0.08);border-radius:16px;padding:24px;text-align:center;"><div style="font-size:40px;margin-bottom:12px;">${result.icon}</div><h3 style="font-size:20px;font-weight:700;color:#fafafa;">${name}, ${result.age}</h3><p style="color:#2dd4bf;font-weight:600;margin-bottom:8px;">${r}</p><p style="color:#a1a1aa;font-size:13px;font-style:italic;">"${quote}"</p><div style="color:#eab308;margin-top:8px;">⭐⭐⭐⭐⭐</div></div>`
+    return `<div class="result-card" style="background:#171717;border:1px solid rgba(255,255,255,0.06);border-radius:24px;padding:36px 32px;display:flex;flex-direction:column;align-items:center;text-align:center;transition:transform 0.3s ease,box-shadow 0.3s ease;">
+      <div style="width:60px;height:60px;border-radius:20px;background:rgba(45,212,191,0.1);display:flex;align-items:center;justify-content:center;font-size:28px;margin-bottom:24px;">${result.icon}</div>
+      <h3 style="font-size:22px;font-weight:800;color:#fafafa;margin-bottom:6px;letter-spacing:-0.02em;">${name}, ${result.age}</h3>
+      <p style="color:#2dd4bf;font-weight:700;font-size:15px;margin-bottom:16px;">${r}</p>
+      <p style="color:#a1a1aa;font-size:14px;font-style:italic;line-height:1.6;margin-bottom:20px;flex-grow:1;">“${quote}”</p>
+      <div style="display:flex;gap:4px;">${starsHtml}</div>
+    </div>`
   }).join('')
 
   const gridCols = items.length <= 3 ? `repeat(${items.length}, 1fr)` : 'repeat(3, 1fr)'
 
-  return `<div style="padding:80px 20px;background:#0a0a0a;"><div style="text-align:center;margin-bottom:40px;"><p style="color:#2dd4bf;font-weight:600;font-size:14px;margin-bottom:12px;">⭐ ${sectionLabel}</p><h2 style="font-size:36px;font-weight:800;color:#fafafa;margin-bottom:8px;">${title}</h2></div><div style="display:grid;grid-template-columns:${gridCols};gap:24px;max-width:1000px;margin:0 auto;">${resultsHtml}</div><div style="text-align:center;margin-top:40px;"><a href="/auth/register" style="padding:14px 36px;border-radius:16px;background:linear-gradient(135deg,#14b8a6,#0d9488);color:white;font-weight:600;font-size:16px;text-decoration:none;">${ctaLabel}</a></div></div>`
+  return `<style>
+    #${resId} .result-card:hover { transform: translateY(-6px); box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); }
+    #${resId} .result-cta:hover { opacity: 0.9; transform: translateY(-2px); }
+    @media (max-width: 1024px) { #${resId} .results-grid { grid-template-columns: repeat(2, 1fr) !important; } }
+    @media (max-width: 640px) { #${resId} .results-grid { grid-template-columns: 1fr !important; } }
+  </style>
+  <div id="${resId}" style="padding:100px 24px;background:#0a0a0a;">
+    <div style="max-width:1100px;margin:0 auto;">
+      <div style="margin-bottom:56px;"><p style="color:#2dd4bf;font-weight:700;font-size:12px;letter-spacing:0.2em;text-transform:uppercase;margin-bottom:16px;">⭐ ${sectionLabel}</p><h2 style="font-size:44px;font-weight:800;color:#fafafa;margin-bottom:12px;letter-spacing:-0.03em;line-height:1.1;">${title}</h2><p style="color:#71717a;font-size:17px;font-style:italic;max-width:520px;">${subtitle}</p></div>
+      <div class="results-grid" style="display:grid;grid-template-columns:${gridCols};gap:28px;">${resultsHtml}</div>
+      <div style="margin-top:56px;"><a href="/auth/register" class="result-cta" style="display:inline-block;padding:14px 36px;border-radius:14px;background:#14b8a6;color:white;font-weight:700;font-size:16px;text-decoration:none;transition:all 0.2s ease;">${ctaLabel}</a></div>
+    </div>
+  </div>`
 }
 
 /* ─────────── HEADER RENDERER ─────────── */
