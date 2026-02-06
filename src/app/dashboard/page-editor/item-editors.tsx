@@ -1180,6 +1180,41 @@ interface AboutEditorProps {
 }
 
 export function AboutEditor({ data, onChange, lang }: AboutEditorProps) {
+  const [uploading, setUploading] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (!file.type.startsWith('image/')) {
+      toast.error(lang === 'ru' ? 'Выберите изображение' : 'Please select an image file')
+      return
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error(lang === 'ru' ? 'Файл слишком большой (макс. 5MB)' : 'File too large (max 5MB)')
+      return
+    }
+    setUploading(true)
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+      formData.append('folder', 'about')
+      const res = await fetch('/api/upload', { method: 'POST', body: formData })
+      if (!res.ok) {
+        const err = await res.json()
+        throw new Error(err.error || 'Upload failed')
+      }
+      const { url } = await res.json()
+      onChange({ ...data, image: url })
+      toast.success(lang === 'ru' ? 'Фото загружено!' : 'Photo uploaded!')
+    } catch (err: any) {
+      toast.error(err.message || (lang === 'ru' ? 'Ошибка загрузки' : 'Upload failed'))
+    } finally {
+      setUploading(false)
+      if (fileInputRef.current) fileInputRef.current.value = ''
+    }
+  }
+
   return (
     <Card>
       <CardContent className="p-4 space-y-4">
@@ -1191,11 +1226,35 @@ export function AboutEditor({ data, onChange, lang }: AboutEditorProps) {
         <div className="p-3 bg-zinc-50 dark:bg-zinc-800 rounded-lg space-y-2">
           <label className="text-xs font-medium text-zinc-500 block">{lang === 'ru' ? 'Фото тренера' : 'Coach Photo'}</label>
           <div className="flex gap-3 items-center">
-            <div className="w-20 h-24 rounded-xl overflow-hidden bg-zinc-200 dark:bg-zinc-700 flex-shrink-0">
-              {data.image && <img src={data.image} alt="Coach" className="w-full h-full object-cover" />}
+            <div className="w-20 h-24 rounded-xl overflow-hidden bg-zinc-200 dark:bg-zinc-700 flex-shrink-0 relative">
+              {data.image ? (
+                <>
+                  <img src={data.image} alt="Coach" className="w-full h-full object-cover" />
+                  <button onClick={() => onChange({ ...data, image: '' })}
+                    className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center text-xs hover:bg-red-600">
+                    <X className="w-3 h-3" />
+                  </button>
+                </>
+              ) : (
+                <div className="w-full h-full flex items-center justify-center text-zinc-400">
+                  <ImageIcon className="w-6 h-6" />
+                </div>
+              )}
             </div>
-            <Input value={data.image} onChange={e => onChange({ ...data, image: e.target.value })}
-              placeholder="/images/coach.jpg" className="text-xs h-8 flex-1" />
+            <div className="flex-1 space-y-2">
+              <div className="flex gap-2">
+                <Input value={data.image} onChange={e => onChange({ ...data, image: e.target.value })}
+                  placeholder="/images/coach.jpg" className="text-xs h-8 flex-1" />
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploading}
+                  className="h-8 px-3 rounded-lg bg-teal-500 hover:bg-teal-600 text-white text-xs font-medium flex items-center gap-1.5 transition-colors disabled:opacity-50">
+                  {uploading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Upload className="w-3 h-3" />}
+                  {uploading ? (lang === 'ru' ? '...' : '...') : (lang === 'ru' ? 'Загрузить' : 'Upload')}
+                </button>
+              </div>
+              <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} />
+            </div>
           </div>
         </div>
 
