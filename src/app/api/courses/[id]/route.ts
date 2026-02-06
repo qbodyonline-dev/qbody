@@ -69,6 +69,8 @@ export async function PATCH(
     // Page builder fields
     if (body.hero_video_url !== undefined) updateData.hero_video_url = body.hero_video_url || null
     if (body.hero_image_url !== undefined) updateData.hero_image_url = body.hero_image_url || null
+    if (body.hero_bg_color !== undefined) updateData.hero_bg_color = body.hero_bg_color || null
+    if (body.hero_bg_image_url !== undefined) updateData.hero_bg_image_url = body.hero_bg_image_url || null
     if (body.rating !== undefined) updateData.rating = parseFloat(body.rating) || null
     if (body.reviews_count !== undefined) updateData.reviews_count = parseInt(body.reviews_count) || 0
     if (body.features !== undefined) updateData.features = body.features

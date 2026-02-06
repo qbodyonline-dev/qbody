@@ -116,7 +116,22 @@ export default function CoursePage() {
       </header>
 
       {/* Hero */}
-      <section className={`relative py-16 lg:py-24 bg-gradient-to-br ${visual.color} overflow-hidden`}>
+      <section
+        className="relative py-16 lg:py-24 overflow-hidden"
+        style={{
+          ...(course.hero_bg_image_url
+            ? { backgroundImage: `url(${course.hero_bg_image_url})`, backgroundSize: 'cover', backgroundPosition: 'center' }
+            : course.hero_bg_color
+              ? (course.hero_bg_color.includes('gradient') || course.hero_bg_color.includes('linear')
+                ? { backgroundImage: course.hero_bg_color }
+                : { backgroundColor: course.hero_bg_color })
+              : {}),
+        }}
+      >
+        {/* Fallback gradient when no custom bg */}
+        {!course.hero_bg_image_url && !course.hero_bg_color && (
+          <div className={`absolute inset-0 bg-gradient-to-br ${visual.color}`} />
+        )}
         <div className="absolute inset-0 bg-black/20" />
         <div className="relative max-w-7xl mx-auto px-4">
           <Link href="/" className="inline-flex items-center gap-2 text-white/80 hover:text-white mb-6"><ArrowLeft className="w-4 h-4" />{ru ? 'Назад' : 'Back'}</Link>

@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input'
 import { useTranslation } from '@/lib/i18n'
 import { 
   ArrowLeft, Save, Loader2, Eye, Image, Video, Star, User, 
-  MessageSquare, DollarSign, BookOpen, Plus, Trash2
+  MessageSquare, DollarSign, BookOpen, Plus, Trash2, Upload, Palette, X
 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -24,6 +24,33 @@ export default function CoursePageEditorPage() {
   const [saving, setSaving] = useState(false)
   const [activeSection, setActiveSection] = useState('hero')
   const [form, setForm] = useState<any>({})
+  const [uploading, setUploading] = useState<string | null>(null)
+
+  const handleFileUpload = async (field: string, accept: string) => {
+    const input = document.createElement('input')
+    input.type = 'file'
+    input.accept = accept
+    input.onchange = async (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0]
+      if (!file) return
+      setUploading(field)
+      try {
+        const formData = new FormData()
+        formData.append('file', file)
+        formData.append('folder', `courses/${courseId}`)
+        const res = await fetch('/api/upload', { method: 'POST', body: formData })
+        if (!res.ok) throw new Error('Upload failed')
+        const data = await res.json()
+        setForm((prev: any) => ({ ...prev, [field]: data.url }))
+        toast.success(ru ? 'Файл загружен!' : 'File uploaded!')
+      } catch {
+        toast.error(ru ? 'Ошибка загрузки' : 'Upload failed')
+      } finally {
+        setUploading(null)
+      }
+    }
+    input.click()
+  }
 
   const loadCourse = async () => {
     try {
@@ -41,6 +68,8 @@ export default function CoursePageEditorPage() {
         duration_weeks: data.duration_weeks || 8,
         hero_video_url: data.hero_video_url || '',
         hero_image_url: data.hero_image_url || '',
+        hero_bg_color: data.hero_bg_color || '',
+        hero_bg_image_url: data.hero_bg_image_url || '',
         rating: data.rating || 4.9,
         reviews_count: data.reviews_count || 0,
         features: data.features || [],
@@ -174,17 +203,74 @@ export default function CoursePageEditorPage() {
             <Card>
               <CardHeader><CardTitle className="flex items-center gap-2"><Image className="w-5 h-5" />{ru ? 'Hero секция' : 'Hero Section'}</CardTitle></CardHeader>
               <CardContent className="space-y-6">
+                {/* Background Settings */}
+                <div>
+                  <label className="block text-sm font-medium mb-3 flex items-center gap-2"><Palette className="w-4 h-4" />{ru ? 'Фон секции' : 'Section Background'}</label>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs text-zinc-500 mb-1.5">{ru ? 'Цвет фона (CSS gradient или цвет)' : 'Background color (CSS gradient or color)'}</label>
+                      <div className="flex gap-2">
+                        <input type="color" value={form.hero_bg_color?.startsWith('#') ? form.hero_bg_color : '#667eea'} onChange={(e) => setForm({ ...form, hero_bg_color: e.target.value })} className="w-11 h-11 rounded-lg border border-zinc-200 cursor-pointer p-1" />
+                        <Input value={form.hero_bg_color} onChange={(e) => setForm({ ...form, hero_bg_color: e.target.value })} placeholder="#667eea or linear-gradient(...)" />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-xs text-zinc-500 mb-1.5">{ru ? 'Фоновое изображение' : 'Background image'}</label>
+                      <div className="flex gap-2">
+                        <Input value={form.hero_bg_image_url} onChange={(e) => setForm({ ...form, hero_bg_image_url: e.target.value })} placeholder="URL..." />
+                        <Button variant="outline" size="icon" onClick={() => handleFileUpload('hero_bg_image_url', 'image/*')} disabled={uploading === 'hero_bg_image_url'}>
+                          {uploading === 'hero_bg_image_url' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+                        </Button>
+                      </div>
+                      {form.hero_bg_image_url && (
+                        <div className="mt-2 relative inline-block">
+                          <img src={form.hero_bg_image_url} alt="" className="h-16 rounded-lg object-cover" />
+                          <button onClick={() => setForm({ ...form, hero_bg_image_url: '' })} className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center"><X className="w-3 h-3" /></button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <p className="text-xs text-zinc-400 mt-2">{ru ? 'Если задано фоновое изображение, оно будет использовано вместо цвета.' : 'If background image is set, it will be used instead of color.'}</p>
+                </div>
+
+                <div className="border-t border-zinc-200 dark:border-zinc-700 pt-6">
                 <div className="grid grid-cols-2 gap-4">
                   <Input label={ru ? 'Заголовок (EN)' : 'Title (EN)'} value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
                   <Input label={ru ? 'Заголовок (RU)' : 'Title (RU)'} value={form.title_ru} onChange={(e) => setForm({ ...form, title_ru: e.target.value })} />
+                </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div><label className="block text-sm font-medium mb-2">{ru ? 'Описание (EN)' : 'Description (EN)'}</label><textarea className="w-full h-24 px-4 py-3 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-sm resize-none" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} /></div>
                   <div><label className="block text-sm font-medium mb-2">{ru ? 'Описание (RU)' : 'Description (RU)'}</label><textarea className="w-full h-24 px-4 py-3 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-sm resize-none" value={form.description_ru} onChange={(e) => setForm({ ...form, description_ru: e.target.value })} /></div>
                 </div>
+
+                {/* Video & Image with upload */}
                 <div className="grid grid-cols-2 gap-4">
-                  <Input label={ru ? 'URL видео' : 'Video URL'} value={form.hero_video_url} onChange={(e) => setForm({ ...form, hero_video_url: e.target.value })} placeholder="https://vimeo.com/..." />
-                  <Input label={ru ? 'URL изображения' : 'Image URL'} value={form.hero_image_url} onChange={(e) => setForm({ ...form, hero_image_url: e.target.value })} />
+                  <div>
+                    <label className="block text-sm font-medium mb-2">{ru ? 'Видео' : 'Video'}</label>
+                    <div className="flex gap-2">
+                      <Input value={form.hero_video_url} onChange={(e) => setForm({ ...form, hero_video_url: e.target.value })} placeholder="https://vimeo.com/..." />
+                      <Button variant="outline" size="icon" onClick={() => handleFileUpload('hero_video_url', 'video/*')} disabled={uploading === 'hero_video_url'}>
+                        {uploading === 'hero_video_url' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+                      </Button>
+                    </div>
+                    {form.hero_video_url && <p className="text-xs text-teal-500 mt-1 truncate">{form.hero_video_url}</p>}
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-2">{ru ? 'Изображение' : 'Image'}</label>
+                    <div className="flex gap-2">
+                      <Input value={form.hero_image_url} onChange={(e) => setForm({ ...form, hero_image_url: e.target.value })} placeholder="URL..." />
+                      <Button variant="outline" size="icon" onClick={() => handleFileUpload('hero_image_url', 'image/*')} disabled={uploading === 'hero_image_url'}>
+                        {uploading === 'hero_image_url' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+                      </Button>
+                    </div>
+                    {form.hero_image_url && (
+                      <div className="mt-2 relative inline-block">
+                        <img src={form.hero_image_url} alt="" className="h-16 rounded-lg object-cover" />
+                        <button onClick={() => setForm({ ...form, hero_image_url: '' })} className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center"><X className="w-3 h-3" /></button>
+                      </div>
+                    )}
+                  </div>
                 </div>
                 <div className="grid grid-cols-3 gap-4">
                   <Input label={ru ? 'Недель' : 'Weeks'} type="number" value={form.duration_weeks} onChange={(e) => setForm({ ...form, duration_weeks: e.target.value })} />
