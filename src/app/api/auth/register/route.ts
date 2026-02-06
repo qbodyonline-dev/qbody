@@ -1,11 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase-server'
 import { sendWelcomeEmail, sendNewClientNotification } from '@/lib/email'
+import { verifyRecaptcha } from '@/lib/recaptcha-server'
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { email, password, name, phone, courseSlug } = body
+    const { email, password, name, phone, courseSlug, captchaToken } = body
+
+    // Verify reCAPTCHA
+    if (!captchaToken) {
+      return NextResponse.json({ error: 'reCAPTCHA verification required' }, { status: 400 })
+    }
+    const captchaResult = await verifyRecaptcha(captchaToken)
+    if (!captchaResult.success) {
+      return NextResponse.json({ error: 'reCAPTCHA verification failed. Please try again.' }, { status: 403 })
+    }
 
     if (!email || !password || !name) {
       return NextResponse.json(

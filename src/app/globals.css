@@ -148,3 +148,8 @@
 ::selection {
   @apply bg-teal-500/30 text-teal-900;
 }
+
+/* Hide reCAPTCHA v3 badge - text attribution is shown in forms instead */
+.grecaptcha-badge {
+  visibility: hidden !important;
+}

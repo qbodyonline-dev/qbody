@@ -9,18 +9,34 @@ import { LanguageSwitcher } from '@/components/ui/language-switcher'
 import { Mail, ArrowLeft, CheckCircle2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { createClient } from '@/lib/supabase'
+import { useRecaptcha } from '@/lib/recaptcha'
 
 export default function ForgotPasswordPage() {
-  const { t } = useTranslation()
+  const { t, locale } = useTranslation()
+  const ru = locale === 'ru'
   const [email, setEmail] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [isSent, setIsSent] = useState(false)
+  const { execute: executeRecaptcha } = useRecaptcha()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
     
     try {
+      // Verify reCAPTCHA
+      const captchaToken = await executeRecaptcha('forgot_password')
+      const captchaRes = await fetch('/api/auth/verify-captcha', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: captchaToken }),
+      })
+      if (!captchaRes.ok) {
+        toast.error(ru ? 'Проверка reCAPTCHA не пройдена' : 'reCAPTCHA verification failed')
+        setIsLoading(false)
+        return
+      }
+
       const supabase = createClient()
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: `${window.location.origin}/auth/callback/handle`,
@@ -100,6 +116,11 @@ export default function ForgotPasswordPage() {
               >
                 {t('auth.forgotPassword.button')}
               </Button>
+              <p className="text-[11px] text-zinc-400 mt-3 text-center">
+                {ru ? 'Этот сайт защищён reCAPTCHA. ' : 'Protected by reCAPTCHA. '}
+                <a href="https://policies.google.com/privacy" target="_blank" rel="noopener" className="underline">Privacy</a>{' · '}
+                <a href="https://policies.google.com/terms" target="_blank" rel="noopener" className="underline">Terms</a>
+              </p>
             </form>
           )}
 

@@ -10,6 +10,7 @@ import { useTranslation } from '@/lib/i18n'
 import { LanguageSwitcher } from '@/components/ui/language-switcher'
 import { Mail, Lock, User, ArrowLeft, CheckCircle2, Phone } from 'lucide-react'
 import { toast } from 'sonner'
+import { useRecaptcha } from '@/lib/recaptcha'
 
 export default function RegisterPage() {
   return <Suspense fallback={<div className="flex items-center justify-center min-h-screen"><div className="animate-spin w-8 h-8 border-2 border-teal-500 border-t-transparent rounded-full" /></div>}><RegisterContent /></Suspense>
@@ -25,6 +26,7 @@ function RegisterContent() {
   const [formData, setFormData] = useState({ name: '', email: '', phone: '', password: '', confirmPassword: '' })
 
   const ru = locale === 'ru'
+  const { execute: executeRecaptcha } = useRecaptcha()
 
   const validatePassword = (pw: string): string | null => {
     if (pw.length < 6) return ru ? 'Пароль минимум 6 символов' : 'Password must be at least 6 characters'
@@ -56,6 +58,9 @@ function RegisterContent() {
 
     setIsLoading(true)
     try {
+      // Get reCAPTCHA token
+      const captchaToken = await executeRecaptcha('register')
+
       const res = await fetch('/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -65,6 +70,7 @@ function RegisterContent() {
           name: formData.name,
           phone: formData.phone,
           courseSlug: courseId || undefined,
+          captchaToken,
         }),
       })
       const data = await res.json()
@@ -123,6 +129,11 @@ function RegisterContent() {
 
             <p className="text-xs text-zinc-500">{t('auth.register.terms')} <Link href="/terms" className="text-teal-500 hover:underline">{t('auth.register.termsLink')}</Link> {t('common.and')} <Link href="/privacy" className="text-teal-500 hover:underline">{t('auth.register.privacyLink')}</Link></p>
             <Button type="submit" className="w-full" variant="gradient" size="lg" isLoading={isLoading}>{courseId ? t('auth.register.buttonCourse') : t('auth.register.button')}</Button>
+            <p className="text-[11px] text-zinc-400 mt-3 text-center">
+              {ru ? 'Этот сайт защищён reCAPTCHA. ' : 'Protected by reCAPTCHA. '}
+              <a href="https://policies.google.com/privacy" target="_blank" rel="noopener" className="underline">Privacy</a>{' · '}
+              <a href="https://policies.google.com/terms" target="_blank" rel="noopener" className="underline">Terms</a>
+            </p>
           </form>
           <div className="mt-6 text-center"><p className="text-zinc-500 text-sm">{t('auth.register.hasAccount')}{' '}<Link href="/auth/login" className="text-teal-500 hover:text-teal-600 font-medium transition-colors">{t('auth.register.login')}</Link></p></div>
         </CardContent>

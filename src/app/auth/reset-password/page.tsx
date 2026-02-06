@@ -10,6 +10,7 @@ import { LanguageSwitcher } from '@/components/ui/language-switcher'
 import { Lock, ArrowLeft, CheckCircle2, Loader2, AlertCircle } from 'lucide-react'
 import { toast } from 'sonner'
 import { createClient } from '@/lib/supabase'
+import { useRecaptcha } from '@/lib/recaptcha'
 
 export default function ResetPasswordPage() {
   const { locale } = useTranslation()
@@ -22,6 +23,7 @@ export default function ResetPasswordPage() {
   const [sessionError, setSessionError] = useState(false)
 
   const ru = locale === 'ru'
+  const { execute: executeRecaptcha } = useRecaptcha()
 
   // Check for valid session on mount
   useEffect(() => {
@@ -69,6 +71,19 @@ export default function ResetPasswordPage() {
     setIsLoading(true)
     
     try {
+      // Verify reCAPTCHA
+      const captchaToken = await executeRecaptcha('reset_password')
+      const captchaRes = await fetch('/api/auth/verify-captcha', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: captchaToken }),
+      })
+      if (!captchaRes.ok) {
+        toast.error(ru ? 'Проверка reCAPTCHA не пройдена' : 'reCAPTCHA verification failed')
+        setIsLoading(false)
+        return
+      }
+
       const supabase = createClient()
       
       // Get current user before updating
@@ -204,6 +219,11 @@ export default function ResetPasswordPage() {
               >
                 {ru ? 'Сохранить пароль' : 'Update password'}
               </Button>
+              <p className="text-[11px] text-zinc-400 mt-3 text-center">
+                {ru ? 'Этот сайт защищён reCAPTCHA. ' : 'Protected by reCAPTCHA. '}
+                <a href="https://policies.google.com/privacy" target="_blank" rel="noopener" className="underline">Privacy</a>{' · '}
+                <a href="https://policies.google.com/terms" target="_blank" rel="noopener" className="underline">Terms</a>
+              </p>
             </form>
           )}
         </CardContent>

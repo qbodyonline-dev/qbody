@@ -10,6 +10,7 @@ import { useAuth } from '@/lib/auth'
 import { LanguageSwitcher } from '@/components/ui/language-switcher'
 import { Mail, Lock, ArrowLeft } from 'lucide-react'
 import { toast } from 'sonner'
+import { useRecaptcha } from '@/lib/recaptcha'
 
 function LoginForm() {
   const { t, locale } = useTranslation()
@@ -47,12 +48,26 @@ function LoginForm() {
     }
   }, [searchParams, ru])
 
+  const { execute: executeRecaptcha } = useRecaptcha()
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
-    console.log('[LOGIN] Starting signIn...')
     
     try {
+      // Verify reCAPTCHA
+      const captchaToken = await executeRecaptcha('login')
+      const captchaRes = await fetch('/api/auth/verify-captcha', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: captchaToken }),
+      })
+      if (!captchaRes.ok) {
+        toast.error(ru ? 'Проверка reCAPTCHA не пройдена' : 'reCAPTCHA verification failed')
+        setIsLoading(false)
+        return
+      }
+
       const { error } = await signIn(formData.email, formData.password)
       console.log('[LOGIN] signIn returned, error:', error)
       
@@ -108,6 +123,11 @@ function LoginForm() {
             <Link href="/auth/forgot-password" className="text-sm text-teal-500 hover:text-teal-600 transition-colors">{t('auth.login.forgotPassword')}</Link>
           </div>
           <Button type="submit" className="w-full" variant="gradient" size="lg" isLoading={isLoading}>{t('auth.login.button')}</Button>
+          <p className="text-[11px] text-zinc-400 mt-3 text-center">
+            {ru ? 'Этот сайт защищён reCAPTCHA. ' : 'Protected by reCAPTCHA. '}
+            <a href="https://policies.google.com/privacy" target="_blank" rel="noopener" className="underline">Privacy</a>{' · '}
+            <a href="https://policies.google.com/terms" target="_blank" rel="noopener" className="underline">Terms</a>
+          </p>
         </form>
         <div className="mt-6 text-center">
           <p className="text-zinc-500 text-sm">{t('auth.login.noAccount')}{' '}<Link href="/auth/register" className="text-teal-500 hover:text-teal-600 font-medium transition-colors">{t('auth.login.register')}</Link></p>
