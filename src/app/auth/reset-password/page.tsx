@@ -56,6 +56,16 @@ export default function ResetPasswordPage() {
       return
     }
 
+    if (!/[A-Z]/.test(password)) {
+      toast.error(ru ? 'Пароль должен содержать хотя бы 1 заглавную букву' : 'Password must contain at least 1 uppercase letter')
+      return
+    }
+
+    if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?`~]/.test(password)) {
+      toast.error(ru ? 'Пароль должен содержать хотя бы 1 спец. символ (!@#$%...)' : 'Password must contain at least 1 special character (!@#$%...)')
+      return
+    }
+
     setIsLoading(true)
     
     try {
@@ -162,15 +172,18 @@ export default function ResetPasswordPage() {
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-4">
-              <Input
-                label={ru ? 'Новый пароль' : 'New password'}
-                type="password"
-                placeholder="••••••••"
-                icon={<Lock className="w-5 h-5" />}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
+              <div>
+                <Input
+                  label={ru ? 'Новый пароль' : 'New password'}
+                  type="password"
+                  placeholder="••••••••"
+                  icon={<Lock className="w-5 h-5" />}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                />
+                <p className="text-xs text-zinc-400 mt-1">{ru ? 'Минимум 6 символов, 1 заглавная буква, 1 спец. символ' : 'Min 6 chars, 1 uppercase letter, 1 special character'}</p>
+              </div>
               
               <Input
                 label={ru ? 'Подтвердите пароль' : 'Confirm password'}

@@ -5,7 +5,7 @@ import { sendWelcomeEmail, sendNewClientNotification } from '@/lib/email'
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { email, password, name, courseSlug } = body
+    const { email, password, name, phone, courseSlug } = body
 
     if (!email || !password || !name) {
       return NextResponse.json(
@@ -14,9 +14,30 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    if (!phone || !phone.trim()) {
+      return NextResponse.json(
+        { error: 'Phone number is required' },
+        { status: 400 }
+      )
+    }
+
     if (password.length < 6) {
       return NextResponse.json(
         { error: 'Password must be at least 6 characters' },
+        { status: 400 }
+      )
+    }
+
+    if (!/[A-Z]/.test(password)) {
+      return NextResponse.json(
+        { error: 'Password must contain at least 1 uppercase letter' },
+        { status: 400 }
+      )
+    }
+
+    if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?`~]/.test(password)) {
+      return NextResponse.json(
+        { error: 'Password must contain at least 1 special character' },
         { status: 400 }
       )
     }
@@ -53,6 +74,7 @@ export async function POST(request: NextRequest) {
           id: userId,
           email,
           full_name: name,
+          phone: phone.trim(),
           role: 'client',
         }, { onConflict: 'id' })
 

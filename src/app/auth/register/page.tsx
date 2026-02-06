@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Badge } from '@/components/ui/badge'
 import { useTranslation } from '@/lib/i18n'
 import { LanguageSwitcher } from '@/components/ui/language-switcher'
-import { Mail, Lock, User, ArrowLeft, CheckCircle2 } from 'lucide-react'
+import { Mail, Lock, User, ArrowLeft, CheckCircle2, Phone } from 'lucide-react'
 import { toast } from 'sonner'
 
 export default function RegisterPage() {
@@ -16,18 +16,44 @@ export default function RegisterPage() {
 }
 
 function RegisterContent() {
-  const { t } = useTranslation()
+  const { t, locale } = useTranslation()
   const router = useRouter()
-  // Registration is handled via /api/auth/register
   const searchParams = useSearchParams()
   const courseId = searchParams.get('course')
   const [isLoading, setIsLoading] = useState(false)
-  const [formData, setFormData] = useState({ name: '', email: '', password: '', confirmPassword: '' })
+  const [consent, setConsent] = useState(false)
+  const [formData, setFormData] = useState({ name: '', email: '', phone: '', password: '', confirmPassword: '' })
+
+  const ru = locale === 'ru'
+
+  const validatePassword = (pw: string): string | null => {
+    if (pw.length < 6) return ru ? 'Пароль минимум 6 символов' : 'Password must be at least 6 characters'
+    if (!/[A-Z]/.test(pw)) return ru ? 'Пароль должен содержать хотя бы 1 заглавную букву' : 'Password must contain at least 1 uppercase letter'
+    if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?`~]/.test(pw)) return ru ? 'Пароль должен содержать хотя бы 1 спец. символ (!@#$%...)' : 'Password must contain at least 1 special character (!@#$%...)'
+    return null
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (formData.password !== formData.confirmPassword) { toast.error('Passwords do not match'); return }
-    if (formData.password.length < 6) { toast.error('Password must be at least 6 characters'); return }
+
+    if (!consent) {
+      toast.error(ru ? 'Необходимо согласиться с обработкой данных' : 'You must agree to the data processing policy')
+      return
+    }
+
+    if (formData.password !== formData.confirmPassword) {
+      toast.error(ru ? 'Пароли не совпадают' : 'Passwords do not match')
+      return
+    }
+
+    const pwError = validatePassword(formData.password)
+    if (pwError) { toast.error(pwError); return }
+
+    if (!formData.phone.trim()) {
+      toast.error(ru ? 'Укажите номер телефона' : 'Phone number is required')
+      return
+    }
+
     setIsLoading(true)
     try {
       const res = await fetch('/api/auth/register', {
@@ -37,6 +63,7 @@ function RegisterContent() {
           email: formData.email,
           password: formData.password,
           name: formData.name,
+          phone: formData.phone,
           courseSlug: courseId || undefined,
         }),
       })
@@ -46,10 +73,10 @@ function RegisterContent() {
         setIsLoading(false)
         return
       }
-      toast.success('Registration successful! Welcome aboard!')
+      toast.success(ru ? 'Регистрация успешна! Добро пожаловать!' : 'Registration successful! Welcome aboard!')
       router.push('/auth/login')
     } catch {
-      toast.error('Something went wrong')
+      toast.error(ru ? 'Что-то пошло не так' : 'Something went wrong')
     } finally {
       setIsLoading(false)
     }
@@ -75,10 +102,25 @@ function RegisterContent() {
             </div>
           )}
           <form onSubmit={handleSubmit} className="space-y-4">
-            <Input label={t('common.name')} type="text" placeholder="Your name" icon={<User className="w-5 h-5" />} value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} required />
+            <Input label={t('common.name')} type="text" placeholder={ru ? 'Ваше имя' : 'Your name'} icon={<User className="w-5 h-5" />} value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} required />
             <Input label={t('common.email')} type="email" placeholder="your@email.com" icon={<Mail className="w-5 h-5" />} value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} required />
-            <Input label={t('common.password')} type="password" placeholder="Min 6 characters" icon={<Lock className="w-5 h-5" />} value={formData.password} onChange={(e) => setFormData({ ...formData, password: e.target.value })} required />
-            <Input label={t('common.confirmPassword')} type="password" placeholder="Repeat password" icon={<Lock className="w-5 h-5" />} value={formData.confirmPassword} onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })} required />
+            <Input label={ru ? 'Телефон' : 'Phone'} type="tel" placeholder="+1 (555) 123-4567" icon={<Phone className="w-5 h-5" />} value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} required />
+            <div>
+              <Input label={t('common.password')} type="password" placeholder={ru ? 'Минимум 6 символов' : 'Min 6 characters'} icon={<Lock className="w-5 h-5" />} value={formData.password} onChange={(e) => setFormData({ ...formData, password: e.target.value })} required />
+              <p className="text-xs text-zinc-400 mt-1">{ru ? 'Минимум 6 символов, 1 заглавная буква, 1 спец. символ' : 'Min 6 chars, 1 uppercase letter, 1 special character'}</p>
+            </div>
+            <Input label={t('common.confirmPassword')} type="password" placeholder={ru ? 'Повторите пароль' : 'Repeat password'} icon={<Lock className="w-5 h-5" />} value={formData.confirmPassword} onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })} required />
+
+            <label className="flex items-start gap-3 cursor-pointer py-1">
+              <input type="checkbox" className="mt-0.5 w-5 h-5 rounded border-zinc-300 accent-teal-500 flex-shrink-0" checked={consent} onChange={(e) => setConsent(e.target.checked)} />
+              <span className="text-sm text-zinc-600">
+                {ru
+                  ? <>Я даю согласие на сбор и обработку моих персональных данных в соответствии с <Link href="/privacy" className="text-teal-500 hover:underline">Политикой конфиденциальности</Link></>
+                  : <>I consent to the collection and processing of my personal data in accordance with the <Link href="/privacy" className="text-teal-500 hover:underline">Privacy Policy</Link></>
+                }
+              </span>
+            </label>
+
             <p className="text-xs text-zinc-500">{t('auth.register.terms')} <Link href="/terms" className="text-teal-500 hover:underline">{t('auth.register.termsLink')}</Link> {t('common.and')} <Link href="/privacy" className="text-teal-500 hover:underline">{t('auth.register.privacyLink')}</Link></p>
             <Button type="submit" className="w-full" variant="gradient" size="lg" isLoading={isLoading}>{courseId ? t('auth.register.buttonCourse') : t('auth.register.button')}</Button>
           </form>
