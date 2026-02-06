@@ -4,6 +4,7 @@ import React from 'react'
 import { LocaleProvider } from '@/lib/i18n'
 import { AuthProvider } from '@/lib/auth'
 import { Toaster } from 'sonner'
+import { CookieConsent } from '@/components/cookie-consent'
 
 class ErrorBoundary extends React.Component<
   { children: React.ReactNode },
@@ -44,6 +45,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
       <AuthProvider>
         <LocaleProvider>
           {children}
+          <CookieConsent />
           <Toaster 
             position="top-right" 
             toastOptions={{
