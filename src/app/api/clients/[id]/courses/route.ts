@@ -2,12 +2,22 @@ import { NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase-server'
 import { sendCourseAccessGranted, sendCourseAccessRevoked } from '@/lib/email'
 import { COURSES, CourseSlug } from '@/lib/stripe'
+import { requireAdmin } from '@/lib/api-auth'
+import { isValidUUID } from '@/lib/security'
 
-// GET - Get client's course access with progress
+// GET - Get client's course access with progress — admin only
 export async function GET(
   request: Request,
   { params }: { params: { id: string } }
 ) {
+  const auth = await requireAdmin(request)
+  if (!auth.success) {
+    return NextResponse.json({ error: auth.error.error }, { status: auth.error.status })
+  }
+  if (!isValidUUID(params.id)) {
+    return NextResponse.json({ error: 'Invalid ID' }, { status: 400 })
+  }
+
   try {
     const supabase = createServerClient()
     const userId = params.id
@@ -89,11 +99,16 @@ export async function GET(
   }
 }
 
-// POST - Grant course access to client
+// POST - Grant course access to client — admin only
 export async function POST(
   request: Request,
   { params }: { params: { id: string } }
 ) {
+  const auth = await requireAdmin(request)
+  if (!auth.success) {
+    return NextResponse.json({ error: auth.error.error }, { status: auth.error.status })
+  }
+
   try {
     const supabase = createServerClient()
     const userId = params.id
@@ -163,11 +178,16 @@ export async function POST(
   }
 }
 
-// PATCH - Update course access (activate/deactivate)
+// PATCH - Update course access — admin only
 export async function PATCH(
   request: Request,
   { params }: { params: { id: string } }
 ) {
+  const auth = await requireAdmin(request)
+  if (!auth.success) {
+    return NextResponse.json({ error: auth.error.error }, { status: auth.error.status })
+  }
+
   try {
     const supabase = createServerClient()
     const userId = params.id
@@ -196,11 +216,16 @@ export async function PATCH(
   }
 }
 
-// DELETE - Revoke course access
+// DELETE - Revoke course access — admin only
 export async function DELETE(
   request: Request,
   { params }: { params: { id: string } }
 ) {
+  const auth = await requireAdmin(request)
+  if (!auth.success) {
+    return NextResponse.json({ error: auth.error.error }, { status: auth.error.status })
+  }
+
   try {
     const supabase = createServerClient()
     const userId = params.id

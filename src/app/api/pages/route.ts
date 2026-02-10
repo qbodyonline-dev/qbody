@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase-server'
+import { requireAdmin } from '@/lib/api-auth'
 
-// GET all pages or specific page by slug
+// GET all pages or specific page by slug — public (for rendering)
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url)
@@ -10,7 +11,6 @@ export async function GET(request: Request) {
     const supabase = createServerClient()
     
     if (slug) {
-      // Get specific page
       const { data, error } = await supabase
         .from('page_content')
         .select('*')
@@ -18,17 +18,14 @@ export async function GET(request: Request) {
         .single()
       
       if (error && error.code !== 'PGRST116') throw error
-      
       return NextResponse.json(data || null)
     } else {
-      // Get all pages
       const { data, error } = await supabase
         .from('page_content')
         .select('*')
         .order('created_at', { ascending: false })
       
       if (error) throw error
-      
       return NextResponse.json(data || [])
     }
   } catch (err: any) {
@@ -37,8 +34,13 @@ export async function GET(request: Request) {
   }
 }
 
-// POST create new page
+// POST create new page — admin only
 export async function POST(request: Request) {
+  const auth = await requireAdmin(request)
+  if (!auth.success) {
+    return NextResponse.json({ error: auth.error.error }, { status: auth.error.status })
+  }
+
   try {
     const supabase = createServerClient()
     const body = await request.json()
@@ -54,7 +56,6 @@ export async function POST(request: Request) {
       .single()
     
     if (error) throw error
-    
     return NextResponse.json(data)
   } catch (err: any) {
     console.error('POST /api/pages error:', err)
@@ -62,8 +63,13 @@ export async function POST(request: Request) {
   }
 }
 
-// PUT update page by slug
+// PUT update page — admin only
 export async function PUT(request: Request) {
+  const auth = await requireAdmin(request)
+  if (!auth.success) {
+    return NextResponse.json({ error: auth.error.error }, { status: auth.error.status })
+  }
+
   try {
     const supabase = createServerClient()
     const body = await request.json()
@@ -72,7 +78,6 @@ export async function PUT(request: Request) {
       return NextResponse.json({ error: 'page_slug is required' }, { status: 400 })
     }
     
-    // First try to update
     const { data: existingData, error: selectError } = await supabase
       .from('page_content')
       .select('id')
@@ -80,7 +85,6 @@ export async function PUT(request: Request) {
       .single()
     
     if (selectError && selectError.code === 'PGRST116') {
-      // Page doesn't exist, create it
       const { data, error } = await supabase
         .from('page_content')
         .insert({
@@ -97,19 +101,14 @@ export async function PUT(request: Request) {
     
     if (selectError) throw selectError
     
-    // Update existing page
     const { data, error } = await supabase
       .from('page_content')
-      .update({
-        blocks: body.blocks,
-        is_published: body.is_published,
-      })
+      .update({ blocks: body.blocks, is_published: body.is_published })
       .eq('page_slug', body.page_slug)
       .select()
       .single()
     
     if (error) throw error
-    
     return NextResponse.json(data)
   } catch (err: any) {
     console.error('PUT /api/pages error:', err)
@@ -117,8 +116,13 @@ export async function PUT(request: Request) {
   }
 }
 
-// DELETE page by slug
+// DELETE page — admin only
 export async function DELETE(request: Request) {
+  const auth = await requireAdmin(request)
+  if (!auth.success) {
+    return NextResponse.json({ error: auth.error.error }, { status: auth.error.status })
+  }
+
   try {
     const { searchParams } = new URL(request.url)
     const slug = searchParams.get('slug')
@@ -128,14 +132,12 @@ export async function DELETE(request: Request) {
     }
     
     const supabase = createServerClient()
-    
     const { error } = await supabase
       .from('page_content')
       .delete()
       .eq('page_slug', slug)
     
     if (error) throw error
-    
     return NextResponse.json({ success: true })
   } catch (err: any) {
     console.error('DELETE /api/pages error:', err)

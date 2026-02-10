@@ -1,8 +1,15 @@
 import { NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase-server'
+import { requireAdmin } from '@/lib/api-auth'
+import { sanitizeString } from '@/lib/security'
 
-// GET all courses (admin)
-export async function GET() {
+// GET all courses — admin only (includes unpublished)
+export async function GET(request: Request) {
+  const auth = await requireAdmin(request)
+  if (!auth.success) {
+    return NextResponse.json({ error: auth.error.error }, { status: auth.error.status })
+  }
+
   try {
     const supabase = createServerClient()
     
@@ -11,11 +18,7 @@ export async function GET() {
       .select(`
         *,
         course_modules (
-          id,
-          title,
-          title_ru,
-          sort_order,
-          is_published,
+          id, title, title_ru, sort_order, is_published,
           course_lessons (count)
         )
       `)
@@ -23,7 +26,6 @@ export async function GET() {
     
     if (error) throw error
     
-    // Calculate lesson counts
     const courses = (data || []).map((course: any) => ({
       ...course,
       modules_count: course.course_modules?.length || 0,
@@ -38,14 +40,24 @@ export async function GET() {
   }
 }
 
-// POST create new course
+// POST create new course — admin only
 export async function POST(request: Request) {
+  const auth = await requireAdmin(request)
+  if (!auth.success) {
+    return NextResponse.json({ error: auth.error.error }, { status: auth.error.status })
+  }
+
   try {
     const supabase = createServerClient()
     const body = await request.json()
     
-    // Generate slug from title if not provided
-    const slug = body.slug || body.title
+    // ✅ SANITIZE: Clean input
+    const title = sanitizeString(body.title || '', 500)
+    if (!title) {
+      return NextResponse.json({ error: 'Title is required' }, { status: 400 })
+    }
+
+    const slug = body.slug || title
       .toLowerCase()
       .replace(/[^a-z0-9\s-]/g, '')
       .replace(/\s+/g, '-')
@@ -55,12 +67,12 @@ export async function POST(request: Request) {
     const { data, error } = await supabase
       .from('courses')
       .insert({
-        slug,
-        title: body.title,
-        title_ru: body.title_ru || null,
-        description: body.description || null,
-        description_ru: body.description_ru || null,
-        price: Math.round((body.price || 99) * 100), // convert to cents
+        slug: slug.slice(0, 200),
+        title,
+        title_ru: sanitizeString(body.title_ru || '', 500) || null,
+        description: sanitizeString(body.description || '', 5000) || null,
+        description_ru: sanitizeString(body.description_ru || '', 5000) || null,
+        price: Math.round((body.price || 99) * 100),
         original_price: body.original_price ? Math.round(body.original_price * 100) : null,
         duration_weeks: body.duration_weeks || 8,
         image_url: body.image_url || null,

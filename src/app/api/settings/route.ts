@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase-server'
+import { requireAdmin } from '@/lib/api-auth'
 
-// GET all settings
+// GET all settings — public (needed for frontend rendering)
 export async function GET() {
   try {
     const supabase = createServerClient()
@@ -15,7 +16,6 @@ export async function GET() {
       throw error
     }
 
-    // Transform array to object with key-value pairs
     const settings: Record<string, any> = {}
     data?.forEach((item: { key: string; value: any }) => {
       settings[item.key] = item.value
@@ -28,28 +28,26 @@ export async function GET() {
   }
 }
 
-// POST/PUT settings (upsert)
+// POST/PUT settings (upsert) — admin only
 export async function POST(request: Request) {
+  // ✅ AUTH: Only admin can modify settings
+  const auth = await requireAdmin(request)
+  if (!auth.success) {
+    return NextResponse.json({ error: auth.error.error }, { status: auth.error.status })
+  }
+
   try {
     const supabase = createServerClient()
     const body = await request.json()
-    
-    // Expect body to be { key: string, value: object }
     const { key, value } = body
 
-    if (!key) {
-      return NextResponse.json({ error: 'Key is required' }, { status: 400 })
+    if (!key || typeof key !== 'string' || key.length > 100) {
+      return NextResponse.json({ error: 'Valid key is required' }, { status: 400 })
     }
 
     const { data, error } = await supabase
       .from('site_settings')
-      .upsert({ 
-        key, 
-        value,
-        updated_at: new Date().toISOString()
-      }, { 
-        onConflict: 'key' 
-      })
+      .upsert({ key, value, updated_at: new Date().toISOString() }, { onConflict: 'key' })
       .select()
       .single()
 
@@ -65,13 +63,16 @@ export async function POST(request: Request) {
   }
 }
 
-// PUT - Update multiple settings at once
+// PUT - Update multiple settings at once — admin only
 export async function PUT(request: Request) {
+  const auth = await requireAdmin(request)
+  if (!auth.success) {
+    return NextResponse.json({ error: auth.error.error }, { status: auth.error.status })
+  }
+
   try {
     const supabase = createServerClient()
     const body = await request.json()
-    
-    // Expect body to be { settings: { key1: value1, key2: value2, ... } }
     const { settings } = body
 
     if (!settings || typeof settings !== 'object') {
@@ -84,29 +85,16 @@ export async function PUT(request: Request) {
     for (const [key, value] of Object.entries(settings)) {
       const { data, error } = await supabase
         .from('site_settings')
-        .upsert({ 
-          key, 
-          value,
-          updated_at: new Date().toISOString()
-        }, { 
-          onConflict: 'key' 
-        })
+        .upsert({ key, value, updated_at: new Date().toISOString() }, { onConflict: 'key' })
         .select()
         .single()
 
-      if (error) {
-        errors.push({ key, error: error.message })
-      } else {
-        results.push(data)
-      }
+      if (error) errors.push({ key, error: error.message })
+      else results.push(data)
     }
 
     if (errors.length > 0) {
-      return NextResponse.json({ 
-        success: false, 
-        errors,
-        saved: results 
-      }, { status: 207 })
+      return NextResponse.json({ success: false, errors, saved: results }, { status: 207 })
     }
 
     return NextResponse.json({ success: true, saved: results })
@@ -116,42 +104,33 @@ export async function PUT(request: Request) {
   }
 }
 
-// PATCH - Update settings (simplified for notification settings)
+// PATCH — admin only
 export async function PATCH(request: Request) {
+  const auth = await requireAdmin(request)
+  if (!auth.success) {
+    return NextResponse.json({ error: auth.error.error }, { status: auth.error.status })
+  }
+
   try {
     const supabase = createServerClient()
     const body = await request.json()
-    
-    // Handle notification_settings or any other settings
+
     const results = []
     const errors = []
 
     for (const [key, value] of Object.entries(body)) {
       const { data, error } = await supabase
         .from('site_settings')
-        .upsert({ 
-          key, 
-          value,
-          updated_at: new Date().toISOString()
-        }, { 
-          onConflict: 'key' 
-        })
+        .upsert({ key, value, updated_at: new Date().toISOString() }, { onConflict: 'key' })
         .select()
         .single()
 
-      if (error) {
-        errors.push({ key, error: error.message })
-      } else {
-        results.push(data)
-      }
+      if (error) errors.push({ key, error: error.message })
+      else results.push(data)
     }
 
     if (errors.length > 0) {
-      return NextResponse.json({ 
-        success: false, 
-        errors,
-        saved: results 
-      }, { status: 207 })
+      return NextResponse.json({ success: false, errors, saved: results }, { status: 207 })
     }
 
     return NextResponse.json({ success: true, saved: results })

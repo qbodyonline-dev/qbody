@@ -1,7 +1,22 @@
 import { NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase-server'
+import { requireAdmin } from '@/lib/api-auth'
+import { validateUploadFile, checkRateLimit, getClientIP } from '@/lib/security'
 
 export async function POST(request: Request) {
+  // ✅ AUTH: Only admin/trainer can upload files
+  const auth = await requireAdmin(request)
+  if (!auth.success) {
+    return NextResponse.json({ error: auth.error.error }, { status: auth.error.status })
+  }
+
+  // ✅ RATE LIMIT: Max 30 uploads per minute per user
+  const ip = getClientIP(request)
+  const rateCheck = checkRateLimit(`upload:${auth.data.user.id}`, 30, 60 * 1000)
+  if (!rateCheck.allowed) {
+    return NextResponse.json({ error: 'Too many uploads. Please wait.' }, { status: 429 })
+  }
+
   try {
     const supabase = createServerClient()
     const formData = await request.formData()
@@ -12,11 +27,20 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'No file provided' }, { status: 400 })
     }
 
-    // Generate unique filename
-    const ext = file.name.split('.').pop()
+    // ✅ VALIDATION: Check file type and size
+    const validation = validateUploadFile(file)
+    if (!validation.valid) {
+      return NextResponse.json({ error: validation.error }, { status: 400 })
+    }
+
+    // ✅ SANITIZE: Clean folder name — only allow alphanumeric, hyphens, underscores
+    const cleanFolder = folder.replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 50) || 'uploads'
+
+    // Generate unique filename with safe extension
+    const ext = file.name.split('.').pop()?.toLowerCase().replace(/[^a-z0-9]/g, '') || 'bin'
     const timestamp = Date.now()
-    const randomStr = Math.random().toString(36).substring(7)
-    const fileName = `${folder}/${timestamp}-${randomStr}.${ext}`
+    const randomStr = Math.random().toString(36).substring(2, 10)
+    const fileName = `${cleanFolder}/${timestamp}-${randomStr}.${ext}`
 
     // Convert file to buffer
     const arrayBuffer = await file.arrayBuffer()

@@ -1,13 +1,46 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase-server'
+import { authenticateRequest } from '@/lib/api-auth'
+import { isValidUUID } from '@/lib/security'
 import { sendAccountDeleted, sendAccountDeletedAdmin } from '@/lib/email'
 
 export async function DELETE(request: NextRequest) {
+  // ✅ AUTH: Must be authenticated
+  const auth = await authenticateRequest(request)
+  if (!auth.success) {
+    return NextResponse.json({ error: auth.error.error }, { status: auth.error.status })
+  }
+
   try {
     const { userId } = await request.json()
 
     if (!userId) {
       return NextResponse.json({ error: 'User ID required' }, { status: 400 })
+    }
+
+    if (!isValidUUID(userId)) {
+      return NextResponse.json({ error: 'Invalid User ID' }, { status: 400 })
+    }
+
+    // ✅ AUTHORIZATION: Users can only delete their own account, admins can delete anyone
+    const isAdmin = auth.data.profile.role === 'admin'
+    const isSelf = auth.data.user.id === userId
+
+    if (!isAdmin && !isSelf) {
+      return NextResponse.json({ error: 'You can only delete your own account' }, { status: 403 })
+    }
+
+    // ✅ PROTECTION: Prevent last admin from deleting themselves
+    if (isAdmin && isSelf) {
+      const supabase = createServerClient()
+      const { count } = await supabase
+        .from('profiles')
+        .select('*', { count: 'exact', head: true })
+        .eq('role', 'admin')
+      
+      if ((count || 0) <= 1) {
+        return NextResponse.json({ error: 'Cannot delete the last admin account' }, { status: 400 })
+      }
     }
 
     const supabase = createServerClient()
@@ -22,16 +55,11 @@ export async function DELETE(request: NextRequest) {
     const clientName = profile?.full_name || 'User'
     const clientEmail = profile?.email || ''
 
-    // Delete course access
+    // Delete in correct order
     await supabase.from('course_access').delete().eq('user_id', userId)
-
-    // Delete orders
     await supabase.from('orders').delete().eq('user_id', userId)
-
-    // Delete profile
     await supabase.from('profiles').delete().eq('id', userId)
 
-    // Delete auth user (requires service_role)
     const { error } = await supabase.auth.admin.deleteUser(userId)
 
     if (error) {
@@ -41,14 +69,8 @@ export async function DELETE(request: NextRequest) {
 
     // Send email notifications
     if (clientEmail) {
-      // Confirm to client
       await sendAccountDeleted(clientEmail, clientName)
-      
-      // Notify admin
-      await sendAccountDeletedAdmin({
-        clientName,
-        clientEmail,
-      })
+      await sendAccountDeletedAdmin({ clientName, clientEmail })
     }
 
     return NextResponse.json({ success: true })

@@ -1,35 +1,29 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase-server'
+import { authenticateRequest } from '@/lib/api-auth'
+import { isValidUUID } from '@/lib/security'
 
 // GET - fetch single conversation with messages
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  // ✅ AUTH: Centralized authentication
+  const auth = await authenticateRequest(request)
+  if (!auth.success) {
+    return NextResponse.json({ error: auth.error.error }, { status: auth.error.status })
+  }
+
   try {
     const { id } = await params
+
+    // ✅ VALIDATION: Check UUID format
+    if (!isValidUUID(id)) {
+      return NextResponse.json({ error: 'Invalid conversation ID' }, { status: 400 })
+    }
+
     const supabase = createServerClient()
-    const authHeader = request.headers.get('authorization')
-    
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-    
-    const token = authHeader.split(' ')[1]
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token)
-    
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Invalid token' }, { status: 401 })
-    }
-    
-    // Get user profile
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single()
-    
-    const isAdmin = profile?.role === 'admin' || profile?.role === 'trainer'
+    const isAdmin = auth.data.profile.role === 'admin' || auth.data.profile.role === 'trainer'
     
     // Get conversation
     const { data: conversation, error } = await supabase
@@ -41,10 +35,15 @@ export async function GET(
       .eq('id', id)
       .single()
     
-    if (error) throw error
+    if (error) {
+      if (error.code === 'PGRST116') {
+        return NextResponse.json({ error: 'Conversation not found' }, { status: 404 })
+      }
+      throw error
+    }
     
-    // Check access
-    if (!isAdmin && conversation.client_id !== user.id) {
+    // ✅ AUTHORIZATION: Check access
+    if (!isAdmin && conversation.client_id !== auth.data.user.id) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
     
@@ -66,7 +65,7 @@ export async function GET(
     })
   } catch (error: any) {
     console.error('Error fetching conversation:', error)
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    return NextResponse.json({ error: 'Failed to fetch conversation' }, { status: 500 })
   }
 }
 
@@ -75,46 +74,48 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  // ✅ AUTH: Centralized authentication
+  const auth = await authenticateRequest(request)
+  if (!auth.success) {
+    return NextResponse.json({ error: auth.error.error }, { status: auth.error.status })
+  }
+
   try {
     const { id } = await params
+
+    // ✅ VALIDATION: Check UUID format
+    if (!isValidUUID(id)) {
+      return NextResponse.json({ error: 'Invalid conversation ID' }, { status: 400 })
+    }
+
     const supabase = createServerClient()
-    const authHeader = request.headers.get('authorization')
-    
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-    
-    const token = authHeader.split(' ')[1]
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token)
-    
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Invalid token' }, { status: 401 })
-    }
+    const isAdmin = auth.data.profile.role === 'admin' || auth.data.profile.role === 'trainer'
     
     const body = await request.json()
     const { status, mark_read } = body
     
-    // Get user profile
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single()
+    // ✅ VALIDATION: Whitelist allowed status values
+    const allowedStatuses = ['open', 'closed', 'archived']
+    if (status && !allowedStatuses.includes(status)) {
+      return NextResponse.json({ error: 'Invalid status value' }, { status: 400 })
+    }
     
-    const isAdmin = profile?.role === 'admin' || profile?.role === 'trainer'
-    
-    // Get conversation to verify access
+    // Verify access to conversation
     const { data: conversation } = await supabase
       .from('conversations')
       .select('client_id')
       .eq('id', id)
       .single()
     
-    if (!isAdmin && conversation?.client_id !== user.id) {
+    if (!conversation) {
+      return NextResponse.json({ error: 'Conversation not found' }, { status: 404 })
+    }
+
+    // ✅ AUTHORIZATION: Check access
+    if (!isAdmin && conversation.client_id !== auth.data.user.id) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
     
-    // Update conversation status if provided
     if (status) {
       await supabase
         .from('conversations')
@@ -122,29 +123,17 @@ export async function PATCH(
         .eq('id', id)
     }
     
-    // Mark messages as read
     if (mark_read) {
-      // Mark messages from the other party as read
-      if (isAdmin) {
-        // Admin marking client messages as read
-        await supabase
-          .from('messages')
-          .update({ is_read: true })
-          .eq('conversation_id', id)
-          .neq('sender_id', user.id)
-      } else {
-        // Client marking admin messages as read
-        await supabase
-          .from('messages')
-          .update({ is_read: true })
-          .eq('conversation_id', id)
-          .neq('sender_id', user.id)
-      }
+      await supabase
+        .from('messages')
+        .update({ is_read: true })
+        .eq('conversation_id', id)
+        .neq('sender_id', auth.data.user.id)
     }
     
     return NextResponse.json({ success: true })
   } catch (error: any) {
     console.error('Error updating conversation:', error)
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    return NextResponse.json({ error: 'Failed to update conversation' }, { status: 500 })
   }
 }

@@ -1,15 +1,28 @@
 import { NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase-server'
+import { requireAdmin } from '@/lib/api-auth'
+import { isValidUUID, sanitizeString } from '@/lib/security'
 
 export async function GET(
   request: Request,
   { params }: { params: { id: string } }
 ) {
+  // ✅ AUTH: Only admin/trainer can view client details
+  const auth = await requireAdmin(request)
+  if (!auth.success) {
+    return NextResponse.json({ error: auth.error.error }, { status: auth.error.status })
+  }
+
   try {
-    const supabase = createServerClient()
     const id = params.id
 
-    // Get profile
+    // ✅ VALIDATION: Check UUID format
+    if (!isValidUUID(id)) {
+      return NextResponse.json({ error: 'Invalid client ID' }, { status: 400 })
+    }
+
+    const supabase = createServerClient()
+
     const { data: profile, error } = await supabase
       .from('profiles')
       .select('id, full_name, email, phone, role, avatar_url, created_at')
@@ -20,13 +33,11 @@ export async function GET(
       return NextResponse.json({ error: 'Client not found' }, { status: 404 })
     }
 
-    // Get course access with is_active status
     const { data: accessData } = await supabase
       .from('course_access')
       .select('course_slug, granted_at, is_active')
       .eq('user_id', id)
 
-    // Get orders with full details
     const { data: ordersData } = await supabase
       .from('orders')
       .select('id, user_id, course_slug, amount, currency, status, paid_at, created_at, stripe_session_id, stripe_customer_id, stripe_payment_intent_id')
@@ -47,16 +58,28 @@ export async function PATCH(
   request: Request,
   { params }: { params: { id: string } }
 ) {
+  // ✅ AUTH: Only admin/trainer can edit client profiles
+  const auth = await requireAdmin(request)
+  if (!auth.success) {
+    return NextResponse.json({ error: auth.error.error }, { status: auth.error.status })
+  }
+
   try {
-    const supabase = createServerClient()
     const id = params.id
+
+    if (!isValidUUID(id)) {
+      return NextResponse.json({ error: 'Invalid client ID' }, { status: 400 })
+    }
+
+    const supabase = createServerClient()
     const body = await request.json()
 
+    // ✅ SANITIZE: Clean input data
     const { error } = await supabase
       .from('profiles')
       .update({
-        full_name: body.full_name,
-        phone: body.phone,
+        full_name: sanitizeString(body.full_name || '', 200),
+        phone: sanitizeString(body.phone || '', 30),
       })
       .eq('id', id)
 
@@ -74,20 +97,30 @@ export async function DELETE(
   request: Request,
   { params }: { params: { id: string } }
 ) {
+  // ✅ AUTH: Only admin can delete users
+  const auth = await requireAdmin(request)
+  if (!auth.success) {
+    return NextResponse.json({ error: auth.error.error }, { status: auth.error.status })
+  }
+
+  // ✅ PROTECTION: Prevent admin from deleting themselves
+  if (params.id === auth.data.user.id) {
+    return NextResponse.json({ error: 'Cannot delete your own account' }, { status: 400 })
+  }
+
   try {
-    const supabase = createServerClient()
     const id = params.id
 
-    // Delete course_access
+    if (!isValidUUID(id)) {
+      return NextResponse.json({ error: 'Invalid client ID' }, { status: 400 })
+    }
+
+    const supabase = createServerClient()
+
+    // Delete in correct order (foreign key constraints)
     await supabase.from('course_access').delete().eq('user_id', id)
-    
-    // Delete orders
     await supabase.from('orders').delete().eq('user_id', id)
-    
-    // Delete profile
     await supabase.from('profiles').delete().eq('id', id)
-    
-    // Delete auth user
     await supabase.auth.admin.deleteUser(id)
 
     return NextResponse.json({ success: true })

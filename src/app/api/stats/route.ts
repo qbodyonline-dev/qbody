@@ -1,7 +1,14 @@
 import { NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase-server'
+import { requireAdmin } from '@/lib/api-auth'
 
-export async function GET() {
+export async function GET(request: Request) {
+  // ✅ AUTH: Only admin/trainer can view stats
+  const auth = await requireAdmin(request)
+  if (!auth.success) {
+    return NextResponse.json({ error: auth.error.error }, { status: auth.error.status })
+  }
+
   try {
     const supabase = createServerClient()
 

@@ -1,19 +1,46 @@
 import { NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase-server'
+import { requireAdminOnly } from '@/lib/api-auth'
+import { isValidUUID } from '@/lib/security'
 import { sendPasswordChangedByAdmin } from '@/lib/email'
 
 export async function POST(
   request: Request,
   { params }: { params: { id: string } }
 ) {
+  // ✅ AUTH: Only admin can change user passwords
+  const auth = await requireAdminOnly(request)
+  if (!auth.success) {
+    return NextResponse.json({ error: auth.error.error }, { status: auth.error.status })
+  }
+
   try {
-    const supabase = createServerClient()
     const id = params.id
+
+    if (!isValidUUID(id)) {
+      return NextResponse.json({ error: 'Invalid user ID' }, { status: 400 })
+    }
+
     const body = await request.json()
 
-    if (!body.password || body.password.length < 6) {
-      return NextResponse.json({ error: 'Password must be at least 6 characters' }, { status: 400 })
+    // ✅ VALIDATION: Strong password requirements
+    if (!body.password || body.password.length < 8) {
+      return NextResponse.json({ error: 'Password must be at least 8 characters' }, { status: 400 })
     }
+
+    if (!/[A-Z]/.test(body.password)) {
+      return NextResponse.json({ error: 'Password must contain at least 1 uppercase letter' }, { status: 400 })
+    }
+
+    if (!/[0-9]/.test(body.password)) {
+      return NextResponse.json({ error: 'Password must contain at least 1 number' }, { status: 400 })
+    }
+
+    if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?`~]/.test(body.password)) {
+      return NextResponse.json({ error: 'Password must contain at least 1 special character' }, { status: 400 })
+    }
+
+    const supabase = createServerClient()
 
     const { error } = await supabase.auth.admin.updateUserById(id, {
       password: body.password,
@@ -30,12 +57,12 @@ export async function POST(
       .eq('id', id)
       .single()
 
-    // Send email notification with new password
+    // ✅ SECURITY: Notify user that password was changed (do NOT send the password itself)
     if (profile?.email) {
       await sendPasswordChangedByAdmin(
         profile.email,
         profile.full_name || 'User',
-        body.password
+        '********' // Never send plaintext passwords in email
       )
     }
 

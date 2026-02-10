@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase-server'
+import { authenticateRequest } from '@/lib/api-auth'
+import { isValidUUID, sanitizeString, checkRateLimit } from '@/lib/security'
 import { sendNewMessageToClient, sendNewMessageToAdmin } from '@/lib/email'
 
 // GET - fetch messages for a conversation
@@ -7,30 +9,22 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  // ✅ AUTH: Centralized authentication
+  const auth = await authenticateRequest(request)
+  if (!auth.success) {
+    return NextResponse.json({ error: auth.error.error }, { status: auth.error.status })
+  }
+
   try {
     const { id } = await params
+
+    // ✅ VALIDATION: Check UUID format
+    if (!isValidUUID(id)) {
+      return NextResponse.json({ error: 'Invalid conversation ID' }, { status: 400 })
+    }
+
     const supabase = createServerClient()
-    const authHeader = request.headers.get('authorization')
-    
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-    
-    const token = authHeader.split(' ')[1]
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token)
-    
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Invalid token' }, { status: 401 })
-    }
-    
-    // Get user profile
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single()
-    
-    const isAdmin = profile?.role === 'admin' || profile?.role === 'trainer'
+    const isAdmin = auth.data.profile.role === 'admin' || auth.data.profile.role === 'trainer'
     
     // Verify access to conversation
     const { data: conversation } = await supabase
@@ -39,7 +33,12 @@ export async function GET(
       .eq('id', id)
       .single()
     
-    if (!isAdmin && conversation?.client_id !== user.id) {
+    if (!conversation) {
+      return NextResponse.json({ error: 'Conversation not found' }, { status: 404 })
+    }
+
+    // ✅ AUTHORIZATION: Check access
+    if (!isAdmin && conversation.client_id !== auth.data.user.id) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
     
@@ -58,7 +57,7 @@ export async function GET(
     return NextResponse.json(messages)
   } catch (error: any) {
     console.error('Error fetching messages:', error)
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    return NextResponse.json({ error: 'Failed to fetch messages' }, { status: 500 })
   }
 }
 
@@ -67,38 +66,41 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  // ✅ AUTH: Centralized authentication
+  const auth = await authenticateRequest(request)
+  if (!auth.success) {
+    return NextResponse.json({ error: auth.error.error }, { status: auth.error.status })
+  }
+
+  // ✅ RATE LIMIT: Max 30 messages per minute
+  const rateCheck = checkRateLimit(`msg:${auth.data.user.id}`, 30, 60 * 1000)
+  if (!rateCheck.allowed) {
+    return NextResponse.json({ error: 'Too many messages. Please wait.' }, { status: 429 })
+  }
+
   try {
     const { id } = await params
+
+    // ✅ VALIDATION: Check UUID format
+    if (!isValidUUID(id)) {
+      return NextResponse.json({ error: 'Invalid conversation ID' }, { status: 400 })
+    }
+
     const supabase = createServerClient()
-    const authHeader = request.headers.get('authorization')
-    
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-    
-    const token = authHeader.split(' ')[1]
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token)
-    
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Invalid token' }, { status: 401 })
-    }
-    
+    const isAdmin = auth.data.profile.role === 'admin' || auth.data.profile.role === 'trainer'
+
     const body = await request.json()
     const { content, attachments } = body
     
-    // Message must have content or attachments
-    if (!content?.trim() && (!attachments || attachments.length === 0)) {
+    // ✅ SANITIZE: Clean message content
+    const cleanContent = content ? sanitizeString(content.trim(), 10000) : null
+
+    // ✅ VALIDATION: Limit attachments
+    const cleanAttachments = Array.isArray(attachments) ? attachments.slice(0, 10) : []
+    
+    if (!cleanContent && cleanAttachments.length === 0) {
       return NextResponse.json({ error: 'Message content or attachments required' }, { status: 400 })
     }
-    
-    // Get sender profile
-    const { data: senderProfile } = await supabase
-      .from('profiles')
-      .select('role, full_name, email')
-      .eq('id', user.id)
-      .single()
-    
-    const isAdmin = senderProfile?.role === 'admin' || senderProfile?.role === 'trainer'
     
     // Verify access to conversation
     const { data: conversation } = await supabase
@@ -111,7 +113,8 @@ export async function POST(
       return NextResponse.json({ error: 'Conversation not found' }, { status: 404 })
     }
     
-    if (!isAdmin && conversation.client_id !== user.id) {
+    // ✅ AUTHORIZATION: Check access
+    if (!isAdmin && conversation.client_id !== auth.data.user.id) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
     
@@ -120,9 +123,9 @@ export async function POST(
       .from('messages')
       .insert({
         conversation_id: id,
-        sender_id: user.id,
-        content: content?.trim() || null,
-        attachments: attachments || []
+        sender_id: auth.data.user.id,
+        content: cleanContent,
+        attachments: cleanAttachments
       })
       .select(`
         *,
@@ -140,10 +143,9 @@ export async function POST(
       .eq('status', 'closed')
 
     // Send email notification to the recipient
-    const messagePreview = content?.trim() || '[Attachment]'
+    const messagePreview = cleanContent || '[Attachment]'
 
     if (isAdmin) {
-      // Admin sent message → notify client
       const { data: clientProfile } = await supabase
         .from('profiles')
         .select('full_name, email')
@@ -155,17 +157,16 @@ export async function POST(
           clientProfile.email,
           clientProfile.full_name || 'Client',
           {
-            senderName: senderProfile?.full_name || 'Your Trainer',
+            senderName: auth.data.profile.full_name || 'Your Trainer',
             messagePreview,
             conversationId: id,
           }
         )
       }
     } else {
-      // Client sent message → notify admin
       await sendNewMessageToAdmin({
-        clientName: senderProfile?.full_name || 'Client',
-        clientEmail: senderProfile?.email || '',
+        clientName: auth.data.profile.full_name || 'Client',
+        clientEmail: auth.data.user.email || '',
         messagePreview,
         conversationId: id,
       })
@@ -174,6 +175,6 @@ export async function POST(
     return NextResponse.json(message)
   } catch (error: any) {
     console.error('Error sending message:', error)
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    return NextResponse.json({ error: 'Failed to send message' }, { status: 500 })
   }
 }

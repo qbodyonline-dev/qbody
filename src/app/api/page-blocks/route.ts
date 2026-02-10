@@ -1,33 +1,60 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { requireAdmin } from '@/lib/api-auth'
+import { sanitizeString } from '@/lib/security'
 
-function getSupabase() {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  return createClient(supabaseUrl, key, {
-    auth: { autoRefreshToken: false, persistSession: false },
-    global: {
-      fetch: (url: any, options: any = {}) => fetch(url, { ...options, cache: 'no-store' as RequestCache }),
-    },
-  })
+/** Public-safe Supabase client (anon key, respects RLS) */
+function getPublicSupabase() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      auth: { autoRefreshToken: false, persistSession: false },
+      global: {
+        fetch: (url: any, options: any = {}) => fetch(url, { ...options, cache: 'no-store' as RequestCache }),
+      },
+    }
+  )
 }
 
-// GET - load page blocks
+/** Admin Supabase client (service_role, bypasses RLS) */
+function getAdminSupabase() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    {
+      auth: { autoRefreshToken: false, persistSession: false },
+      global: {
+        fetch: (url: any, options: any = {}) => fetch(url, { ...options, cache: 'no-store' as RequestCache }),
+      },
+    }
+  )
+}
+
+// GET - load page blocks — public (uses anon key, respects RLS)
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url)
     const pageSlug = searchParams.get('page') || 'home'
-    const supabase = getSupabase()
+
+    // ✅ VALIDATION: Sanitize pageSlug — alphanumeric, hyphens, underscores only
+    const cleanSlug = pageSlug.replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 50)
+    if (!cleanSlug) {
+      return NextResponse.json({ blocks: [], pageSlug: 'home', error: 'Invalid page slug' })
+    }
+
+    // ✅ SECURITY: Use anon key for public reads (respects RLS)
+    const supabase = getPublicSupabase()
 
     const { data, error } = await supabase
       .from('page_blocks')
       .select('*')
-      .eq('page_slug', pageSlug)
+      .eq('page_slug', cleanSlug)
       .order('sort_order', { ascending: true })
 
     if (error) {
       console.error('GET page_blocks error:', error)
-      return NextResponse.json({ blocks: [], pageSlug, error: error.message })
+      return NextResponse.json({ blocks: [], pageSlug: cleanSlug, error: 'Failed to load blocks' })
     }
 
     const blocks = (data || []).map(row => ({
@@ -43,17 +70,24 @@ export async function GET(request: Request) {
       items: row.items || undefined,
     }))
 
-    return NextResponse.json({ blocks, pageSlug })
+    return NextResponse.json({ blocks, pageSlug: cleanSlug })
   } catch (err: any) {
     console.error('GET /api/page-blocks error:', err)
-    return NextResponse.json({ blocks: [], error: err.message }, { status: 500 })
+    return NextResponse.json({ blocks: [], error: 'Internal server error' }, { status: 500 })
   }
 }
 
-// POST - save all page blocks
+// POST - save all page blocks — admin only
 export async function POST(request: Request) {
+  // ✅ AUTH: Only admin can modify page content
+  const auth = await requireAdmin(request)
+  if (!auth.success) {
+    return NextResponse.json({ error: auth.error.error }, { status: auth.error.status })
+  }
+
   try {
-    const supabase = getSupabase()
+    // ✅ SECURITY: Use service_role for admin writes
+    const supabase = getAdminSupabase()
     const body = await request.json()
     const { pageSlug = 'home', blocks } = body
 
@@ -61,24 +95,32 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'blocks must be an array' }, { status: 400 })
     }
 
+    // ✅ VALIDATION: Limit number of blocks
+    if (blocks.length > 50) {
+      return NextResponse.json({ error: 'Too many blocks (max 50)' }, { status: 400 })
+    }
+
+    // ✅ VALIDATION: Sanitize pageSlug
+    const cleanSlug = (pageSlug as string).replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 50) || 'home'
+
     // Delete existing blocks
     const { error: deleteError } = await supabase
       .from('page_blocks')
       .delete()
-      .eq('page_slug', pageSlug)
+      .eq('page_slug', cleanSlug)
 
     if (deleteError) {
       console.error('Delete error:', deleteError)
       return NextResponse.json({ error: 'Delete failed: ' + deleteError.message }, { status: 500 })
     }
 
-    // Insert new blocks with data and items
+    // Insert new blocks with sanitized content
     const rows = blocks.map((block: any, index: number) => ({
-      page_slug: pageSlug,
-      block_id: block.id,
-      type: block.type || 'custom',
-      label: block.label,
-      label_ru: block.labelRu || block.label,
+      page_slug: cleanSlug,
+      block_id: sanitizeString(block.id || `block_${index}`, 100),
+      type: sanitizeString(block.type || 'custom', 50),
+      label: sanitizeString(block.label || '', 200),
+      label_ru: sanitizeString(block.labelRu || block.label || '', 200),
       visible: block.visible ?? true,
       content_en: block.contentEn || '',
       content_ru: block.contentRu || '',

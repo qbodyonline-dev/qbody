@@ -1,11 +1,17 @@
 import { NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase-server'
+import { requireAdmin } from '@/lib/api-auth'
+import { isValidUUID } from '@/lib/security'
 
-// GET single lesson
+// GET single lesson — admin only
 export async function GET(
   request: Request,
   { params }: { params: { id: string } }
 ) {
+  const auth = await requireAdmin(request)
+  if (!auth.success) return NextResponse.json({ error: auth.error.error }, { status: auth.error.status })
+  if (!isValidUUID(params.id)) return NextResponse.json({ error: 'Invalid ID' }, { status: 400 })
+
   try {
     const supabase = createServerClient()
     
@@ -24,11 +30,14 @@ export async function GET(
   }
 }
 
-// PATCH update lesson
+// PATCH update lesson — admin only
 export async function PATCH(
   request: Request,
   { params }: { params: { id: string } }
 ) {
+  const auth = await requireAdmin(request)
+  if (!auth.success) return NextResponse.json({ error: auth.error.error }, { status: auth.error.status })
+
   try {
     const supabase = createServerClient()
     const body = await request.json()
@@ -61,11 +70,14 @@ export async function PATCH(
   }
 }
 
-// DELETE lesson
+// DELETE lesson — admin only
 export async function DELETE(
   request: Request,
   { params }: { params: { id: string } }
 ) {
+  const auth = await requireAdmin(request)
+  if (!auth.success) return NextResponse.json({ error: auth.error.error }, { status: auth.error.status })
+
   try {
     const supabase = createServerClient()
     

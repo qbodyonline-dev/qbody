@@ -1,34 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase-server'
+import { authenticateRequest } from '@/lib/api-auth'
+import { sanitizeString, checkRateLimit } from '@/lib/security'
 
 // GET - fetch all conversations (for admin) or user's conversation (for client)
 export async function GET(request: NextRequest) {
+  // ✅ AUTH: Centralized authentication
+  const auth = await authenticateRequest(request)
+  if (!auth.success) {
+    return NextResponse.json({ error: auth.error.error }, { status: auth.error.status })
+  }
+
   try {
     const supabase = createServerClient()
-    const authHeader = request.headers.get('authorization')
-    
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-    
-    const token = authHeader.split(' ')[1]
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token)
-    
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Invalid token' }, { status: 401 })
-    }
-    
-    // Get user profile to check role
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single()
-    
-    const isAdmin = profile?.role === 'admin' || profile?.role === 'trainer'
+    const isAdmin = auth.data.profile.role === 'admin' || auth.data.profile.role === 'trainer'
     
     if (isAdmin) {
-      // Admin: get all conversations with client info and last message
       const { data: conversations, error } = await supabase
         .from('conversations')
         .select(`
@@ -40,7 +27,6 @@ export async function GET(request: NextRequest) {
       
       if (error) throw error
       
-      // Process to get unread count and last message
       const processed = conversations?.map(conv => {
         const messages = conv.messages || []
         const unreadCount = messages.filter((m: any) => !m.is_read && m.sender_id === conv.client_id).length
@@ -52,27 +38,26 @@ export async function GET(request: NextRequest) {
           ...conv,
           unread_count: unreadCount,
           last_message: lastMessage,
-          messages: undefined // Don't send all messages in list
+          messages: undefined
         }
       })
       
       return NextResponse.json(processed)
     } else {
-      // Client: get their own conversation
       const { data: conversation, error } = await supabase
         .from('conversations')
         .select(`
           *,
           messages(id, content, sender_id, is_read, created_at)
         `)
-        .eq('client_id', user.id)
+        .eq('client_id', auth.data.user.id)
         .single()
       
-      if (error && error.code !== 'PGRST116') throw error // PGRST116 = not found
+      if (error && error.code !== 'PGRST116') throw error
       
       if (conversation) {
         const messages = conversation.messages || []
-        const unreadCount = messages.filter((m: any) => !m.is_read && m.sender_id !== user.id).length
+        const unreadCount = messages.filter((m: any) => !m.is_read && m.sender_id !== auth.data.user.id).length
         
         return NextResponse.json({
           ...conversation,
@@ -85,41 +70,38 @@ export async function GET(request: NextRequest) {
     }
   } catch (error: any) {
     console.error('Error fetching conversations:', error)
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    return NextResponse.json({ error: 'Failed to fetch conversations' }, { status: 500 })
   }
 }
 
 // POST - create a new conversation (client or admin)
 export async function POST(request: NextRequest) {
+  // ✅ AUTH: Centralized authentication
+  const auth = await authenticateRequest(request)
+  if (!auth.success) {
+    return NextResponse.json({ error: auth.error.error }, { status: auth.error.status })
+  }
+
+  // ✅ RATE LIMIT: Max 10 new conversations per minute
+  const rateCheck = checkRateLimit(`conv:${auth.data.user.id}`, 10, 60 * 1000)
+  if (!rateCheck.allowed) {
+    return NextResponse.json({ error: 'Too many requests. Please wait.' }, { status: 429 })
+  }
+
   try {
     const supabase = createServerClient()
-    const authHeader = request.headers.get('authorization')
-    
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-    
-    const token = authHeader.split(' ')[1]
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token)
-    
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Invalid token' }, { status: 401 })
-    }
-    
-    // Get user profile to check role
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single()
-    
-    const isAdmin = profile?.role === 'admin' || profile?.role === 'trainer'
+    const isAdmin = auth.data.profile.role === 'admin' || auth.data.profile.role === 'trainer'
     
     const body = await request.json()
     const { message, client_id, attachments } = body
     
-    // Determine which client this conversation is for
-    const targetClientId = isAdmin && client_id ? client_id : user.id
+    // ✅ SANITIZE: Clean message content
+    const cleanMessage = message ? sanitizeString(message, 5000) : null
+
+    // ✅ VALIDATION: Limit attachments
+    const cleanAttachments = Array.isArray(attachments) ? attachments.slice(0, 10) : []
+    
+    const targetClientId = isAdmin && client_id ? client_id : auth.data.user.id
     
     // Check if conversation already exists for this client
     const { data: existing } = await supabase
@@ -129,24 +111,22 @@ export async function POST(request: NextRequest) {
       .single()
     
     if (existing) {
-      // Add message to existing conversation
-      if (message || (attachments && attachments.length > 0)) {
+      if (cleanMessage || cleanAttachments.length > 0) {
         await supabase.from('messages').insert({
           conversation_id: existing.id,
-          sender_id: user.id,
-          content: message || null,
-          attachments: attachments || []
+          sender_id: auth.data.user.id,
+          content: cleanMessage,
+          attachments: cleanAttachments
         })
       }
       return NextResponse.json(existing)
     }
     
-    // Create new conversation
     const { data: conversation, error } = await supabase
       .from('conversations')
       .insert({
         client_id: targetClientId,
-        admin_id: isAdmin ? user.id : null,
+        admin_id: isAdmin ? auth.data.user.id : null,
         status: 'open'
       })
       .select()
@@ -154,19 +134,18 @@ export async function POST(request: NextRequest) {
     
     if (error) throw error
     
-    // Add first message if provided
-    if ((message || (attachments && attachments.length > 0)) && conversation) {
+    if ((cleanMessage || cleanAttachments.length > 0) && conversation) {
       await supabase.from('messages').insert({
         conversation_id: conversation.id,
-        sender_id: user.id,
-        content: message || null,
-        attachments: attachments || []
+        sender_id: auth.data.user.id,
+        content: cleanMessage,
+        attachments: cleanAttachments
       })
     }
     
     return NextResponse.json(conversation)
   } catch (error: any) {
     console.error('Error creating conversation:', error)
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    return NextResponse.json({ error: 'Failed to create conversation' }, { status: 500 })
   }
 }

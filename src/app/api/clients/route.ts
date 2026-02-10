@@ -1,11 +1,17 @@
 import { NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase-server'
+import { requireAdmin } from '@/lib/api-auth'
 
-export async function GET() {
+export async function GET(request: Request) {
+  // ✅ AUTH: Only admin/trainer can list all clients
+  const auth = await requireAdmin(request)
+  if (!auth.success) {
+    return NextResponse.json({ error: auth.error.error }, { status: auth.error.status })
+  }
+
   try {
     const supabase = createServerClient()
 
-    // Get all client profiles
     const { data: profiles, error } = await supabase
       .from('profiles')
       .select('id, full_name, email, phone, role, avatar_url, created_at')

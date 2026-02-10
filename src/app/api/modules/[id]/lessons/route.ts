@@ -1,11 +1,15 @@
 import { NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase-server'
+import { requireAdmin } from '@/lib/api-auth'
 
-// POST create lesson
+// POST create lesson — admin only
 export async function POST(
   request: Request,
   { params }: { params: { id: string } }
 ) {
+  const auth = await requireAdmin(request)
+  if (!auth.success) return NextResponse.json({ error: auth.error.error }, { status: auth.error.status })
+
   try {
     const supabase = createServerClient()
     const body = await request.json()

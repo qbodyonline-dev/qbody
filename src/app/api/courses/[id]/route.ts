@@ -1,25 +1,30 @@
 import { NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase-server'
+import { requireAdmin } from '@/lib/api-auth'
+import { isValidUUID } from '@/lib/security'
 
 export const dynamic = 'force-dynamic'
 
-// GET single course with modules and lessons
+// GET single course — admin only (public access through /api/public/courses/[slug])
 export async function GET(
   request: Request,
   { params }: { params: { id: string } }
 ) {
+  const auth = await requireAdmin(request)
+  if (!auth.success) {
+    return NextResponse.json({ error: auth.error.error }, { status: auth.error.status })
+  }
+
   try {
+    if (!isValidUUID(params.id)) {
+      return NextResponse.json({ error: 'Invalid course ID' }, { status: 400 })
+    }
+
     const supabase = createServerClient()
     
     const { data, error } = await supabase
       .from('courses')
-      .select(`
-        *,
-        course_modules (
-          *,
-          course_lessons (*)
-        )
-      `)
+      .select(`*, course_modules (*, course_lessons (*))`)
       .eq('id', params.id)
       .single()
     
@@ -28,7 +33,6 @@ export async function GET(
       return NextResponse.json({ error: 'Course not found' }, { status: 404 })
     }
     
-    // Sort modules and lessons by sort_order
     if (data.course_modules) {
       data.course_modules.sort((a: any, b: any) => a.sort_order - b.sort_order)
       data.course_modules.forEach((m: any) => {
@@ -45,12 +49,21 @@ export async function GET(
   }
 }
 
-// PATCH update course
+// PATCH update course — admin only
 export async function PATCH(
   request: Request,
   { params }: { params: { id: string } }
 ) {
+  const auth = await requireAdmin(request)
+  if (!auth.success) {
+    return NextResponse.json({ error: auth.error.error }, { status: auth.error.status })
+  }
+
   try {
+    if (!isValidUUID(params.id)) {
+      return NextResponse.json({ error: 'Invalid course ID' }, { status: 400 })
+    }
+
     const supabase = createServerClient()
     const body = await request.json()
     
@@ -112,12 +125,21 @@ export async function PATCH(
   }
 }
 
-// DELETE course
+// DELETE course — admin only
 export async function DELETE(
   request: Request,
   { params }: { params: { id: string } }
 ) {
+  const auth = await requireAdmin(request)
+  if (!auth.success) {
+    return NextResponse.json({ error: auth.error.error }, { status: auth.error.status })
+  }
+
   try {
+    if (!isValidUUID(params.id)) {
+      return NextResponse.json({ error: 'Invalid course ID' }, { status: 400 })
+    }
+
     const supabase = createServerClient()
     
     const { error } = await supabase

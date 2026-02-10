@@ -1,23 +1,26 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { stripe, COURSES, CourseSlug } from '@/lib/stripe'
 import { createServerClient } from '@/lib/supabase-server'
+import { authenticateRequest } from '@/lib/api-auth'
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json()
-    const { courseSlug, userId, userEmail } = body as {
-      courseSlug: string
-      userId: string
-      userEmail: string
+    // ✅ AUTH: Verify user identity server-side instead of trusting client
+    const auth = await authenticateRequest(request)
+    if (!auth.success) {
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
     }
+
+    const body = await request.json()
+    const { courseSlug } = body as { courseSlug: string }
+
+    // ✅ Use server-verified user data, not client-provided
+    const userId = auth.data.user.id
+    const userEmail = auth.data.user.email
 
     // Validate course
     if (!courseSlug || !(courseSlug in COURSES)) {
       return NextResponse.json({ error: 'Invalid course' }, { status: 400 })
-    }
-
-    if (!userId || !userEmail) {
-      return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
     }
 
     const course = COURSES[courseSlug as CourseSlug]

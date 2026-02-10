@@ -1,24 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase-server'
+import { requireAdmin } from '@/lib/api-auth'
 
 export async function GET(request: NextRequest) {
+  // ✅ AUTH: Only admin/trainer can view all orders
+  const auth = await requireAdmin(request)
+  if (!auth.success) {
+    return NextResponse.json({ error: auth.error.error }, { status: auth.error.status })
+  }
+
   try {
     const supabase = createServerClient()
 
     const { data: orders, error } = await supabase
       .from('orders')
       .select(`
-        id,
-        user_id,
-        course_slug,
-        amount,
-        currency,
-        status,
-        stripe_session_id,
-        stripe_customer_id,
-        stripe_payment_intent_id,
-        created_at,
-        paid_at
+        id, user_id, course_slug, amount, currency, status,
+        stripe_session_id, stripe_customer_id, stripe_payment_intent_id,
+        created_at, paid_at
       `)
       .order('created_at', { ascending: false })
 

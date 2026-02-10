@@ -1,7 +1,21 @@
 import { NextResponse } from 'next/server'
-import { createServerClient } from '@/lib/supabase-server'
+import { createClient } from '@supabase/supabase-js'
 
 export const dynamic = 'force-dynamic'
+
+/** ✅ SECURITY: Use anon key for public reads (respects RLS) */
+function getPublicSupabase() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      auth: { autoRefreshToken: false, persistSession: false },
+      global: {
+        fetch: (url: any, options: any = {}) => fetch(url, { ...options, cache: 'no-store' as RequestCache }),
+      },
+    }
+  )
+}
 
 // GET public course by slug
 export async function GET(
@@ -9,7 +23,13 @@ export async function GET(
   { params }: { params: { slug: string } }
 ) {
   try {
-    const supabase = createServerClient()
+    // ✅ VALIDATION: Sanitize slug
+    const slug = params.slug?.replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 200)
+    if (!slug) {
+      return NextResponse.json({ error: 'Invalid course slug' }, { status: 400 })
+    }
+
+    const supabase = getPublicSupabase()
     
     const { data, error } = await supabase
       .from('courses')
@@ -33,7 +53,7 @@ export async function GET(
           )
         )
       `)
-      .eq('slug', params.slug)
+      .eq('slug', slug)
       .eq('is_published', true)
       .single()
     
@@ -53,7 +73,6 @@ export async function GET(
       data.course_modules = data.course_modules.filter((m: any) => m.is_published)
     }
     
-    // Calculate totals
     const totalLessons = data.course_modules?.reduce((sum: number, m: any) => 
       sum + (m.course_lessons?.length || 0), 0) || 0
     const totalMinutes = data.course_modules?.reduce((sum: number, m: any) => 
@@ -66,6 +85,7 @@ export async function GET(
     })
   } catch (err: any) {
     console.error('GET /api/public/courses/[slug] error:', err)
-    return NextResponse.json({ error: err.message }, { status: 500 })
+    // ✅ SECURITY: Don't expose internal error details
+    return NextResponse.json({ error: 'Failed to load course' }, { status: 500 })
   }
 }
