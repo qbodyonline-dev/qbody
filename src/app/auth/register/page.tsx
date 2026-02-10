@@ -29,8 +29,10 @@ function RegisterContent() {
   const { execute: executeRecaptcha } = useRecaptcha()
 
   const validatePassword = (pw: string): string | null => {
-    if (pw.length < 6) return ru ? 'Пароль минимум 6 символов' : 'Password must be at least 6 characters'
+    if (pw.length < 8) return ru ? 'Пароль минимум 8 символов' : 'Password must be at least 8 characters'
+    if (pw.length > 128) return ru ? 'Пароль слишком длинный' : 'Password is too long'
     if (!/[A-Z]/.test(pw)) return ru ? 'Пароль должен содержать хотя бы 1 заглавную букву' : 'Password must contain at least 1 uppercase letter'
+    if (!/[0-9]/.test(pw)) return ru ? 'Пароль должен содержать хотя бы 1 цифру' : 'Password must contain at least 1 number'
     if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?`~]/.test(pw)) return ru ? 'Пароль должен содержать хотя бы 1 спец. символ (!@#$%...)' : 'Password must contain at least 1 special character (!@#$%...)'
     return null
   }
@@ -108,14 +110,14 @@ function RegisterContent() {
             </div>
           )}
           <form onSubmit={handleSubmit} className="space-y-4">
-            <Input label={t('common.name')} type="text" placeholder={ru ? 'Ваше имя' : 'Your name'} icon={<User className="w-5 h-5" />} value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} required />
-            <Input label={t('common.email')} type="email" placeholder="your@email.com" icon={<Mail className="w-5 h-5" />} value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} required />
-            <Input label={ru ? 'Телефон' : 'Phone'} type="tel" placeholder="+1 (555) 123-4567" icon={<Phone className="w-5 h-5" />} value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} required />
+            <Input label={t('common.name')} type="text" name="name" autoComplete="name" placeholder={ru ? 'Ваше имя' : 'Your name'} icon={<User className="w-5 h-5" />} value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} required />
+            <Input label={t('common.email')} type="email" name="email" autoComplete="email" placeholder="your@email.com" icon={<Mail className="w-5 h-5" />} value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} required />
+            <Input label={ru ? 'Телефон' : 'Phone'} type="tel" name="phone" autoComplete="tel" placeholder="+1 (555) 123-4567" icon={<Phone className="w-5 h-5" />} value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} required />
             <div>
-              <Input label={t('common.password')} type="password" placeholder={ru ? 'Минимум 6 символов' : 'Min 6 characters'} icon={<Lock className="w-5 h-5" />} value={formData.password} onChange={(e) => setFormData({ ...formData, password: e.target.value })} required />
-              <p className="text-xs text-zinc-400 mt-1">{ru ? 'Минимум 6 символов, 1 заглавная буква, 1 спец. символ' : 'Min 6 chars, 1 uppercase letter, 1 special character'}</p>
+              <Input label={t('common.password')} type="password" name="new-password" autoComplete="new-password" placeholder={ru ? 'Минимум 8 символов' : 'Min 8 characters'} icon={<Lock className="w-5 h-5" />} value={formData.password} onChange={(e) => setFormData({ ...formData, password: e.target.value })} required />
+              <p className="text-xs text-zinc-400 mt-1">{ru ? 'Минимум 8 символов, 1 заглавная, 1 цифра, 1 спец. символ' : 'Min 8 chars, 1 uppercase, 1 number, 1 special character'}</p>
             </div>
-            <Input label={t('common.confirmPassword')} type="password" placeholder={ru ? 'Повторите пароль' : 'Repeat password'} icon={<Lock className="w-5 h-5" />} value={formData.confirmPassword} onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })} required />
+            <Input label={t('common.confirmPassword')} type="password" name="confirm-password" autoComplete="new-password" placeholder={ru ? 'Повторите пароль' : 'Repeat password'} icon={<Lock className="w-5 h-5" />} value={formData.confirmPassword} onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })} required />
 
             <label className="flex items-start gap-3 cursor-pointer py-1">
               <input type="checkbox" className="mt-0.5 w-5 h-5 rounded border-zinc-300 accent-teal-500 flex-shrink-0" checked={consent} onChange={(e) => setConsent(e.target.checked)} />

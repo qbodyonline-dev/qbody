@@ -117,8 +117,8 @@ function LoginForm() {
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <Input label={t('common.email')} type="email" placeholder="your@email.com" icon={<Mail className="w-5 h-5" />} value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} required />
-          <Input label={t('common.password')} type="password" placeholder="••••••••" icon={<Lock className="w-5 h-5" />} value={formData.password} onChange={(e) => setFormData({ ...formData, password: e.target.value })} required />
+          <Input label={t('common.email')} type="email" name="email" autoComplete="email" placeholder="your@email.com" icon={<Mail className="w-5 h-5" />} value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} required />
+          <Input label={t('common.password')} type="password" name="password" autoComplete="current-password" placeholder="••••••••" icon={<Lock className="w-5 h-5" />} value={formData.password} onChange={(e) => setFormData({ ...formData, password: e.target.value })} required />
           <div className="flex justify-end">
             <Link href="/auth/forgot-password" className="text-sm text-teal-500 hover:text-teal-600 transition-colors">{t('auth.login.forgotPassword')}</Link>
           </div>

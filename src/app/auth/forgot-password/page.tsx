@@ -100,6 +100,8 @@ export default function ForgotPasswordPage() {
               <Input
                 label={t('common.email')}
                 type="email"
+                name="email"
+                autoComplete="email"
                 placeholder="your@email.com"
                 icon={<Mail className="w-5 h-5" />}
                 value={email}
