@@ -30,7 +30,7 @@ export async function GET(
 
     if (accessError) {
       console.error('Error fetching course access:', accessError)
-      return NextResponse.json({ error: accessError.message }, { status: 500 })
+      return NextResponse.json({ error: 'Failed to fetch course access' }, { status: 500 })
     }
 
     // Get all courses for reference
@@ -95,7 +95,7 @@ export async function GET(
     return NextResponse.json({ courses: enrichedAccess || [] })
   } catch (err: any) {
     console.error('GET /api/clients/[id]/courses error:', err)
-    return NextResponse.json({ error: err.message }, { status: 500 })
+    return NextResponse.json({ error: 'Failed to fetch courses' }, { status: 500 })
   }
 }
 
@@ -112,6 +112,11 @@ export async function POST(
   try {
     const supabase = createServerClient()
     const userId = params.id
+
+    if (!isValidUUID(userId)) {
+      return NextResponse.json({ error: 'Invalid client ID' }, { status: 400 })
+    }
+
     const body = await request.json()
     const { course_slug } = body
 
@@ -145,7 +150,7 @@ export async function POST(
 
     if (error) {
       console.error('Error granting course access:', error)
-      return NextResponse.json({ error: error.message }, { status: 500 })
+      return NextResponse.json({ error: 'Failed to grant access' }, { status: 500 })
     }
 
     // Get user profile for email notification
@@ -174,7 +179,7 @@ export async function POST(
     return NextResponse.json(data)
   } catch (err: any) {
     console.error('POST /api/clients/[id]/courses error:', err)
-    return NextResponse.json({ error: err.message }, { status: 500 })
+    return NextResponse.json({ error: 'Failed to grant access' }, { status: 500 })
   }
 }
 
@@ -191,6 +196,11 @@ export async function PATCH(
   try {
     const supabase = createServerClient()
     const userId = params.id
+
+    if (!isValidUUID(userId)) {
+      return NextResponse.json({ error: 'Invalid client ID' }, { status: 400 })
+    }
+
     const body = await request.json()
     const { course_slug, is_active } = body
 
@@ -206,13 +216,13 @@ export async function PATCH(
 
     if (error) {
       console.error('Error updating course access:', error)
-      return NextResponse.json({ error: error.message }, { status: 500 })
+      return NextResponse.json({ error: 'Failed to update access' }, { status: 500 })
     }
 
     return NextResponse.json({ success: true })
   } catch (err: any) {
     console.error('PATCH /api/clients/[id]/courses error:', err)
-    return NextResponse.json({ error: err.message }, { status: 500 })
+    return NextResponse.json({ error: 'Failed to update access' }, { status: 500 })
   }
 }
 
@@ -229,6 +239,11 @@ export async function DELETE(
   try {
     const supabase = createServerClient()
     const userId = params.id
+
+    if (!isValidUUID(userId)) {
+      return NextResponse.json({ error: 'Invalid client ID' }, { status: 400 })
+    }
+
     const { searchParams } = new URL(request.url)
     const courseSlug = searchParams.get('course_slug')
 
@@ -251,7 +266,7 @@ export async function DELETE(
 
     if (error) {
       console.error('Error revoking course access:', error)
-      return NextResponse.json({ error: error.message }, { status: 500 })
+      return NextResponse.json({ error: 'Failed to revoke access' }, { status: 500 })
     }
 
     // Get course name
@@ -272,6 +287,6 @@ export async function DELETE(
     return NextResponse.json({ success: true })
   } catch (err: any) {
     console.error('DELETE /api/clients/[id]/courses error:', err)
-    return NextResponse.json({ error: err.message }, { status: 500 })
+    return NextResponse.json({ error: 'Failed to revoke access' }, { status: 500 })
   }
 }

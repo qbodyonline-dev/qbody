@@ -19,7 +19,8 @@ export async function GET(request: Request) {
       .order('created_at', { ascending: false })
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 })
+      console.error('Clients query error:', error)
+      return NextResponse.json({ error: 'Failed to fetch clients' }, { status: 500 })
     }
 
     // Get course access
@@ -41,6 +42,7 @@ export async function GET(request: Request) {
 
     return NextResponse.json(clients)
   } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 })
+    console.error('GET /api/clients error:', err)
+    return NextResponse.json({ error: 'Failed to fetch clients' }, { status: 500 })
   }
 }

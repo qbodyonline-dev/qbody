@@ -47,7 +47,8 @@ export async function POST(
     })
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 })
+      console.error('Password change error:', error)
+      return NextResponse.json({ error: 'Failed to change password' }, { status: 500 })
     }
 
     // Get user profile for email notification
@@ -68,6 +69,7 @@ export async function POST(
 
     return NextResponse.json({ success: true })
   } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 })
+    console.error('POST /api/clients/[id]/password error:', err)
+    return NextResponse.json({ error: 'Failed to change password' }, { status: 500 })
   }
 }

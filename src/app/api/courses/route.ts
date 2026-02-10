@@ -36,7 +36,7 @@ export async function GET(request: Request) {
     return NextResponse.json(courses)
   } catch (err: any) {
     console.error('GET /api/courses error:', err)
-    return NextResponse.json({ error: err.message }, { status: 500 })
+    return NextResponse.json({ error: 'Failed to fetch courses' }, { status: 500 })
   }
 }
 
@@ -86,6 +86,6 @@ export async function POST(request: Request) {
     return NextResponse.json(data)
   } catch (err: any) {
     console.error('POST /api/courses error:', err)
-    return NextResponse.json({ error: err.message }, { status: 500 })
+    return NextResponse.json({ error: 'Failed to create course' }, { status: 500 })
   }
 }

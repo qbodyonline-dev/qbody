@@ -1,11 +1,24 @@
 import { NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase-server'
+import { requireAdmin } from '@/lib/api-auth'
+import { isValidUUID, sanitizeString } from '@/lib/security'
 
-// POST create module
+// POST create module — admin only
 export async function POST(
   request: Request,
   { params }: { params: { id: string } }
 ) {
+  // ✅ AUTH: Only admin/trainer can create modules
+  const auth = await requireAdmin(request)
+  if (!auth.success) {
+    return NextResponse.json({ error: auth.error.error }, { status: auth.error.status })
+  }
+
+  // ✅ VALIDATION: Check UUID format
+  if (!isValidUUID(params.id)) {
+    return NextResponse.json({ error: 'Invalid course ID' }, { status: 400 })
+  }
+
   try {
     const supabase = createServerClient()
     const body = await request.json()
@@ -24,10 +37,10 @@ export async function POST(
       .from('course_modules')
       .insert({
         course_id: params.id,
-        title: body.title || 'New Module',
-        title_ru: body.title_ru || 'Новый модуль',
-        description: body.description || null,
-        description_ru: body.description_ru || null,
+        title: sanitizeString(body.title || 'New Module', 500),
+        title_ru: sanitizeString(body.title_ru || 'Новый модуль', 500),
+        description: sanitizeString(body.description || '', 5000) || null,
+        description_ru: sanitizeString(body.description_ru || '', 5000) || null,
         sort_order: nextOrder,
         is_published: body.is_published ?? true,
       })
@@ -39,6 +52,6 @@ export async function POST(
     return NextResponse.json(data)
   } catch (err: any) {
     console.error('POST /api/courses/[id]/modules error:', err)
-    return NextResponse.json({ error: err.message }, { status: 500 })
+    return NextResponse.json({ error: 'Failed to create module' }, { status: 500 })
   }
 }

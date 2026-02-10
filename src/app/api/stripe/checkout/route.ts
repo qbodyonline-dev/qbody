@@ -96,8 +96,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ url: session.url })
   } catch (error: any) {
     console.error('Stripe checkout error:', error)
+    // ✅ SECURITY: Don't expose Stripe internal error details
     return NextResponse.json(
-      { error: error.message || 'Internal server error' },
+      { error: 'Payment processing failed. Please try again.' },
       { status: 500 }
     )
   }

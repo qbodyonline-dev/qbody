@@ -50,7 +50,7 @@ export async function GET(
       orders: ordersData || [],
     })
   } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 })
+    return NextResponse.json({ error: 'Failed to fetch client' }, { status: 500 })
   }
 }
 
@@ -84,12 +84,14 @@ export async function PATCH(
       .eq('id', id)
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 })
+      console.error('Client update error:', error)
+      return NextResponse.json({ error: 'Failed to update client' }, { status: 500 })
     }
 
     return NextResponse.json({ success: true })
   } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 })
+    console.error('PATCH /api/clients/[id] error:', err)
+    return NextResponse.json({ error: 'Failed to update client' }, { status: 500 })
   }
 }
 
@@ -125,6 +127,6 @@ export async function DELETE(
 
     return NextResponse.json({ success: true })
   } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 })
+    return NextResponse.json({ error: 'Failed to delete client' }, { status: 500 })
   }
 }

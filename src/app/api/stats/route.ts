@@ -33,6 +33,6 @@ export async function GET(request: Request) {
       paidOrders: (orders || []).length,
     })
   } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 })
+    return NextResponse.json({ error: 'Failed to fetch stats' }, { status: 500 })
   }
 }

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase-server'
 import { requireAdmin } from '@/lib/api-auth'
-import { isValidUUID } from '@/lib/security'
+import { isValidUUID, sanitizeString } from '@/lib/security'
 
 // PATCH update module — admin only
 export async function PATCH(
@@ -16,13 +16,14 @@ export async function PATCH(
     const supabase = createServerClient()
     const body = await request.json()
     
+    // ✅ SANITIZE: Clean input fields
     const updateData: any = {}
-    if (body.title !== undefined) updateData.title = body.title
-    if (body.title_ru !== undefined) updateData.title_ru = body.title_ru
-    if (body.description !== undefined) updateData.description = body.description
-    if (body.description_ru !== undefined) updateData.description_ru = body.description_ru
-    if (body.sort_order !== undefined) updateData.sort_order = body.sort_order
-    if (body.is_published !== undefined) updateData.is_published = body.is_published
+    if (body.title !== undefined) updateData.title = sanitizeString(body.title, 500)
+    if (body.title_ru !== undefined) updateData.title_ru = sanitizeString(body.title_ru, 500)
+    if (body.description !== undefined) updateData.description = sanitizeString(body.description, 5000)
+    if (body.description_ru !== undefined) updateData.description_ru = sanitizeString(body.description_ru, 5000)
+    if (body.sort_order !== undefined) updateData.sort_order = Number(body.sort_order) || 0
+    if (body.is_published !== undefined) updateData.is_published = !!body.is_published
     
     const { data, error } = await supabase
       .from('course_modules')
@@ -36,7 +37,7 @@ export async function PATCH(
     return NextResponse.json(data)
   } catch (err: any) {
     console.error('PATCH /api/modules/[id] error:', err)
-    return NextResponse.json({ error: err.message }, { status: 500 })
+    return NextResponse.json({ error: 'Failed to update module' }, { status: 500 })
   }
 }
 
@@ -62,6 +63,6 @@ export async function DELETE(
     return NextResponse.json({ success: true })
   } catch (err: any) {
     console.error('DELETE /api/modules/[id] error:', err)
-    return NextResponse.json({ error: err.message }, { status: 500 })
+    return NextResponse.json({ error: 'Failed to delete module' }, { status: 500 })
   }
 }

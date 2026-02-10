@@ -34,8 +34,25 @@ export async function middleware(request: NextRequest) {
   // Refresh session — updates cookies if token was refreshed
   const { data: { user } } = await supabase.auth.getUser()
 
-  // ✅ SECURITY: Block requests with suspicious headers
   const pathname = request.nextUrl.pathname
+
+  // ✅ CSRF PROTECTION: Verify Origin for state-changing API requests
+  if (pathname.startsWith('/api/') && ['POST', 'PUT', 'PATCH', 'DELETE'].includes(request.method)) {
+    // Skip CSRF check for Stripe webhooks (uses signature verification)
+    if (!pathname.startsWith('/api/stripe/webhook') && !pathname.startsWith('/api/webhooks/')) {
+      const origin = request.headers.get('origin')
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://qbody.vercel.app'
+      const allowedOrigins = [
+        new URL(appUrl).origin,
+        'https://qbody.vercel.app',
+        'http://localhost:3000',
+      ]
+
+      if (origin && !allowedOrigins.includes(origin)) {
+        return NextResponse.json({ error: 'Forbidden: Invalid origin' }, { status: 403 })
+      }
+    }
+  }
 
   // Protect /dashboard — redirect to login if no user
   if (pathname.startsWith('/dashboard') && !user) {
@@ -62,5 +79,6 @@ export const config = {
     '/',
     '/dashboard/:path*',
     '/auth/:path*',
+    '/api/:path*',
   ],
 }

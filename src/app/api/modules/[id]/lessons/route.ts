@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase-server'
 import { requireAdmin } from '@/lib/api-auth'
+import { isValidUUID, sanitizeString } from '@/lib/security'
 
 // POST create lesson — admin only
 export async function POST(
@@ -9,6 +10,11 @@ export async function POST(
 ) {
   const auth = await requireAdmin(request)
   if (!auth.success) return NextResponse.json({ error: auth.error.error }, { status: auth.error.status })
+
+  // ✅ VALIDATION: Check UUID format
+  if (!isValidUUID(params.id)) {
+    return NextResponse.json({ error: 'Invalid module ID' }, { status: 400 })
+  }
 
   try {
     const supabase = createServerClient()
@@ -28,8 +34,8 @@ export async function POST(
       .from('course_lessons')
       .insert({
         module_id: params.id,
-        title: body.title || 'New Lesson',
-        title_ru: body.title_ru || 'Новый урок',
+        title: sanitizeString(body.title || 'New Lesson', 500),
+        title_ru: sanitizeString(body.title_ru || 'Новый урок', 500),
         type: body.type || 'video',
         duration_minutes: body.duration_minutes || 10,
         video_url: body.video_url || null,
@@ -47,6 +53,6 @@ export async function POST(
     return NextResponse.json(data)
   } catch (err: any) {
     console.error('POST /api/modules/[id]/lessons error:', err)
-    return NextResponse.json({ error: err.message }, { status: 500 })
+    return NextResponse.json({ error: 'Failed to create lesson' }, { status: 500 })
   }
 }
