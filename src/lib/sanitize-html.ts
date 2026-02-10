@@ -31,7 +31,7 @@ const DANGEROUS_ATTRS = new Set([
 ])
 
 // Allowed URL schemes
-const SAFE_URL_SCHEMES = new Set(['http:', 'https:', 'mailto:', 'tel:', '#', '/'])
+const SAFE_URL_SCHEMES = ['http:', 'https:', 'mailto:', 'tel:', '#', '/']
 
 /**
  * Check if a URL is safe (no javascript:, data:text/html, vbscript:, etc.)
@@ -50,9 +50,7 @@ function isSafeUrl(url: string): boolean {
   if (trimmed.startsWith('data:application')) return false
   
   // Allow safe schemes
-  for (const scheme of SAFE_URL_SCHEMES) {
-    if (trimmed.startsWith(scheme)) return true
-  }
+  if (SAFE_URL_SCHEMES.some(scheme => trimmed.startsWith(scheme))) return true
   
   // Allow schemeless URLs (e.g., "example.com")
   if (!trimmed.includes(':')) return true
