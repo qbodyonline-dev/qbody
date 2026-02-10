@@ -14,6 +14,7 @@ import {
   ListChecks, Save, Upload, Image, GripVertical, X, Check
 } from 'lucide-react'
 import { toast } from 'sonner'
+import { fetchWithAuth, fetchWithAuthUpload } from '@/lib/api'
 
 type ContentBlock = {
   id: string
@@ -89,7 +90,7 @@ export default function CourseEditorPage() {
 
   const loadCourse = async () => {
     try {
-      const res = await fetch(`/api/courses/${courseId}`)
+      const res = await fetchWithAuth(`/api/courses/${courseId}`)
       if (!res.ok) throw new Error('Not found')
       const data = await res.json()
       setCourse(data)
@@ -118,10 +119,7 @@ export default function CourseEditorPage() {
     formData.append('folder', folder)
     
     try {
-      const res = await fetch('/api/upload', {
-        method: 'POST',
-        body: formData,
-      })
+      const res = await fetchWithAuthUpload('/api/upload', { method: 'POST', body: formData })
       if (!res.ok) throw new Error('Upload failed')
       const data = await res.json()
       return data.url
@@ -251,17 +249,15 @@ export default function CourseEditorPage() {
     setSaving(true)
     try {
       if (editingModule) {
-        const res = await fetch(`/api/modules/${editingModule.id}`, {
+        const res = await fetchWithAuth(`/api/modules/${editingModule.id}`, {
           method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(moduleForm),
         })
         if (!res.ok) throw new Error('Failed')
         toast.success(ru ? 'Модуль обновлён' : 'Module updated')
       } else {
-        const res = await fetch(`/api/courses/${courseId}/modules`, {
+        const res = await fetchWithAuth(`/api/courses/${courseId}/modules`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(moduleForm),
         })
         if (!res.ok) throw new Error('Failed')
@@ -279,7 +275,7 @@ export default function CourseEditorPage() {
   const deleteModule = async (id: string) => {
     if (!confirm(ru ? 'Удалить модуль и все его уроки?' : 'Delete module and all its lessons?')) return
     try {
-      const res = await fetch(`/api/modules/${id}`, { method: 'DELETE' })
+      const res = await fetchWithAuth(`/api/modules/${id}`, { method: 'DELETE' })
       if (!res.ok) throw new Error('Failed')
       toast.success(ru ? 'Модуль удалён' : 'Module deleted')
       loadCourse()
@@ -335,17 +331,15 @@ export default function CourseEditorPage() {
       }
 
       if (editingLesson) {
-        const res = await fetch(`/api/lessons/${editingLesson.lesson.id}`, {
+        const res = await fetchWithAuth(`/api/lessons/${editingLesson.lesson.id}`, {
           method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload),
         })
         if (!res.ok) throw new Error('Failed')
         toast.success(ru ? 'Урок сохранён!' : 'Lesson saved!')
       } else if (addingToModuleId) {
-        const res = await fetch(`/api/modules/${addingToModuleId}/lessons`, {
+        const res = await fetchWithAuth(`/api/modules/${addingToModuleId}/lessons`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload),
         })
         if (!res.ok) throw new Error('Failed')
@@ -363,7 +357,7 @@ export default function CourseEditorPage() {
   const deleteLesson = async (id: string) => {
     if (!confirm(ru ? 'Удалить урок?' : 'Delete lesson?')) return
     try {
-      const res = await fetch(`/api/lessons/${id}`, { method: 'DELETE' })
+      const res = await fetchWithAuth(`/api/lessons/${id}`, { method: 'DELETE' })
       if (!res.ok) throw new Error('Failed')
       toast.success(ru ? 'Урок удалён' : 'Lesson deleted')
       loadCourse()
@@ -374,9 +368,8 @@ export default function CourseEditorPage() {
 
   const toggleLessonPublished = async (lesson: Lesson) => {
     try {
-      await fetch(`/api/lessons/${lesson.id}`, {
+      await fetchWithAuth(`/api/lessons/${lesson.id}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ is_published: !lesson.is_published }),
       })
       loadCourse()
@@ -419,9 +412,8 @@ export default function CourseEditorPage() {
     // Update sort_order for all lessons
     try {
       await Promise.all(lessons.map((lesson, index) => 
-        fetch(`/api/lessons/${lesson.id}`, {
+        fetchWithAuth(`/api/lessons/${lesson.id}`, {
           method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ sort_order: index }),
         })
       ))

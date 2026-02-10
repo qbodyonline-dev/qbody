@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input'
 import { useTranslation } from '@/lib/i18n'
 import { Plus, Edit, Eye, EyeOff, BookOpen, DollarSign, Clock, Trash2, Loader2, Layers, FileText, Globe } from 'lucide-react'
 import { toast } from 'sonner'
+import { fetchWithAuth } from '@/lib/api'
 
 type Course = {
   id: string
@@ -46,7 +47,7 @@ export default function CoursesAdminPage() {
 
   const loadCourses = async () => {
     try {
-      const res = await fetch('/api/courses')
+      const res = await fetchWithAuth('/api/courses')
       if (!res.ok) throw new Error('Failed to load')
       const data = await res.json()
       setCourses(data)
@@ -78,9 +79,8 @@ export default function CoursesAdminPage() {
     }
     setSaving(true)
     try {
-      const res = await fetch('/api/courses', {
+      const res = await fetchWithAuth('/api/courses', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           title: form.title,
           title_ru: form.title_ru || null,
@@ -113,9 +113,8 @@ export default function CoursesAdminPage() {
     if (!selectedCourse) return
     setSaving(true)
     try {
-      const res = await fetch(`/api/courses/${selectedCourse.id}`, {
+      const res = await fetchWithAuth(`/api/courses/${selectedCourse.id}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           title: form.title,
           title_ru: form.title_ru || null,
@@ -145,7 +144,7 @@ export default function CoursesAdminPage() {
     if (!selectedCourse) return
     setSaving(true)
     try {
-      const res = await fetch(`/api/courses/${selectedCourse.id}`, { method: 'DELETE' })
+      const res = await fetchWithAuth(`/api/courses/${selectedCourse.id}`, { method: 'DELETE' })
       if (!res.ok) throw new Error('Failed')
       toast.success(ru ? 'Курс удалён' : 'Course deleted')
       setIsDeleteOpen(false)
@@ -176,9 +175,8 @@ export default function CoursesAdminPage() {
 
   const togglePublish = async (course: Course) => {
     try {
-      const res = await fetch(`/api/courses/${course.id}`, {
+      const res = await fetchWithAuth(`/api/courses/${course.id}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ is_published: !course.is_published }),
       })
       if (!res.ok) throw new Error('Failed')

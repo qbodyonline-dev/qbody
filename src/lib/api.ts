@@ -18,10 +18,26 @@ export async function fetchWithAuth(url: string, options: RequestInit = {}) {
   return fetch(url, { ...options, headers })
 }
 
-// Dashboard stats — via API route (server-side, bypasses RLS)
+// Helper for authenticated file uploads (FormData — no Content-Type header)
+export async function fetchWithAuthUpload(url: string, options: RequestInit = {}) {
+  const supabase = createClient()
+  const { data: { session } } = await supabase.auth.getSession()
+  
+  if (!session?.access_token) {
+    throw new Error('No session')
+  }
+  
+  const headers: Record<string, string> = {
+    'Authorization': `Bearer ${session.access_token}`,
+  }
+  
+  return fetch(url, { ...options, headers })
+}
+
+// Dashboard stats — via API route (requires admin auth)
 export async function getDashboardStats() {
   try {
-    const res = await fetch('/api/stats')
+    const res = await fetchWithAuth('/api/stats')
     if (!res.ok) throw new Error('Failed to fetch stats')
     return await res.json()
   } catch {
@@ -29,10 +45,10 @@ export async function getDashboardStats() {
   }
 }
 
-// Clients — via API route (server-side, bypasses RLS)
+// Clients — via API route (requires admin auth)
 export async function getClients() {
   try {
-    const res = await fetch('/api/clients')
+    const res = await fetchWithAuth('/api/clients')
     if (!res.ok) throw new Error('Failed to fetch clients')
     return await res.json()
   } catch {

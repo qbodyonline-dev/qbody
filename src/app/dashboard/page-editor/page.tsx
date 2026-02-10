@@ -11,6 +11,7 @@ import {
   Maximize2, Minimize2, Plus, Loader2, Code2, LayoutList
 } from 'lucide-react'
 import { toast } from 'sonner'
+import { fetchWithAuth } from '@/lib/api'
 
 // Local modules
 import { TEMPLATES, initBlocks, defaultCourseItems, defaultProgramItems, defaultResultItems, defaultHeaderData, defaultHeroData, defaultAboutData } from './default-content'
@@ -80,9 +81,8 @@ export default function PageEditorPage() {
   // Helper to save blocks to DB
   const saveBlocksToDB = async (blocksToSave: PageBlock[]) => {
     try {
-      const res = await fetch('/api/page-blocks', {
+      const res = await fetchWithAuth('/api/page-blocks', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ pageSlug: 'home', blocks: blocksToSave })
       })
       if (!res.ok) {
@@ -272,12 +272,7 @@ export default function PageEditorPage() {
           }}>{lang === 'ru' ? 'Сброс' : 'Reset'}</Button>
           <Button variant="gradient" size="sm" onClick={async () => {
             try {
-              const res = await fetch('/api/page-blocks', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ pageSlug: 'home', blocks })
-              })
-              if (!res.ok) throw new Error('Save failed')
+              await saveBlocksToDB(blocks)
               toast.success(lang === 'ru' ? 'Сохранено в базу!' : 'Saved to database!')
             } catch { toast.error(lang === 'ru' ? 'Ошибка сохранения' : 'Save failed') }
           }}><Save className="w-3.5 h-3.5 mr-1.5" />{lang === 'ru' ? 'Сохранить' : 'Save'}</Button>

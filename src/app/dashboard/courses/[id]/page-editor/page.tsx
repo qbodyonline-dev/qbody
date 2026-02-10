@@ -11,6 +11,7 @@ import {
   MessageSquare, DollarSign, BookOpen, Plus, Trash2, Upload, Palette, X
 } from 'lucide-react'
 import { toast } from 'sonner'
+import { fetchWithAuth, fetchWithAuthUpload } from '@/lib/api'
 
 export default function CoursePageEditorPage() {
   const { locale } = useTranslation()
@@ -38,7 +39,7 @@ export default function CoursePageEditorPage() {
         const formData = new FormData()
         formData.append('file', file)
         formData.append('folder', `courses/${courseId}`)
-        const res = await fetch('/api/upload', { method: 'POST', body: formData })
+        const res = await fetchWithAuthUpload('/api/upload', { method: 'POST', body: formData })
         if (!res.ok) throw new Error('Upload failed')
         const data = await res.json()
         setForm((prev: any) => ({ ...prev, [field]: data.url }))
@@ -54,7 +55,7 @@ export default function CoursePageEditorPage() {
 
   const loadCourse = async () => {
     try {
-      const res = await fetch(`/api/courses/${courseId}`)
+      const res = await fetchWithAuth(`/api/courses/${courseId}`)
       if (!res.ok) throw new Error('Not found')
       const data = await res.json()
       setCourse(data)
@@ -107,9 +108,8 @@ export default function CoursePageEditorPage() {
   const handleSave = async () => {
     setSaving(true)
     try {
-      const res = await fetch(`/api/courses/${courseId}`, {
+      const res = await fetchWithAuth(`/api/courses/${courseId}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...form,
           price: parseFloat(form.price) || 99,

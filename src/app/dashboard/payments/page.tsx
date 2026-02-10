@@ -14,6 +14,7 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { COURSES } from '@/lib/stripe'
+import { fetchWithAuth } from '@/lib/api'
 
 type OrderStatus = 'pending' | 'paid' | 'expired' | 'refunded'
 
@@ -63,7 +64,7 @@ export default function PaymentsPage() {
   const fetchOrders = async () => {
     setLoading(true)
     try {
-      const res = await fetch('/api/orders')
+      const res = await fetchWithAuth('/api/orders')
       const data = await res.json()
       if (data.orders) {
         setOrders(data.orders)

@@ -16,6 +16,7 @@ import {
   Eye, BarChart3, CreditCard, ExternalLink
 } from 'lucide-react'
 import { toast } from 'sonner'
+import { fetchWithAuth } from '@/lib/api'
 
 const coursesMeta: Record<string, { title: string; titleRu: string; icon: any; color: string }> = {
   'breast-augmentation-recovery': { title: 'Breast Augmentation Recovery', titleRu: 'Восстановление после увеличения груди', icon: Heart, color: 'from-pink-500 to-rose-500' },
@@ -90,7 +91,7 @@ export default function ClientDetailPage() {
     const load = async () => {
       try {
         // Load client data
-        const res = await fetch(`/api/clients/${clientId}`)
+        const res = await fetchWithAuth(`/api/clients/${clientId}`)
         if (!res.ok) {
           setClient(null)
         } else {
@@ -100,7 +101,7 @@ export default function ClientDetailPage() {
         }
         
         // Load available courses
-        const coursesRes = await fetch('/api/courses')
+        const coursesRes = await fetchWithAuth('/api/courses')
         if (coursesRes.ok) {
           const coursesData = await coursesRes.json()
           setAvailableCourses(coursesData.map((c: any) => ({
@@ -112,7 +113,7 @@ export default function ClientDetailPage() {
         }
         
         // Load course progress
-        const progressRes = await fetch(`/api/clients/${clientId}/courses`)
+        const progressRes = await fetchWithAuth(`/api/clients/${clientId}/courses`)
         if (progressRes.ok) {
           const progressData = await progressRes.json()
           setCourseProgress(progressData.courses || [])
@@ -155,9 +156,8 @@ export default function ClientDetailPage() {
   const handleSave = async () => {
     setSaving(true)
     try {
-      const res = await fetch(`/api/clients/${clientId}`, {
+      const res = await fetchWithAuth(`/api/clients/${clientId}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(editForm),
       })
       if (!res.ok) throw new Error('Failed to update')
@@ -175,7 +175,7 @@ export default function ClientDetailPage() {
   const handleDelete = async () => {
     setSaving(true)
     try {
-      const res = await fetch(`/api/clients/${clientId}`, { method: 'DELETE' })
+      const res = await fetchWithAuth(`/api/clients/${clientId}`, { method: 'DELETE' })
       if (!res.ok) throw new Error('Failed to delete')
       
       toast.success(ru ? 'Клиент удалён' : 'Client deleted')
@@ -194,9 +194,8 @@ export default function ClientDetailPage() {
     }
     setSaving(true)
     try {
-      const res = await fetch(`/api/clients/${clientId}/password`, {
+      const res = await fetchWithAuth(`/api/clients/${clientId}/password`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ password: newPassword }),
       })
       if (!res.ok) throw new Error('Failed')
@@ -218,9 +217,8 @@ export default function ClientDetailPage() {
     }
     setSaving(true)
     try {
-      const res = await fetch(`/api/clients/${clientId}/courses`, {
+      const res = await fetchWithAuth(`/api/clients/${clientId}/courses`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ course_slug: selectedCourse }),
       })
       if (!res.ok) {
@@ -229,14 +227,14 @@ export default function ClientDetailPage() {
       }
       
       // Refresh client data
-      const clientRes = await fetch(`/api/clients/${clientId}`)
+      const clientRes = await fetchWithAuth(`/api/clients/${clientId}`)
       if (clientRes.ok) {
         const data = await clientRes.json()
         setClient(data)
       }
       
       // Refresh progress data
-      const progressRes = await fetch(`/api/clients/${clientId}/courses`)
+      const progressRes = await fetchWithAuth(`/api/clients/${clientId}/courses`)
       if (progressRes.ok) {
         const progressData = await progressRes.json()
         setCourseProgress(progressData.courses || [])
@@ -255,9 +253,8 @@ export default function ClientDetailPage() {
   const handleToggleCourseStatus = async (courseSlug: string, isActive: boolean) => {
     setSaving(true)
     try {
-      const res = await fetch(`/api/clients/${clientId}/courses`, {
+      const res = await fetchWithAuth(`/api/clients/${clientId}/courses`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ course_slug: courseSlug, is_active: !isActive }),
       })
       if (!res.ok) throw new Error('Failed')
@@ -291,7 +288,7 @@ export default function ClientDetailPage() {
     
     setSaving(true)
     try {
-      const res = await fetch(`/api/clients/${clientId}/courses?course_slug=${courseSlug}`, {
+      const res = await fetchWithAuth(`/api/clients/${clientId}/courses?course_slug=${courseSlug}`, {
         method: 'DELETE',
       })
       if (!res.ok) throw new Error('Failed')

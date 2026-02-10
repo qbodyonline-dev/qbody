@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input'
 import { useTranslation } from '@/lib/i18n'
 import { Save, Globe, Palette, FileText, Instagram, Upload, Eye, Image, Edit, Languages, Search, AlertCircle, CheckCircle2, X, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
+import { fetchWithAuth, fetchWithAuthUpload } from '@/lib/api'
 
 const tabs = [
   { id: 'general', icon: Globe },
@@ -131,7 +132,7 @@ export default function SettingsPage() {
     formData.append('folder', folder)
     
     try {
-      const res = await fetch('/api/upload', {
+      const res = await fetchWithAuthUpload('/api/upload', {
         method: 'POST',
         body: formData
       })
@@ -234,9 +235,8 @@ export default function SettingsPage() {
         },
       }
 
-      const res = await fetch('/api/settings', {
+      const res = await fetchWithAuth('/api/settings', {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ settings: settingsToSave })
       })
       
