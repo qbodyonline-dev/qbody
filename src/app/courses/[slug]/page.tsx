@@ -19,11 +19,10 @@ const iconMap: Record<string, any> = {
 export default function CoursePage() {
   const { locale } = useTranslation()
   const ru = locale === 'ru'
-  const { user } = useAuth()
+  const { user, session } = useAuth()
   const router = useRouter()
   const params = useParams()
   const slug = params.slug as string
-  
   const [course, setCourse] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [isCheckoutLoading, setIsCheckoutLoading] = useState(false)
@@ -73,10 +72,19 @@ export default function CoursePage() {
     }
     setIsCheckoutLoading(true)
     try {
+      const token = session?.access_token
+      if (!token) {
+        toast.error(ru ? 'Сессия истекла. Войдите снова.' : 'Session expired. Please sign in again.')
+        router.push('/auth/login')
+        return
+      }
       const res = await fetch('/api/stripe/checkout', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ courseSlug: slug, userId: user.id, userEmail: user.email }),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ courseSlug: slug }),
       })
       const data = await res.json()
       if (!res.ok) {
