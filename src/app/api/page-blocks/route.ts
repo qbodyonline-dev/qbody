@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { requireAdmin } from '@/lib/api-auth'
-import { sanitizeString } from '@/lib/security'
+import { sanitizeString, sanitizeHTMLContent } from '@/lib/security'
 
 /** Public-safe Supabase client (anon key, respects RLS) */
 function getPublicSupabase() {
@@ -122,8 +122,9 @@ export async function POST(request: Request) {
       label: sanitizeString(block.label || '', 200),
       label_ru: sanitizeString(block.labelRu || block.label || '', 200),
       visible: block.visible ?? true,
-      content_en: block.contentEn || '',
-      content_ru: block.contentRu || '',
+      // ✅ XSS PROTECTION: Sanitize HTML content on server before saving to DB
+      content_en: sanitizeHTMLContent(block.contentEn || ''),
+      content_ru: sanitizeHTMLContent(block.contentRu || ''),
       style: block.style || {},
       data: block.data || null,
       items: block.items || null,

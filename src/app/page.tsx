@@ -11,6 +11,7 @@ import {
 } from 'lucide-react'
 import { renderAboutHTML, renderCoursesHTML, renderProgramsHTML, renderResultsHTML } from '@/app/dashboard/page-editor/renderers'
 import type { AboutData, CourseItem, ProgramItem, ResultItem } from '@/app/dashboard/page-editor/types'
+import { sanitizeHTML, sanitizeStyleObj } from '@/lib/sanitize-html'
 
 /* ═══════════ TYPES ═══════════ */
 interface PageBlock {
@@ -27,13 +28,26 @@ interface PageBlock {
 }
 
 /* ═══════════ Convert style object → inline CSS string ═══════════ */
+/** ✅ XSS PROTECTION: Validate URL for safe use in CSS */
+function isSafeCSSUrl(url: string): boolean {
+  if (!url) return false
+  const lower = url.trim().toLowerCase()
+  if (lower.startsWith('javascript:')) return false
+  if (lower.startsWith('vbscript:')) return false
+  if (lower.startsWith('data:text/html')) return false
+  if (lower.includes('expression(')) return false
+  // Only allow http(s), data:image, and relative URLs
+  if (lower.startsWith('http://') || lower.startsWith('https://') || lower.startsWith('/') || lower.startsWith('data:image/')) return true
+  return !lower.includes(':')
+}
+
 function styleToCSS(s: Record<string, any>): React.CSSProperties {
   const css: React.CSSProperties = {}
   if (!s) return css
   if (s.bgGradient) css.background = s.bgGradient
   else if (s.bgColor) css.backgroundColor = s.bgColor
-  if (s.bgImage) {
-    css.backgroundImage = `url(${s.bgImage})`
+  if (s.bgImage && isSafeCSSUrl(s.bgImage)) {
+    css.backgroundImage = `url(${encodeURI(s.bgImage)})`
     css.backgroundSize = 'cover'
     css.backgroundPosition = 'center'
   }
@@ -186,22 +200,30 @@ function DynamicBlock({ block, lang }: { block: PageBlock; lang: 'en' | 'ru' }) 
   }
   if (!content) return null
 
+  // ✅ XSS PROTECTION: Sanitize all HTML before rendering
+  const safeContent = sanitizeHTML(content)
+
   // For structured blocks rendered on-the-fly, skip section styles (renderer includes its own bg)
   const isStructured = ['about', 'courses', 'programs', 'results'].includes(block.type) && (block.data || block.items)
-  const sectionStyle = isStructured ? {} : styleToCSS(block.style || {})
+  // ✅ XSS PROTECTION: Sanitize style object (block javascript: in bgImage etc.)
+  const safeStyle = sanitizeStyleObj(block.style || {})
+  const sectionStyle = isStructured ? {} : styleToCSS(safeStyle as any)
 
   // Map block type to HTML section id for anchor links
+  // ✅ XSS PROTECTION: Sanitize htmlId to prevent attribute injection
+  const rawId = block.style?.htmlId || ''
+  const cleanHtmlId = rawId.replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 50)
   const sectionId = block.type === 'hero' ? undefined
     : block.type === 'programs' ? 'programs'
     : block.type === 'courses' ? 'courses'
     : block.type === 'about' ? 'about'
     : block.type === 'results' ? 'results'
     : block.type === 'footer' ? 'contacts'
-    : block.style?.htmlId || undefined
+    : cleanHtmlId || undefined
 
   return (
     <section id={sectionId} style={sectionStyle}>
-      <div dangerouslySetInnerHTML={{ __html: content }} />
+      <div dangerouslySetInnerHTML={{ __html: safeContent }} />
     </section>
   )
 }
@@ -329,8 +351,8 @@ export default function HomePage() {
       {footerBlock && footerBlock.visible && (
         <footer id="contacts">
           <div
-            style={styleToCSS(footerBlock.style || {})}
-            dangerouslySetInnerHTML={{ __html: lang === 'ru' ? footerBlock.contentRu : footerBlock.contentEn }}
+            style={styleToCSS(sanitizeStyleObj(footerBlock.style || {}) as any)}
+            dangerouslySetInnerHTML={{ __html: sanitizeHTML(lang === 'ru' ? footerBlock.contentRu : footerBlock.contentEn) }}
           />
         </footer>
       )}

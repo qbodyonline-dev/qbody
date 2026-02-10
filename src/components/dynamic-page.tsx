@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react'
 import { Loader2 } from 'lucide-react'
+import { sanitizeHTML, sanitizeStyleObj } from '@/lib/sanitize-html'
 
 interface PageBlock {
   id: string
@@ -96,7 +97,6 @@ export function DynamicPageContent({ locale = 'ru' }: { locale?: 'en' | 'ru' }) 
   }
 
   if (error || blocks.length === 0) {
-    // Return null to fallback to static content
     return null
   }
 
@@ -106,16 +106,24 @@ export function DynamicPageContent({ locale = 'ru' }: { locale?: 'en' | 'ru' }) 
         .filter(block => block.visible)
         .map(block => {
           const content = locale === 'ru' ? block.contentRu : block.contentEn
-          const sectionStyle = styleToCSS(block.style)
+          // ✅ XSS PROTECTION: Sanitize style object and HTML content
+          const safeStyle = sanitizeStyleObj(block.style || {})
+          const sectionStyle = styleToCSS(safeStyle as any)
+          
+          // ✅ XSS PROTECTION: Sanitize htmlId
+          const cleanHtmlId = (block.style.htmlId || '').replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 50) || undefined
+          // ✅ XSS PROTECTION: Sanitize cssClass
+          const cleanCssClass = (block.style.cssClass || '').replace(/[^a-zA-Z0-9_ -]/g, '').slice(0, 200) || undefined
           
           return (
             <section
               key={block.id}
-              id={block.style.htmlId || undefined}
-              className={block.style.cssClass || undefined}
+              id={cleanHtmlId}
+              className={cleanCssClass}
               style={sectionStyle}
             >
-              <div dangerouslySetInnerHTML={{ __html: content }} />
+              {/* ✅ XSS PROTECTION: Sanitize HTML before rendering */}
+              <div dangerouslySetInnerHTML={{ __html: sanitizeHTML(content) }} />
             </section>
           )
         })}

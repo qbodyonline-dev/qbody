@@ -120,15 +120,62 @@ export function getClientIP(request: Request): string {
 
 // ─── Input Sanitization ───
 
-/** Sanitize string input — strip HTML tags and limit length */
+/** Sanitize string input — strip dangerous HTML and limit length (for plain text fields) */
 export function sanitizeString(input: string, maxLength = 10000): string {
   if (!input || typeof input !== 'string') return ''
   return input
     .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '') // Remove script tags
     .replace(/<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi, '') // Remove iframes
-    .replace(/on\w+\s*=\s*["'][^"']*["']/gi, '') // Remove event handlers
+    .replace(/<object\b[^<]*(?:(?!<\/object>)<[^<]*)*<\/object>/gi, '') // Remove object tags
+    .replace(/<embed[^>]*>/gi, '') // Remove embed tags
+    .replace(/<applet\b[^<]*(?:(?!<\/applet>)<[^<]*)*<\/applet>/gi, '') // Remove applet tags
+    .replace(/<form\b[^<]*(?:(?!<\/form>)<[^<]*)*<\/form>/gi, '') // Remove form tags
+    .replace(/<meta[^>]*>/gi, '') // Remove meta tags
+    .replace(/<link[^>]*>/gi, '') // Remove link tags
+    .replace(/<base[^>]*>/gi, '') // Remove base tags
+    .replace(/on\w+\s*=\s*["'][^"']*["']/gi, '') // Remove event handlers (quoted)
+    .replace(/on\w+\s*=\s*[^\s>]*/gi, '') // Remove event handlers (unquoted)
     .replace(/javascript\s*:/gi, '') // Remove javascript: protocol
+    .replace(/vbscript\s*:/gi, '') // Remove vbscript: protocol
     .replace(/data\s*:\s*text\/html/gi, '') // Remove data:text/html
+    .replace(/expression\s*\(/gi, '') // Remove CSS expression()
+    .replace(/-moz-binding\s*:/gi, '') // Remove -moz-binding
+    .slice(0, maxLength)
+}
+
+/** 
+ * Server-side HTML content sanitizer for page blocks
+ * More permissive than sanitizeString — allows safe HTML tags but strips dangerous ones
+ */
+export function sanitizeHTMLContent(html: string, maxLength = 500000): string {
+  if (!html || typeof html !== 'string') return ''
+  return html
+    // Remove dangerous tags completely (with content)
+    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+    .replace(/<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi, '')
+    .replace(/<object\b[^<]*(?:(?!<\/object>)<[^<]*)*<\/object>/gi, '')
+    .replace(/<embed[^>]*>/gi, '')
+    .replace(/<applet\b[^<]*(?:(?!<\/applet>)<[^<]*)*<\/applet>/gi, '')
+    .replace(/<form\b[^<]*(?:(?!<\/form>)<[^<]*)*<\/form>/gi, '')
+    .replace(/<input[^>]*>/gi, '')
+    .replace(/<textarea\b[^<]*(?:(?!<\/textarea>)<[^<]*)*<\/textarea>/gi, '')
+    .replace(/<select\b[^<]*(?:(?!<\/select>)<[^<]*)*<\/select>/gi, '')
+    .replace(/<button\b[^<]*(?:(?!<\/button>)<[^<]*)*<\/button>/gi, '')
+    .replace(/<meta[^>]*>/gi, '')
+    .replace(/<link[^>]*>/gi, '')
+    .replace(/<base[^>]*>/gi, '')
+    // Remove all event handlers
+    .replace(/\s+on\w+\s*=\s*"[^"]*"/gi, '')
+    .replace(/\s+on\w+\s*=\s*'[^']*'/gi, '')
+    .replace(/\s+on\w+\s*=\s*[^\s>]*/gi, '')
+    // Remove dangerous protocols
+    .replace(/javascript\s*:/gi, '')
+    .replace(/vbscript\s*:/gi, '')
+    .replace(/data\s*:\s*text\/html/gi, '')
+    // Remove CSS expressions
+    .replace(/expression\s*\(/gi, '')
+    .replace(/-moz-binding\s*:/gi, '')
+    .replace(/behavior\s*:/gi, '')
     .slice(0, maxLength)
 }
 
