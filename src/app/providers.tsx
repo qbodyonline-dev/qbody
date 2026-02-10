@@ -26,10 +26,15 @@ class ErrorBoundary extends React.Component<
   render() {
     if (this.state.hasError) {
       return (
-        <div style={{ padding: 20, color: 'red', fontFamily: 'monospace' }}>
-          <h2>App Error</h2>
-          <pre>{this.state.error?.message}</pre>
-          <pre>{this.state.error?.stack}</pre>
+        <div style={{ padding: 40, textAlign: 'center', fontFamily: 'system-ui' }}>
+          <h2 style={{ color: '#ef4444', marginBottom: 8 }}>Something went wrong</h2>
+          <p style={{ color: '#71717a' }}>Please refresh the page or try again later.</p>
+          <button
+            onClick={() => window.location.reload()}
+            style={{ marginTop: 16, padding: '8px 24px', borderRadius: 8, background: '#14b8a6', color: '#fff', border: 'none', cursor: 'pointer' }}
+          >
+            Refresh Page
+          </button>
         </div>
       )
     }
@@ -38,8 +43,6 @@ class ErrorBoundary extends React.Component<
 }
 
 export function Providers({ children }: { children: React.ReactNode }) {
-  console.log('[PROVIDERS] Rendering...')
-  
   return (
     <ErrorBoundary>
       <AuthProvider>

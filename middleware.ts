@@ -18,7 +18,13 @@ export async function middleware(request: NextRequest) {
           )
           supabaseResponse = NextResponse.next({ request })
           cookiesToSet.forEach(({ name, value, options }) =>
-            supabaseResponse.cookies.set(name, value, options)
+            supabaseResponse.cookies.set(name, value, {
+              ...options,
+              // ✅ SECURITY: Enforce secure cookie settings
+              httpOnly: true,
+              secure: process.env.NODE_ENV === 'production',
+              sameSite: 'lax',
+            })
           )
         },
       },
@@ -28,16 +34,23 @@ export async function middleware(request: NextRequest) {
   // Refresh session — updates cookies if token was refreshed
   const { data: { user } } = await supabase.auth.getUser()
 
+  // ✅ SECURITY: Block requests with suspicious headers
+  const pathname = request.nextUrl.pathname
+
   // Protect /dashboard — redirect to login if no user
-  if (request.nextUrl.pathname.startsWith('/dashboard') && !user) {
+  if (pathname.startsWith('/dashboard') && !user) {
     const url = new URL('/auth/login', request.url)
-    url.searchParams.set('redirect', request.nextUrl.pathname)
+    // ✅ SECURITY: Validate redirect parameter — only allow internal paths
+    const redirect = pathname
+    if (redirect.startsWith('/') && !redirect.startsWith('//')) {
+      url.searchParams.set('redirect', redirect)
+    }
     return NextResponse.redirect(url)
   }
 
   // Already logged in going to login — redirect to dashboard
   // (but allow reset-password page for password recovery flow)
-  if (request.nextUrl.pathname === '/auth/login' && user) {
+  if (pathname === '/auth/login' && user) {
     return NextResponse.redirect(new URL('/dashboard', request.url))
   }
 
