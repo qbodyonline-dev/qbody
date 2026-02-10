@@ -12,7 +12,7 @@ export async function POST(request: Request) {
 
   // ✅ RATE LIMIT: Max 30 uploads per minute per user
   const ip = getClientIP(request)
-  const rateCheck = checkRateLimit(`upload:${auth.data.user.id}`, 30, 60 * 1000)
+  const rateCheck = await checkRateLimit(`upload:${auth.data.user.id}`, 30, 60 * 1000)
   if (!rateCheck.allowed) {
     return NextResponse.json({ error: 'Too many uploads. Please wait.' }, { status: 429 })
   }

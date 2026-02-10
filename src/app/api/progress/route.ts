@@ -170,7 +170,7 @@ export async function POST(request: NextRequest) {
   }
 
   // ✅ RATE LIMIT: Max 60 progress updates per minute
-  const rateCheck = checkRateLimit(`progress:${auth.data.user.id}`, 60, 60 * 1000)
+  const rateCheck = await checkRateLimit(`progress:${auth.data.user.id}`, 60, 60 * 1000)
   if (!rateCheck.allowed) {
     return NextResponse.json({ error: 'Too many requests. Please wait.' }, { status: 429 })
   }

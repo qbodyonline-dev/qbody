@@ -3,6 +3,8 @@
  * Centralized security settings for the QBody application
  */
 
+import { createClient as createSupabaseRateLimitClient } from '@supabase/supabase-js'
+
 // ─── File Upload Security ───
 
 /** Allowed MIME types for file uploads */
@@ -61,39 +63,72 @@ export function validateUploadFile(file: File): { valid: boolean; error?: string
   return { valid: true }
 }
 
-// ─── Rate Limiting (Simple in-memory) ───
+// ─── Rate Limiting (Supabase-backed for serverless) ───
 
+/** In-memory fallback for when Supabase is unavailable */
 interface RateLimitEntry {
   count: number
   resetTime: number
 }
+const rateLimitFallback = new Map<string, RateLimitEntry>()
 
-const rateLimitStore = new Map<string, RateLimitEntry>()
-
-// Clean up old entries every 5 minutes
-if (typeof setInterval !== 'undefined') {
-  setInterval(() => {
-    const now = Date.now()
-    rateLimitStore.forEach((entry, key) => {
-      if (now > entry.resetTime) {
-        rateLimitStore.delete(key)
-      }
-    })
-  }, 5 * 60 * 1000)
+/** Get a Supabase admin client for rate limiting (service_role bypasses RLS) */
+function getRateLimitSupabase() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY
+  if (!url || !key) return null
+  return createSupabaseRateLimitClient(url, key, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  })
 }
 
 /**
- * Simple rate limiter
+ * Persistent rate limiter using Supabase RPC
+ * Falls back to in-memory if Supabase is unavailable
  * @param key - Unique key (e.g., IP + route)
  * @param maxRequests - Max requests per window
  * @param windowMs - Time window in milliseconds
  */
-export function checkRateLimit(key: string, maxRequests: number, windowMs: number): { allowed: boolean; remaining: number } {
+export async function checkRateLimit(
+  key: string,
+  maxRequests: number,
+  windowMs: number
+): Promise<{ allowed: boolean; remaining: number }> {
+  try {
+    const supabase = getRateLimitSupabase()
+    if (!supabase) {
+      // No Supabase credentials — use in-memory fallback
+      return checkRateLimitFallback(key, maxRequests, windowMs)
+    }
+
+    const { data, error } = await supabase.rpc('check_rate_limit', {
+      p_key: key,
+      p_max_requests: maxRequests,
+      p_window_ms: windowMs,
+    })
+
+    if (error || !data) {
+      console.warn('Rate limit RPC failed, using fallback:', error?.message)
+      return checkRateLimitFallback(key, maxRequests, windowMs)
+    }
+
+    return {
+      allowed: data.allowed as boolean,
+      remaining: data.remaining as number,
+    }
+  } catch (err) {
+    console.warn('Rate limit error, using fallback:', err)
+    return checkRateLimitFallback(key, maxRequests, windowMs)
+  }
+}
+
+/** In-memory fallback rate limiter (for dev or Supabase failures) */
+function checkRateLimitFallback(key: string, maxRequests: number, windowMs: number): { allowed: boolean; remaining: number } {
   const now = Date.now()
-  const entry = rateLimitStore.get(key)
+  const entry = rateLimitFallback.get(key)
 
   if (!entry || now > entry.resetTime) {
-    rateLimitStore.set(key, { count: 1, resetTime: now + windowMs })
+    rateLimitFallback.set(key, { count: 1, resetTime: now + windowMs })
     return { allowed: true, remaining: maxRequests - 1 }
   }
 

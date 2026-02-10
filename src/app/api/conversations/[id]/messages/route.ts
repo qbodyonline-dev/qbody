@@ -73,7 +73,7 @@ export async function POST(
   }
 
   // ✅ RATE LIMIT: Max 30 messages per minute
-  const rateCheck = checkRateLimit(`msg:${auth.data.user.id}`, 30, 60 * 1000)
+  const rateCheck = await checkRateLimit(`msg:${auth.data.user.id}`, 30, 60 * 1000)
   if (!rateCheck.allowed) {
     return NextResponse.json({ error: 'Too many messages. Please wait.' }, { status: 429 })
   }

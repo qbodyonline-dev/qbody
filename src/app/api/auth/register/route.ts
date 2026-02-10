@@ -7,7 +7,7 @@ import { sanitizeString, isValidEmail, checkRateLimit, getClientIP } from '@/lib
 export async function POST(request: NextRequest) {
   // ✅ RATE LIMIT: Max 5 registrations per IP per hour
   const ip = getClientIP(request)
-  const rateCheck = checkRateLimit(`register:${ip}`, 5, 60 * 60 * 1000)
+  const rateCheck = await checkRateLimit(`register:${ip}`, 5, 60 * 60 * 1000)
   if (!rateCheck.allowed) {
     return NextResponse.json({ error: 'Too many registration attempts. Please try again later.' }, { status: 429 })
   }

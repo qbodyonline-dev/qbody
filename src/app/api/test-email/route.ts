@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
   }
 
   // ✅ RATE LIMIT: Max 5 test emails per minute
-  const rateCheck = checkRateLimit(`test-email:${auth.data.user.id}`, 5, 60 * 1000)
+  const rateCheck = await checkRateLimit(`test-email:${auth.data.user.id}`, 5, 60 * 1000)
   if (!rateCheck.allowed) {
     return NextResponse.json({ error: 'Too many test emails. Please wait.' }, { status: 429 })
   }

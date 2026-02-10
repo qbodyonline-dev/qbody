@@ -83,7 +83,7 @@ export async function POST(request: NextRequest) {
   }
 
   // ✅ RATE LIMIT: Max 10 new conversations per minute
-  const rateCheck = checkRateLimit(`conv:${auth.data.user.id}`, 10, 60 * 1000)
+  const rateCheck = await checkRateLimit(`conv:${auth.data.user.id}`, 10, 60 * 1000)
   if (!rateCheck.allowed) {
     return NextResponse.json({ error: 'Too many requests. Please wait.' }, { status: 429 })
   }
