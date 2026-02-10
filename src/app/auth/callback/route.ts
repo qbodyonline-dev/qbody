@@ -8,9 +8,19 @@ export async function GET(request: Request) {
   
   // If we have a code, redirect to client page with the code
   if (code) {
+    // ✅ SANITIZE: Only allow alphanumeric + hyphens in auth code
+    const cleanCode = code.replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 500)
+    if (!cleanCode) {
+      return NextResponse.redirect(new URL('/auth/login?error=invalid_code', requestUrl.origin))
+    }
+    
+    // ✅ VALIDATE: Only allow known auth types
+    const allowedTypes = ['recovery', 'signup', 'magiclink', 'invite']
+    const cleanType = type && allowedTypes.includes(type) ? type : null
+    
     const targetUrl = new URL('/auth/callback/handle', requestUrl.origin)
-    targetUrl.searchParams.set('code', code)
-    if (type) targetUrl.searchParams.set('type', type)
+    targetUrl.searchParams.set('code', cleanCode)
+    if (cleanType) targetUrl.searchParams.set('type', cleanType)
     return NextResponse.redirect(targetUrl)
   }
   

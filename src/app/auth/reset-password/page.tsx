@@ -53,13 +53,23 @@ export default function ResetPasswordPage() {
       return
     }
 
-    if (password.length < 6) {
-      toast.error(ru ? 'Пароль должен быть минимум 6 символов' : 'Password must be at least 6 characters')
+    if (password.length < 8) {
+      toast.error(ru ? 'Пароль должен быть минимум 8 символов' : 'Password must be at least 8 characters')
+      return
+    }
+
+    if (password.length > 128) {
+      toast.error(ru ? 'Пароль слишком длинный' : 'Password is too long')
       return
     }
 
     if (!/[A-Z]/.test(password)) {
       toast.error(ru ? 'Пароль должен содержать хотя бы 1 заглавную букву' : 'Password must contain at least 1 uppercase letter')
+      return
+    }
+
+    if (!/[0-9]/.test(password)) {
+      toast.error(ru ? 'Пароль должен содержать хотя бы 1 цифру' : 'Password must contain at least 1 number')
       return
     }
 
@@ -197,7 +207,7 @@ export default function ResetPasswordPage() {
                   onChange={(e) => setPassword(e.target.value)}
                   required
                 />
-                <p className="text-xs text-zinc-400 mt-1">{ru ? 'Минимум 6 символов, 1 заглавная буква, 1 спец. символ' : 'Min 6 chars, 1 uppercase letter, 1 special character'}</p>
+                <p className="text-xs text-zinc-400 mt-1">{ru ? 'Минимум 8 символов, 1 заглавная буква, 1 цифра, 1 спец. символ' : 'Min 8 chars, 1 uppercase, 1 number, 1 special character'}</p>
               </div>
               
               <Input
