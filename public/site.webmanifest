@@ -3,7 +3,7 @@
   "short_name": "Qbody",
   "description": "Professional personal fitness training & recovery programs",
   "start_url": "/",
-  "display": "standalone",
+  "display": "browser",
   "background_color": "#ffffff",
   "theme_color": "#14b8a6",
   "icons": [
