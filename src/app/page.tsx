@@ -6,7 +6,7 @@ import { useTranslation } from '@/lib/i18n'
 import { useAuth } from '@/lib/auth'
 import { Button } from '@/components/ui/button'
 import { LanguageSwitcher } from '@/components/ui/language-switcher'
-import { useScrollReveal, useSmoothAnchor, useLazyImages } from '@/components/ui/scroll-reveal'
+import { useSmoothAnchor, useLazyImages } from '@/components/ui/scroll-reveal'
 import {
   Menu, X, User, LayoutDashboard
 } from 'lucide-react'
@@ -383,24 +383,49 @@ export default function HomePage() {
     }
   }, [loading, blocks, lang])
 
-  // ✅ SMOOTH ANIMATIONS: Scroll-reveal for all blocks, smooth anchors, lazy images
-  useScrollReveal()
+  // Smooth anchor scrolling with header offset
   useSmoothAnchor(80)
+  // Smooth lazy image reveal
   useLazyImages()
 
-  // Observe .about-fade-up elements (from renderers) — add reveal class
+  // ✅ SMOOTH ANIMATIONS: Set up IntersectionObserver AFTER blocks render
   useEffect(() => {
-    if (loading) return
+    if (loading || !blocks.length) return
+
+    // Small delay to ensure DOM is painted
     const timer = setTimeout(() => {
-      const items = document.querySelectorAll('.about-fade-up')
-      if (!items.length) return
-      items.forEach((el, i) => {
+      // Respect prefers-reduced-motion
+      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        document.querySelectorAll('.reveal-up, .reveal-left, .reveal-right, .reveal-scale, .reveal')
+          .forEach(el => el.classList.add('is-visible'))
+        return
+      }
+
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('is-visible')
+            observer.unobserve(entry.target)
+          }
+        })
+      }, { threshold: 0.08, rootMargin: '0px 0px -40px 0px' })
+
+      // Observe all reveal elements
+      document.querySelectorAll('.reveal-up, .reveal-left, .reveal-right, .reveal-scale, .reveal')
+        .forEach(el => observer.observe(el))
+
+      // Handle .about-fade-up elements from renderers
+      const fadeUps = document.querySelectorAll('.about-fade-up')
+      fadeUps.forEach((el, i) => {
         const htmlEl = el as HTMLElement
         htmlEl.style.animation = 'none'
         htmlEl.classList.add('reveal-up')
         htmlEl.style.transitionDelay = `${i * 0.12}s`
+        observer.observe(htmlEl)
       })
-    }, 100)
+
+      return () => observer.disconnect()
+    }, 50)
     return () => clearTimeout(timer)
   }, [loading, blocks])
 
