@@ -196,9 +196,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       name: t('sidebar.programsSection'), href: '#programs', icon: Target,
       children: [
         { name: t('sidebar.programsList'), href: '/dashboard/programs', icon: Layers },
-        { name: t('sidebar.exercises'), href: '/dashboard/exercises', icon: Dumbbell },
+        { name: ru ? 'Тренировки' : 'Workouts', href: '/dashboard/workouts', icon: Dumbbell },
+        { name: t('sidebar.exercises'), href: '/dashboard/exercises', icon: ListVideo },
       ]
     },
+    { name: ru ? 'Чек-ины' : 'Check-ins', href: '/dashboard/checkins', icon: BookOpen },
     { name: t('messages.title'), href: '/dashboard/messages', icon: MessageSquare, badge: unreadMessages },
     { name: t('payments.title'), href: '/dashboard/payments', icon: CreditCard },
     { name: ru ? 'Аналитика' : 'Analytics', href: '/dashboard/analytics', icon: BarChart3 },
