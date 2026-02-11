@@ -2,7 +2,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Home, BookOpen, TrendingUp, User, Menu, X, LogOut, MessageCircle, Dumbbell, Scale } from 'lucide-react'
+import { Home, BookOpen, TrendingUp, User, Menu, X, LogOut, MessageCircle, Dumbbell, Scale, Globe } from 'lucide-react'
 import { Avatar } from '@/components/ui/avatar'
 import { LanguageSwitcher } from '@/components/ui/language-switcher'
 import { useTranslation } from '@/lib/i18n'
@@ -143,7 +143,13 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
             </nav>
 
             {/* Right side */}
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
+              {/* Back to site — desktop */}
+              <Link href="/" target="_blank" className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm text-zinc-500 hover:text-zinc-700 hover:bg-zinc-100 transition-colors">
+                <Globe className="w-3.5 h-3.5" />
+                {ru ? 'На сайт' : 'View Site'}
+              </Link>
+
               <LanguageSwitcher variant="dropdown" />
 
               {/* User menu (desktop) */}
@@ -162,6 +168,13 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
                       <p className="font-medium text-zinc-900 text-sm truncate">{profile?.full_name || user?.email}</p>
                       <p className="text-xs text-zinc-500 truncate">{user?.email}</p>
                     </div>
+
+                    {/* Back to site */}
+                    <Link href="/" target="_blank"
+                      className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-zinc-700 hover:bg-zinc-50 transition-colors">
+                      <Globe className="w-4 h-4" />
+                      {ru ? 'Вернуться на сайт' : 'Back to Site'}
+                    </Link>
 
                     {/* Sign out */}
                     <button
@@ -214,7 +227,17 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
                   </Link>
                 )
               })}
-              <div className="pt-4 border-t border-zinc-200 mt-4">
+
+              {/* Back to site — mobile */}
+              <div className="pt-3 mt-3 border-t border-zinc-200">
+                <Link href="/" target="_blank" onClick={() => setIsMobileMenuOpen(false)}
+                  className="flex items-center gap-3 px-4 py-3 rounded-xl text-zinc-600 hover:bg-zinc-100 font-medium transition-all">
+                  <Globe className="w-5 h-5" />
+                  {ru ? 'Вернуться на сайт' : 'Back to Site'}
+                </Link>
+              </div>
+
+              <div className="pt-3 border-t border-zinc-200 mt-1">
                 <button onClick={handleSignOut} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-zinc-700 hover:bg-zinc-100">
                   <LogOut className="w-5 h-5" />
                   {t('common.logout')}
