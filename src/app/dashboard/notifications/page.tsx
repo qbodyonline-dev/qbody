@@ -8,9 +8,10 @@ import {
   Save, Bell, Mail, Smartphone, Clock,
   CreditCard, BookOpen, MessageSquare, UserPlus, UserX,
   ChevronDown, ChevronRight, Zap, Send, Key, ShieldCheck,
-  CheckCircle2, XCircle, RefreshCw
+  CheckCircle2, XCircle, RefreshCw, Loader2
 } from 'lucide-react'
 import { toast } from 'sonner'
+import { fetchWithAuth } from '@/lib/api'
 
 interface NotifRule {
   id: string
@@ -37,7 +38,9 @@ export default function NotificationsSettingsPage() {
   const [expandedRule, setExpandedRule] = useState<string | null>(null)
   const [activeCategory, setActiveCategory] = useState<string>('all')
 
-  const [rules, setRules] = useState<NotifRule[]>([
+  const [loading, setLoading] = useState(true)
+
+  const defaultRules: NotifRule[] = [
     // Authentication
     {
       id: 'welcome',
@@ -266,7 +269,42 @@ export default function NotificationsSettingsPage() {
       telegram: false,
       enabled: true,
     },
-  ])
+  ]
+
+  const [rules, setRules] = useState<NotifRule[]>(defaultRules)
+
+  // Load saved notification settings from DB on mount
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const res = await fetch('/api/settings')
+        if (res.ok) {
+          const settings = await res.json()
+          const saved = settings.notification_settings
+          if (saved && typeof saved === 'object') {
+            setRules(prev => prev.map(rule => {
+              const override = saved[rule.id]
+              if (override) {
+                return {
+                  ...rule,
+                  email: override.email ?? rule.email,
+                  push: override.push ?? rule.push,
+                  telegram: override.telegram ?? rule.telegram,
+                  enabled: override.enabled ?? rule.enabled,
+                }
+              }
+              return rule
+            }))
+          }
+        }
+      } catch (err) {
+        console.error('Failed to load notification settings:', err)
+      } finally {
+        setLoading(false)
+      }
+    }
+    load()
+  }, [])
 
   const categories = [
     { id: 'all', nameEn: 'All', nameRu: 'Все', icon: Bell },
@@ -288,18 +326,16 @@ export default function NotificationsSettingsPage() {
   const handleSave = async () => {
     setIsSaving(true)
     try {
-      // Save to API
-      const response = await fetch('/api/settings', {
+      const payload = {
+        notification_settings: rules.reduce((acc, r) => ({
+          ...acc,
+          [r.id]: { email: r.email, push: r.push, telegram: r.telegram, enabled: r.enabled }
+        }), {} as Record<string, any>)
+      }
+      const response = await fetchWithAuth('/api/settings', {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          notification_settings: rules.reduce((acc, r) => ({
-            ...acc,
-            [r.id]: { email: r.email, push: r.push, telegram: r.telegram, enabled: r.enabled }
-          }), {})
-        })
+        body: JSON.stringify(payload),
       })
-      
       if (!response.ok) throw new Error('Failed to save')
       toast.success(ru ? 'Настройки уведомлений сохранены!' : 'Notification settings saved!')
     } catch (error) {
@@ -311,6 +347,14 @@ export default function NotificationsSettingsPage() {
 
   const enabledCount = rules.filter(r => r.enabled).length
   const emailCount = rules.filter(r => r.enabled && r.email).length
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="w-8 h-8 animate-spin text-teal-500" />
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6 max-w-4xl">
