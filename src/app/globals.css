@@ -16,10 +16,21 @@
     scroll-behavior: smooth;
   }
 
-  /* Prevent text overflow in all containers */
+  /* Prevent text overflow — safe wrap (never break mid-word) */
   p, span, h1, h2, h3, h4, h5, h6, li, td, th, label, a {
-    overflow-wrap: anywhere;
-    word-break: break-word;
+    overflow-wrap: break-word;
+    word-break: normal;
+  }
+
+  /* Prevent horizontal scroll on mobile */
+  html, body {
+    overflow-x: hidden;
+    max-width: 100vw;
+  }
+
+  /* Prevent grid/flex children from blowing out container */
+  * {
+    min-width: 0;
   }
 
   /* === DARK MODE — Global overrides === */

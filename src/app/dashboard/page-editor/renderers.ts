@@ -54,12 +54,21 @@ export function renderCoursesHTML(items: CourseItem[], lang: 'en' | 'ru'): strin
     </div>`
   }).join('')
 
-  const gridCols = items.length === 1 ? '1fr' : items.length === 2 ? '1fr 1fr' : 'repeat(auto-fit, minmax(400px, 1fr))'
+  const gridCols = items.length === 1 ? '1fr' : items.length === 2 ? '1fr 1fr' : 'repeat(auto-fit, minmax(320px, 1fr))'
 
   return `<style>
     #${courseId} .course-card:hover { transform: translateY(-6px); box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); }
     #${courseId} .course-card:hover .course-btn { background: #14b8a6 !important; border-color: #14b8a6 !important; }
-    @media (max-width: 900px) { #${courseId} .courses-grid { grid-template-columns: 1fr !important; } }
+    @media (max-width: 900px) {
+      #${courseId} .courses-grid { grid-template-columns: 1fr !important; }
+    }
+    @media (max-width: 640px) {
+      #${courseId} .course-card { padding: 28px 20px !important; }
+      #${courseId} .courses-grid { gap: 16px !important; }
+      #${courseId} { padding: 60px 16px !important; }
+      #${courseId} h2 { font-size: 32px !important; }
+      #${courseId} .course-card h3 { font-size: 22px !important; }
+    }
   </style>
   <div id="${courseId}" style="padding:100px 24px;background:#0a0a0a;">
     <div style="max-width:1100px;margin:0 auto;">
@@ -140,7 +149,13 @@ export function renderProgramsHTML(items: ProgramItem[], lang: 'en' | 'ru'): str
     #${progId} .prog-card:hover { transform: translateY(-6px); box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); }
     #${progId} .prog-card:hover .prog-btn { background: #14b8a6 !important; border-color: #14b8a6 !important; }
     @media (max-width: 1024px) { #${progId} .prog-grid { grid-template-columns: repeat(2, 1fr) !important; } }
-    @media (max-width: 640px) { #${progId} .prog-grid { grid-template-columns: 1fr !important; } }
+    @media (max-width: 640px) {
+      #${progId} .prog-grid { grid-template-columns: 1fr !important; gap: 20px !important; }
+      #${progId} .prog-card { padding: 28px 20px !important; }
+      #${progId} { padding: 60px 16px !important; }
+      #${progId} h2 { font-size: 32px !important; }
+      #${progId} h3 { font-size: 20px !important; }
+    }
   </style>
   <div id="${progId}" style="padding:100px 24px;background:#0a0a0a;">
     <div style="max-width:1100px;margin:0 auto;">
@@ -187,7 +202,12 @@ export function renderResultsHTML(items: ResultItem[], lang: 'en' | 'ru'): strin
     #${resId} .result-card:hover { transform: translateY(-6px); box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); }
     #${resId} .result-cta:hover { opacity: 0.9; transform: translateY(-2px); }
     @media (max-width: 1024px) { #${resId} .results-grid { grid-template-columns: repeat(2, 1fr) !important; } }
-    @media (max-width: 640px) { #${resId} .results-grid { grid-template-columns: 1fr !important; } }
+    @media (max-width: 640px) {
+      #${resId} .results-grid { grid-template-columns: 1fr !important; gap: 20px !important; }
+      #${resId} .result-card { padding: 28px 20px !important; }
+      #${resId} { padding: 60px 16px !important; }
+      #${resId} h2 { font-size: 32px !important; }
+    }
   </style>
   <div id="${resId}" style="padding:100px 24px;background:#0a0a0a;">
     <div style="max-width:1100px;margin:0 auto;">
@@ -279,7 +299,15 @@ export function renderHeroHTML(data: HeroData, lang: 'en' | 'ru'): string {
   }
 
   // Single column layout (no image) - original design
-  return `<div style="text-align:center;padding:60px 20px;background:${data.gradient};color:white;"><p style="color:#2dd4bf;font-weight:600;font-size:14px;margin-bottom:16px;">${badge}</p><h1 style="font-size:48px;font-weight:800;margin-bottom:8px;">${title}</h1><h1 style="font-size:48px;font-weight:800;color:#2dd4bf;margin-bottom:24px;">${subtitle}</h1><p style="color:#d4d4d8;font-size:18px;max-width:600px;margin:0 auto 32px;">${description}</p><div style="display:flex;gap:12px;justify-content:center;margin-bottom:24px;"><a href="${data.primaryBtnLink}" style="padding:12px 32px;border-radius:16px;background:#14b8a6;color:white;font-weight:600;font-size:16px;text-decoration:none;">${primaryBtn}</a><a href="${data.secondaryBtnLink}" style="padding:12px 32px;border-radius:16px;border:1px solid rgba(255,255,255,0.3);color:white;font-size:16px;text-decoration:none;">${secondaryBtn}</a></div><p style="font-size:14px;color:#a1a1aa;">${featuresHtml}</p></div>`
+  const heroNoImgId = `hero-noimg-${Date.now()}`
+  return `<style>
+    @media (max-width: 640px) {
+      #${heroNoImgId} h1 { font-size: 32px !important; }
+      #${heroNoImgId} { padding: 40px 16px !important; }
+      #${heroNoImgId} .hero-btns { flex-direction: column !important; align-items: center !important; }
+    }
+  </style>
+  <div id="${heroNoImgId}" style="text-align:center;padding:60px 20px;background:${data.gradient};color:white;"><p style="color:#2dd4bf;font-weight:600;font-size:14px;margin-bottom:16px;">${badge}</p><h1 style="font-size:48px;font-weight:800;margin-bottom:8px;">${title}</h1><h1 style="font-size:48px;font-weight:800;color:#2dd4bf;margin-bottom:24px;">${subtitle}</h1><p style="color:#d4d4d8;font-size:18px;max-width:600px;margin:0 auto 32px;">${description}</p><div class="hero-btns" style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-bottom:24px;"><a href="${data.primaryBtnLink}" style="padding:12px 32px;border-radius:16px;background:#14b8a6;color:white;font-weight:600;font-size:16px;text-decoration:none;">${primaryBtn}</a><a href="${data.secondaryBtnLink}" style="padding:12px 32px;border-radius:16px;border:1px solid rgba(255,255,255,0.3);color:white;font-size:16px;text-decoration:none;">${secondaryBtn}</a></div><p style="font-size:14px;color:#a1a1aa;">${featuresHtml}</p></div>`
 }
 
 /* ─────────── ABOUT RENDERER ─────────── */
@@ -419,7 +447,11 @@ export function renderAboutHTML(data: AboutData, lang: 'en' | 'ru'): string {
   }
   @media (max-width: 640px) {
     #${aboutId} .about-certs-grid { grid-template-columns: 1fr !important; }
-    #${aboutId} .about-section-pad { padding: 32px 24px !important; }
+    #${aboutId} .about-section-pad { padding: 28px 20px !important; }
+    #${aboutId} { padding: 60px 16px !important; }
+    #${aboutId} .about-grid { gap: 32px !important; }
+    #${aboutId} h2 { font-size: 28px !important; }
+    #${aboutId} h4 { font-size: 18px !important; }
   }
 </style>
 
