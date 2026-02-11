@@ -362,7 +362,7 @@ export default function CheckinDetailPage() {
                 {checkin.checkin_responses.map(r => (
                   <div key={r.id} className="p-3 bg-teal-50 dark:bg-teal-900/20 rounded-xl">
                     <div className="flex items-center gap-2 mb-1">
-                      <Avatar src={r.profiles?.avatar_url || undefined} fallback={getInitials(r.profiles?.full_name)} size="xs" />
+                      <Avatar src={r.profiles?.avatar_url || undefined} fallback={getInitials(r.profiles?.full_name ?? null)} size="xs" />
                       <span className="text-xs font-medium text-zinc-700 dark:text-zinc-300">{r.profiles?.full_name || 'Trainer'}</span>
                       <span className="text-xs text-zinc-400 ml-auto">
                         {new Date(r.created_at).toLocaleDateString(ru ? 'ru-RU' : 'en-US', { day: 'numeric', month: 'short' })}
