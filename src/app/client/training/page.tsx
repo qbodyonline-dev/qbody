@@ -1,5 +1,6 @@
 'use client'
 import React, { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -11,6 +12,7 @@ import {
   Dumbbell, Calendar, Target, Clock, ChevronLeft, ChevronRight,
   Play, CheckCircle2, Loader2, Flame, Snowflake, Zap, Moon
 } from 'lucide-react'
+import { toast } from 'sonner'
 
 /* ═══════════ TYPES ═══════════ */
 type Exercise = {
@@ -64,7 +66,9 @@ const sectionColors: Record<string, string> = {
 export default function ClientTrainingPage() {
   const { locale } = useTranslation()
   const { user } = useAuth()
+  const router = useRouter()
   const ru = locale === 'ru'
+  const [starting, setStarting] = useState(false)
 
   const [program, setProgram] = useState<Program | null>(null)
   const [schedule, setSchedule] = useState<ScheduleDay[]>([])
@@ -110,6 +114,29 @@ export default function ClientTrainingPage() {
   const sectionLabels: Record<string, string> = ru
     ? { warmup: 'Разминка', main: 'Основная часть', cooldown: 'Заминка' }
     : { warmup: 'Warm-up', main: 'Main', cooldown: 'Cool-down' }
+
+  /* ─── Start workout ─── */
+  const startWorkout = async (workoutId: string) => {
+    if (!program) return
+    setStarting(true)
+    try {
+      const res = await fetchWithAuth('/api/client/workout-log', {
+        method: 'POST',
+        body: JSON.stringify({
+          workout_id: workoutId,
+          client_program_id: program.client_program_id,
+          scheduled_date: new Date().toISOString().split('T')[0],
+        }),
+      })
+      if (!res.ok) throw new Error()
+      const log = await res.json()
+      router.push(`/client/training/workout/${log.id}`)
+    } catch {
+      toast.error(ru ? 'Ошибка запуска' : 'Failed to start workout')
+    } finally {
+      setStarting(false)
+    }
+  }
 
   const openDayDetail = (day: ScheduleDay) => {
     setSelectedDay(day)
@@ -211,9 +238,15 @@ export default function ClientTrainingPage() {
                   )}
                   <span>{todayWorkout.workouts.workout_exercises?.length || 0} {ru ? 'упражнений' : 'exercises'}</span>
                 </div>
-                <Button variant="gradient" className="w-full sm:w-auto" onClick={() => openDayDetail(todayWorkout)}>
-                  <Play className="w-4 h-4 mr-2" />{ru ? 'Смотреть тренировку' : 'View Workout'}
-                </Button>
+                <div className="flex gap-2">
+                  <Button variant="gradient" className="flex-1 sm:flex-none" onClick={() => startWorkout(todayWorkout.workouts!.id)} disabled={starting}>
+                    {starting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Play className="w-4 h-4 mr-2" />}
+                    {ru ? 'Начать' : 'Start'}
+                  </Button>
+                  <Button variant="outline" className="flex-1 sm:flex-none" onClick={() => openDayDetail(todayWorkout)}>
+                    {ru ? 'Детали' : 'Details'}
+                  </Button>
+                </div>
               </div>
             ) : (
               <p className="text-zinc-400 text-sm">{ru ? 'Тренировка не запланирована' : 'No workout scheduled'}</p>
@@ -443,10 +476,16 @@ export default function ClientTrainingPage() {
               <p className="text-zinc-400">{ru ? 'Нет данных' : 'No data'}</p>
             )}
 
-            <div className="flex justify-end pt-4 border-t border-zinc-100 dark:border-zinc-800">
+            <div className="flex justify-end gap-2 pt-4 border-t border-zinc-100 dark:border-zinc-800">
               <Button variant="outline" onClick={() => setIsDetailOpen(false)}>
                 {ru ? 'Закрыть' : 'Close'}
               </Button>
+              {selectedDay?.workouts && !selectedDay.is_rest_day && (
+                <Button variant="gradient" onClick={() => { setIsDetailOpen(false); startWorkout(selectedDay.workouts!.id) }} disabled={starting}>
+                  {starting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Play className="w-4 h-4 mr-2" />}
+                  {ru ? 'Начать тренировку' : 'Start Workout'}
+                </Button>
+              )}
             </div>
           </div>
         )}
