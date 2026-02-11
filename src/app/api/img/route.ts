@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import sharp from 'sharp'
 
 // In-memory cache for optimized images (survives within a single serverless invocation)
-const cache = new Map<string, { buffer: Buffer; etag: string; ts: number }>()
+const cache = new Map<string, { buffer: Uint8Array; etag: string; ts: number }>()
 const MAX_CACHE = 50
 const CACHE_TTL = 10 * 60 * 1000 // 10 min in-memory
 
@@ -83,7 +83,8 @@ export async function GET(request: NextRequest) {
       })
     }
 
-    const optimized = await pipeline.webp({ quality: q, effort: 4 }).toBuffer()
+    const optimizedBuf = await pipeline.webp({ quality: q, effort: 4 }).toBuffer()
+    const optimized = new Uint8Array(optimizedBuf)
 
     // Generate ETag
     const etag = `"img-${Buffer.from(cacheKey).toString('base64url').slice(0, 16)}-${optimized.length}"`
