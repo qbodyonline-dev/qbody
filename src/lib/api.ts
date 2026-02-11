@@ -3,7 +3,14 @@ import { createClient } from '@/lib/supabase'
 // Helper for authenticated API requests
 export async function fetchWithAuth(url: string, options: RequestInit = {}) {
   const supabase = createClient()
-  const { data: { session } } = await supabase.auth.getSession()
+  
+  // Try getSession first, then refreshSession if token is stale
+  let { data: { session } } = await supabase.auth.getSession()
+  
+  if (!session?.access_token) {
+    const { data: refreshed } = await supabase.auth.refreshSession()
+    session = refreshed.session
+  }
   
   if (!session?.access_token) {
     throw new Error('No session')
@@ -15,13 +22,36 @@ export async function fetchWithAuth(url: string, options: RequestInit = {}) {
     'Content-Type': 'application/json',
   }
   
-  return fetch(url, { ...options, headers })
+  const res = await fetch(url, { ...options, headers })
+  
+  // If 401, try once with refreshed token
+  if (res.status === 401) {
+    const { data: refreshed } = await supabase.auth.refreshSession()
+    if (refreshed.session?.access_token) {
+      const retryHeaders = {
+        ...options.headers,
+        'Authorization': `Bearer ${refreshed.session.access_token}`,
+        'Content-Type': 'application/json',
+      }
+      return fetch(url, { ...options, headers: retryHeaders })
+    }
+  }
+  
+  return res
 }
 
 // Helper for authenticated file uploads (FormData — no Content-Type header)
 export async function fetchWithAuthUpload(url: string, options: RequestInit = {}) {
   const supabase = createClient()
-  const { data: { session } } = await supabase.auth.getSession()
+  
+  // Try getSession first, then refreshSession if token is stale
+  let { data: { session } } = await supabase.auth.getSession()
+  
+  if (!session?.access_token) {
+    // Session might be stale — force refresh
+    const { data: refreshed } = await supabase.auth.refreshSession()
+    session = refreshed.session
+  }
   
   if (!session?.access_token) {
     throw new Error('No session')
@@ -31,7 +61,20 @@ export async function fetchWithAuthUpload(url: string, options: RequestInit = {}
     'Authorization': `Bearer ${session.access_token}`,
   }
   
-  return fetch(url, { ...options, headers })
+  const res = await fetch(url, { ...options, headers })
+  
+  // If 401, try once with refreshed token
+  if (res.status === 401) {
+    const { data: refreshed } = await supabase.auth.refreshSession()
+    if (refreshed.session?.access_token) {
+      const retryHeaders: Record<string, string> = {
+        'Authorization': `Bearer ${refreshed.session.access_token}`,
+      }
+      return fetch(url, { ...options, headers: retryHeaders })
+    }
+  }
+  
+  return res
 }
 
 // Dashboard stats — via API route (requires admin auth)
