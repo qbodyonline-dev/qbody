@@ -346,6 +346,86 @@ a, button {
   img[loading="lazy"] { opacity: 1 !important; }
 }
 
+/* ═══════════════════════════════════════════════════════════════
+   MOBILE OVERRIDES — force single-column for all page sections
+   These override inline styles from stored HTML in Supabase
+   ═══════════════════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+  /* All grid layouts → single column on mobile */
+  .courses-grid,
+  .prog-grid,
+  .results-grid,
+  .about-grid,
+  .hero-grid,
+  .about-certs-grid {
+    grid-template-columns: 1fr !important;
+    gap: 16px !important;
+  }
+
+  /* Cards — reduce padding on mobile */
+  .course-card,
+  .prog-card,
+  .result-card {
+    padding: 28px 20px !important;
+  }
+
+  /* About section — unstick sidebar, center */
+  .about-left {
+    position: static !important;
+    text-align: center !important;
+  }
+  .about-photo-inner {
+    max-width: 300px !important;
+    margin: 0 auto !important;
+  }
+  .about-tags {
+    justify-content: center !important;
+  }
+  .about-name {
+    text-align: center !important;
+  }
+  .about-section-pad {
+    padding: 28px 20px !important;
+  }
+
+  /* Section containers — reduce padding */
+  [id^="courses-"],
+  [id^="programs-"],
+  [id^="results-"],
+  [id^="about-"] {
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+  }
+
+  /* Headings — scale down */
+  [id^="courses-"] h2,
+  [id^="programs-"] h2,
+  [id^="results-"] h2,
+  [id^="about-"] h2 {
+    font-size: 28px !important;
+  }
+  [id^="courses-"] h3,
+  [id^="programs-"] h3 {
+    font-size: 20px !important;
+  }
+  [id^="about-"] h4 {
+    font-size: 18px !important;
+  }
+
+  /* Hero — scale down on mobile */
+  [id^="hero-"] h1,
+  .hero-title {
+    font-size: 32px !important;
+  }
+  .hero-image {
+    max-width: min(320px, 100%) !important;
+    margin: 0 auto !important;
+  }
+  .hero-image-wrap {
+    order: -1 !important;
+  }
+}
+
 /* Hide reCAPTCHA v3 badge - text attribution is shown in forms instead */
 .grecaptcha-badge {
   visibility: hidden !important;
