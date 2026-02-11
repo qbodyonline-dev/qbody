@@ -94,6 +94,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false)
   const [isDark, setIsDark] = useState(false)
   const [unreadMessages, setUnreadMessages] = useState(0)
+  const [newCheckins, setNewCheckins] = useState(0)
   const supabaseRef = useRef<ReturnType<typeof createClient> | null>(null)
 
   // Initialize Supabase client
@@ -159,6 +160,50 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     }
   }, [session?.access_token, fetchUnreadCount])
 
+  // Fetch new (unreviewed) check-ins count
+  const fetchNewCheckinsCount = useCallback(async () => {
+    if (!session?.access_token) return
+    try {
+      const res = await fetch('/api/checkins?status=new&count_only=1', {
+        headers: { 'Authorization': `Bearer ${session.access_token}` }
+      })
+      if (res.ok) {
+        const data = await res.json()
+        setNewCheckins(data.count ?? 0)
+      }
+    } catch {}
+  }, [session?.access_token])
+
+  // Fetch check-ins count on mount
+  useEffect(() => {
+    if (session?.access_token) {
+      fetchNewCheckinsCount()
+    }
+  }, [session?.access_token, fetchNewCheckinsCount])
+
+  // Real-time subscription for check-ins
+  useEffect(() => {
+    if (!supabaseRef.current || !session?.access_token) return
+
+    const channel = supabaseRef.current
+      .channel('admin-checkins-count')
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'checkins' },
+        () => { fetchNewCheckinsCount() }
+      )
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'checkins' },
+        () => { fetchNewCheckinsCount() }
+      )
+      .subscribe()
+
+    return () => {
+      supabaseRef.current?.removeChannel(channel)
+    }
+  }, [session?.access_token, fetchNewCheckinsCount])
+
   // Redirect clients away from admin dashboard
   useEffect(() => {
     if (!loading && isClient) {
@@ -200,7 +245,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         { name: t('sidebar.exercises'), href: '/dashboard/exercises', icon: ListVideo },
       ]
     },
-    { name: ru ? 'Чек-ины' : 'Check-ins', href: '/dashboard/checkins', icon: BookOpen },
+    { name: ru ? 'Чек-ины' : 'Check-ins', href: '/dashboard/checkins', icon: BookOpen, badge: newCheckins },
     { name: t('messages.title'), href: '/dashboard/messages', icon: MessageSquare, badge: unreadMessages },
     { name: t('payments.title'), href: '/dashboard/payments', icon: CreditCard },
     { name: ru ? 'Аналитика' : 'Analytics', href: '/dashboard/analytics', icon: BarChart3 },

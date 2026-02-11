@@ -18,6 +18,20 @@ export async function GET(request: NextRequest) {
     const offset = parseInt(searchParams.get('offset') || '0')
 
     const isAdmin = ['admin', 'trainer'].includes(auth.data.profile.role)
+    const countOnly = searchParams.get('count_only') === '1'
+
+    // Fast path: just return count (for sidebar badge)
+    if (countOnly && isAdmin) {
+      let countQuery = supabase
+        .from('checkins')
+        .select('*', { count: 'exact', head: true })
+      if (status && status !== 'all') {
+        countQuery = countQuery.eq('status', status)
+      }
+      const { count: total, error } = await countQuery
+      if (error) return NextResponse.json({ error: 'Failed to count' }, { status: 500 })
+      return NextResponse.json({ count: total ?? 0 })
+    }
 
     let query = supabase
       .from('checkins')
