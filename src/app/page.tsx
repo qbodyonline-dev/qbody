@@ -445,8 +445,8 @@ export default function HomePage() {
       try {
         // Load page blocks and settings in parallel
         const [blocksRes, settingsRes] = await Promise.all([
-          fetch('/api/page-blocks?page=home'),
-          fetch('/api/settings')
+          fetch('/api/page-blocks?page=home', { cache: 'no-store' }),
+          fetch('/api/settings', { cache: 'no-store' })
         ])
         
         if (blocksRes.ok) {

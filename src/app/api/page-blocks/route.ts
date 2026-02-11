@@ -49,7 +49,11 @@ export async function GET(request: Request) {
     const cached = pageBlocksCache.get(cacheKey)
     if (cached && Date.now() - cached.ts < PAGE_CACHE_TTL) {
       return NextResponse.json(cached.data, {
-        headers: { 'X-Cache': 'HIT' },
+        headers: {
+          'X-Cache': 'HIT',
+          'Cache-Control': 'no-store, no-cache, must-revalidate',
+          'Pragma': 'no-cache',
+        },
       })
     }
 
@@ -85,7 +89,11 @@ export async function GET(request: Request) {
     pageBlocksCache.set(cacheKey, { data: responseData, ts: Date.now() })
 
     return NextResponse.json(responseData, {
-      headers: { 'X-Cache': 'MISS' },
+      headers: {
+        'X-Cache': 'MISS',
+        'Cache-Control': 'no-store, no-cache, must-revalidate',
+        'Pragma': 'no-cache',
+      },
     })
   } catch (err: any) {
     console.error('GET /api/page-blocks error:', err)
