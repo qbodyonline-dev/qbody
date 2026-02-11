@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase-server'
 import { requireAdmin } from '@/lib/api-auth'
 import { validateUploadFile, checkRateLimit, getClientIP } from '@/lib/security'
+import { optimizeImage, isOptimizableImage, presetFromFolder } from '@/lib/image-optimize'
 
 export async function POST(request: Request) {
   // ✅ AUTH: Only admin/trainer can upload files
@@ -33,24 +34,47 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: validation.error }, { status: 400 })
     }
 
-    // ✅ SANITIZE: Clean folder name — only allow alphanumeric, hyphens, underscores
+    // ✅ SANITIZE: Clean folder name
     const cleanFolder = folder.replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 50) || 'uploads'
-
-    // Generate unique filename with safe extension
-    const ext = file.name.split('.').pop()?.toLowerCase().replace(/[^a-z0-9]/g, '') || 'bin'
-    const timestamp = Date.now()
-    const randomStr = Math.random().toString(36).substring(2, 10)
-    const fileName = `${cleanFolder}/${timestamp}-${randomStr}.${ext}`
 
     // Convert file to buffer
     const arrayBuffer = await file.arrayBuffer()
-    const buffer = Buffer.from(arrayBuffer)
+    let buffer = Buffer.from(arrayBuffer)
+
+    // ✅ IMAGE OPTIMIZATION: Compress & convert to WebP
+    let finalContentType = file.type
+    let finalExtension = file.name.split('.').pop()?.toLowerCase().replace(/[^a-z0-9]/g, '') || 'bin'
+    let optimizedSize = buffer.length
+
+    if (isOptimizableImage(file.type)) {
+      const preset = presetFromFolder(cleanFolder)
+      const result = await optimizeImage(buffer, file.type, preset)
+      
+      buffer = result.buffer
+      finalContentType = result.contentType
+      finalExtension = result.extension
+      optimizedSize = result.optimizedSize
+
+      // Log compression stats
+      const savings = result.originalSize - result.optimizedSize
+      const pct = result.originalSize > 0 ? Math.round((savings / result.originalSize) * 100) : 0
+      if (savings > 0) {
+        console.log(
+          `[Image Optimize] ${file.name}: ${(result.originalSize / 1024).toFixed(0)}KB → ${(result.optimizedSize / 1024).toFixed(0)}KB (${pct}% saved, preset: ${preset})`
+        )
+      }
+    }
+
+    // Generate unique filename
+    const timestamp = Date.now()
+    const randomStr = Math.random().toString(36).substring(2, 10)
+    const fileName = `${cleanFolder}/${timestamp}-${randomStr}.${finalExtension}`
 
     // Upload to Supabase Storage
     const { data, error } = await supabase.storage
       .from('course-assets')
       .upload(fileName, buffer, {
-        contentType: file.type,
+        contentType: finalContentType,
         upsert: false
       })
 
@@ -67,8 +91,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ 
       url: urlData.publicUrl,
       path: fileName,
-      size: file.size,
-      type: file.type
+      size: optimizedSize,
+      originalSize: file.size,
+      type: finalContentType,
     })
   } catch (err: any) {
     console.error('POST /api/upload error:', err)
