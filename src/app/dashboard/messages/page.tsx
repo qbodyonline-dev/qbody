@@ -324,6 +324,9 @@ export default function MessagesPage() {
       
       const res = await fetch('/api/upload', {
         method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session?.access_token}`
+        },
         body: formData
       })
       
