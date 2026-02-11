@@ -17,10 +17,10 @@ import { toast } from 'sonner'
 
 /* ═══════════ TYPES ═══════════ */
 type Exercise = {
-  id: string; name: string; name_en?: string; name_ru: string
+  id: string; name: string; name_ru: string
   muscle_groups: string[]; equipment: string | null
   video_url: string | null
-  instructions_en: string | null; instructions_ru: string | null
+  instructions: string | null; instructions_ru: string | null
 }
 
 type WorkoutExercise = {
@@ -43,15 +43,15 @@ type WorkoutLog = {
   duration_minutes: number | null; rpe: number | null; mood: string | null; comment: string | null
   exercise_logs: ExerciseLog[]
   workout: {
-    id: string; name: string; name_en?: string; name_ru: string
+    id: string; name: string; name_ru: string
     type: string; difficulty: string
-    estimated_duration?: number | null; duration_minutes?: number | null
+    estimated_duration?: number | null
     workout_exercises: WorkoutExercise[]
   }
 }
 
-const eName = (ex: Exercise, ru: boolean) => ru ? (ex.name_ru || ex.name_en || ex.name) : (ex.name_en || ex.name || ex.name_ru)
-const wName = (w: any, ru: boolean) => ru ? (w.name_ru || w.name_en || w.name) : (w.name_en || w.name || w.name_ru)
+const eName = (ex: Exercise, ru: boolean) => ru ? (ex.name_ru || ex.name) : (ex.name || ex.name_ru)
+const wName = (w: any, ru: boolean) => ru ? (w.name_ru || w.name) : (w.name || w.name_ru)
 
 const sectionIcons: Record<string, any> = { warmup: Flame, main: Zap, cooldown: Snowflake }
 const sectionColors: Record<string, string> = {
@@ -360,10 +360,10 @@ export default function WorkoutExecutionPage() {
                       {isExpanded && (
                         <CardContent className="pt-0 pb-4 px-4">
                           {/* Instructions */}
-                          {(ru ? ex.instructions_ru : ex.instructions_en) && (
+                          {(ru ? ex.instructions_ru : ex.instructions) && (
                             <details className="mb-3">
                               <summary className="text-xs text-teal-600 cursor-pointer">{ru ? 'Инструкция' : 'Instructions'}</summary>
-                              <p className="text-xs text-zinc-500 mt-1 whitespace-pre-line">{ru ? ex.instructions_ru : ex.instructions_en}</p>
+                              <p className="text-xs text-zinc-500 mt-1 whitespace-pre-line">{ru ? ex.instructions_ru || ex.instructions : ex.instructions}</p>
                             </details>
                           )}
 
