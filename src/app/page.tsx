@@ -11,7 +11,8 @@ import {
   Menu, X, User, LayoutDashboard
 } from 'lucide-react'
 import { renderAboutHTML, renderCoursesHTML, renderProgramsHTML, renderResultsHTML } from '@/app/dashboard/page-editor/renderers'
-import type { AboutData, CourseItem, ProgramItem, ResultItem } from '@/app/dashboard/page-editor/types'
+import { renderHtmlBlockHTML, renderSliderHTML, renderHeroTemplateHTML } from '@/app/dashboard/page-editor/new-block-renderers'
+import type { AboutData, CourseItem, ProgramItem, ResultItem, HtmlBlockData, SliderData, HeroTemplateData } from '@/app/dashboard/page-editor/types'
 import { sanitizeHTML, sanitizeStyleObj } from '@/lib/sanitize-html'
 
 /* ═══════════ TYPES ═══════════ */
@@ -319,6 +320,12 @@ function DynamicBlock({ block, lang, index }: { block: PageBlock; lang: 'en' | '
     content = renderProgramsHTML(block.items as ProgramItem[], lang)
   } else if (block.type === 'results' && block.items) {
     content = renderResultsHTML(block.items as ResultItem[], lang)
+  } else if (block.type === 'htmlblock' && block.data) {
+    content = renderHtmlBlockHTML(block.data as HtmlBlockData, lang)
+  } else if (block.type === 'slider' && block.data) {
+    content = renderSliderHTML(block.data as SliderData, lang)
+  } else if (block.type === 'herotemplate' && block.data) {
+    content = renderHeroTemplateHTML(block.data as HeroTemplateData, lang)
   } else {
     content = lang === 'ru' ? block.contentRu : block.contentEn
   }
@@ -369,7 +376,7 @@ function DynamicBlock({ block, lang, index }: { block: PageBlock; lang: 'en' | '
   }
 
   // For structured blocks rendered on-the-fly, skip section styles (renderer includes its own bg)
-  const isStructured = ['about', 'courses', 'programs', 'results'].includes(block.type) && (block.data || block.items)
+  const isStructured = ['about', 'courses', 'programs', 'results', 'htmlblock', 'slider', 'herotemplate'].includes(block.type) && (block.data || block.items)
   // ✅ XSS PROTECTION: Sanitize style object (block javascript: in bgImage etc.)
   const safeStyle = sanitizeStyleObj(block.style || {})
   const sectionStyle = isStructured ? {} : styleToCSS(safeStyle as any)

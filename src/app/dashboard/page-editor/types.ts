@@ -159,7 +159,7 @@ export interface AboutData {
 export type StructuredItems = CourseItem[] | ProgramItem[] | ResultItem[]
 export type SectionData = HeaderData | HeroData | AboutData
 
-export type BlockType = 'header' | 'hero' | 'programs' | 'courses' | 'about' | 'results' | 'footer' | 'custom'
+export type BlockType = 'header' | 'hero' | 'programs' | 'courses' | 'about' | 'results' | 'footer' | 'custom' | 'htmlblock' | 'slider' | 'herotemplate'
 
 export interface PageBlock {
   id: string
@@ -176,7 +176,111 @@ export interface PageBlock {
   data?: SectionData
 }
 
+/* ═══════════ HTML BLOCK DATA ═══════════ */
+export type AnimationType = 'none' | 'fadeIn' | 'slideUp' | 'slideDown' | 'slideLeft' | 'slideRight' | 'scaleIn' | 'bounce'
+
+export interface HtmlBlockData {
+  contentEn: string
+  contentRu: string
+  bgType: 'color' | 'gradient' | 'image' | 'video'
+  bgColor: string
+  bgGradient: string
+  bgImage: string
+  bgVideo: string
+  overlayColor: string
+  overlayOpacity: number
+  layout: 'full' | 'boxed' | 'narrow'
+  textAlign: 'left' | 'center' | 'right'
+  minHeight: string
+  animation: AnimationType
+  animationDelay: number
+  paddingY: string
+  paddingX: string
+}
+
+/* ═══════════ SLIDER DATA ═══════════ */
+export type SliderVariant = 'image' | 'testimonial' | 'content' | 'logo' | 'fullscreen'
+
+export interface SliderSlide {
+  id: string
+  title: string
+  titleRu: string
+  description: string
+  descriptionRu: string
+  image: string
+  buttonText: string
+  buttonTextRu: string
+  buttonLink: string
+  bgColor: string
+  bgGradient: string
+  // Testimonial fields
+  author: string
+  authorRu: string
+  authorRole: string
+  authorRoleRu: string
+  rating: number
+}
+
+export interface SliderData {
+  variant: SliderVariant
+  slides: SliderSlide[]
+  autoplay: boolean
+  autoplayInterval: number
+  showArrows: boolean
+  showDots: boolean
+  slidesPerView: number
+  gap: number
+  animation: 'slide' | 'fade'
+  titleEn: string
+  titleRu: string
+  subtitleEn: string
+  subtitleRu: string
+  bgColor: string
+  height: string
+  loop: boolean
+  pauseOnHover: boolean
+}
+
+/* ═══════════ HERO TEMPLATE DATA ═══════════ */
+export type HeroTemplateVariant = 'centered' | 'split' | 'videobg' | 'fullimage' | 'minimal'
+
+export interface HeroTemplateButton {
+  text: string
+  textRu: string
+  link: string
+  variant: 'primary' | 'secondary' | 'outline' | 'ghost'
+}
+
+export interface HeroTemplateData {
+  variant: HeroTemplateVariant
+  badge: string
+  badgeRu: string
+  title: string
+  titleRu: string
+  subtitle: string
+  subtitleRu: string
+  description: string
+  descriptionRu: string
+  buttons: HeroTemplateButton[]
+  bgType: 'gradient' | 'image' | 'video' | 'color'
+  bgGradient: string
+  bgColor: string
+  bgImage: string
+  bgVideo: string
+  overlayColor: string
+  overlayOpacity: number
+  sideImage: string
+  sideImagePosition: 'right' | 'left'
+  textColor: string
+  accentColor: string
+  animation: AnimationType
+  minHeight: string
+  features: string[]
+  featuresRu: string[]
+}
+
 /* Block type → icon mapping */
+import { Code2, SlidersHorizontal, Sparkles } from 'lucide-react'
 export const BLOCK_ICONS: Record<BlockType, any> = {
   header: Globe,
   hero: Layout,
@@ -185,5 +289,8 @@ export const BLOCK_ICONS: Record<BlockType, any> = {
   about: Users,
   results: Trophy,
   footer: FileText,
-  custom: Settings2
+  custom: Settings2,
+  htmlblock: Code2,
+  slider: SlidersHorizontal,
+  herotemplate: Sparkles,
 }

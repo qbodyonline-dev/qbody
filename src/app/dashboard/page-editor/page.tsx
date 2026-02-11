@@ -21,6 +21,9 @@ import { RichEditor } from './rich-editor'
 import { StylePanel } from './style-panel'
 import { CoursesBlockEditor, ProgramsBlockEditor, ResultsBlockEditor, HeaderEditor, HeroEditor, AboutEditor } from './item-editors'
 import { renderCoursesHTML, renderProgramsHTML, renderResultsHTML, renderHeaderHTML, renderHeroHTML, renderAboutHTML } from './renderers'
+import { HtmlBlockEditor, SliderEditor, HeroTemplateEditor } from './new-block-editors'
+import { renderHtmlBlockHTML, renderSliderHTML, renderHeroTemplateHTML, defaultHtmlBlockData, defaultSliderData, defaultHeroTemplateData } from './new-block-renderers'
+import type { HtmlBlockData, SliderData, HeroTemplateData } from './types'
 
 /* ═══════════ MAIN EDITOR ═══════════ */
 export default function PageEditorPage() {
@@ -162,7 +165,27 @@ export default function PageEditorPage() {
 
   const addFromTemplate = (tpl: typeof TEMPLATES[0], idx?: number) => {
     const nid = `t_${Date.now()}`
-    const nb: PageBlock = { id: nid, type: 'custom', label: tpl.l, labelRu: tpl.lr, visible: true, contentEn: tpl.en, contentRu: tpl.ru, style: {} }
+    let nb: PageBlock
+
+    // Structured block types
+    if (tpl.en.startsWith('__STRUCTURED__')) {
+      const structType = tpl.en.replace('__STRUCTURED__', '') as any
+      if (structType === 'htmlblock') {
+        const d = defaultHtmlBlockData()
+        nb = { id: nid, type: 'htmlblock', label: tpl.l, labelRu: tpl.lr, visible: true, contentEn: renderHtmlBlockHTML(d, 'en'), contentRu: renderHtmlBlockHTML(d, 'ru'), style: {}, data: d as any }
+      } else if (structType === 'slider') {
+        const d = defaultSliderData()
+        nb = { id: nid, type: 'slider', label: tpl.l, labelRu: tpl.lr, visible: true, contentEn: renderSliderHTML(d, 'en'), contentRu: renderSliderHTML(d, 'ru'), style: {}, data: d as any }
+      } else if (structType === 'herotemplate') {
+        const d = defaultHeroTemplateData()
+        nb = { id: nid, type: 'herotemplate', label: tpl.l, labelRu: tpl.lr, visible: true, contentEn: renderHeroTemplateHTML(d, 'en'), contentRu: renderHeroTemplateHTML(d, 'ru'), style: {}, data: d as any }
+      } else {
+        nb = { id: nid, type: 'custom', label: tpl.l, labelRu: tpl.lr, visible: true, contentEn: '', contentRu: '', style: {} }
+      }
+    } else {
+      nb = { id: nid, type: 'custom', label: tpl.l, labelRu: tpl.lr, visible: true, contentEn: tpl.en, contentRu: tpl.ru, style: {} }
+    }
+
     const a = [...blocks]
     if (idx !== undefined && idx >= 0) a.splice(idx, 0, nb); else a.push(nb)
     push(a)
@@ -222,6 +245,9 @@ export default function PageEditorPage() {
     else if (b.type === 'courses' && b.items) c = renderCoursesHTML(b.items as any[], lt)
     else if (b.type === 'programs' && b.items) c = renderProgramsHTML(b.items as any[], lt)
     else if (b.type === 'results' && b.items) c = renderResultsHTML(b.items as any[], lt)
+    else if (b.type === 'htmlblock' && b.data) c = renderHtmlBlockHTML(b.data as any as HtmlBlockData, lt)
+    else if (b.type === 'slider' && b.data) c = renderSliderHTML(b.data as any as SliderData, lt)
+    else if (b.type === 'herotemplate' && b.data) c = renderHeroTemplateHTML(b.data as any as HeroTemplateData, lt)
     else c = lt === 'ru' ? b.contentRu : b.contentEn
     const s = styleToCSS(b.style)
     const a = styleAttrs(b.style)
@@ -338,7 +364,7 @@ export default function PageEditorPage() {
                 </Badge>
                 <Badge variant="outline" className="text-[10px]">{ab.type}</Badge>
                 {/* Mode toggle for structured blocks */}
-                {(ab.type === 'courses' || ab.type === 'programs' || ab.type === 'results' || ab.type === 'header' || ab.type === 'hero' || ab.type === 'about') && (
+                {(ab.type === 'courses' || ab.type === 'programs' || ab.type === 'results' || ab.type === 'header' || ab.type === 'hero' || ab.type === 'about' || ab.type === 'htmlblock' || ab.type === 'slider' || ab.type === 'herotemplate') && (
                   <div className="flex bg-zinc-100 dark:bg-zinc-800 rounded-lg p-0.5">
                     <button onClick={() => setEditMode('structured')} className={`flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium transition-all ${editMode === 'structured' ? 'bg-white dark:bg-zinc-700 shadow text-teal-600' : 'text-zinc-500'}`}>
                       <LayoutList className="w-3 h-3" />{lang === 'ru' ? 'Элементы' : 'Items'}
@@ -484,18 +510,66 @@ export default function PageEditorPage() {
                     }}
                     lang={lt}
                   />
-                  {/* Live preview for structured editor */}
-                  <Card className="overflow-hidden">
-                    <CardContent className="p-0">
-                      <div className="flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-teal-50 to-zinc-50 dark:from-teal-900/20 dark:to-zinc-800 border-b border-zinc-200 dark:border-zinc-700">
-                        <Eye className="w-3 h-3 text-teal-500" />
-                        <span className="text-[10px] font-bold text-teal-600 uppercase tracking-widest">{lang === 'ru' ? 'Превью' : 'Live Preview'}</span>
-                      </div>
-                      <div className="bg-zinc-950 max-h-[600px] overflow-y-auto">
-                        <div dangerouslySetInnerHTML={{ __html: renderAboutHTML((ab.data as AboutData) || defaultAboutData, lt) }} className="pointer-events-none" />
-                      </div>
-                    </CardContent>
-                  </Card>
+                  <Card className="overflow-hidden"><CardContent className="p-0">
+                    <div className="flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-teal-50 to-zinc-50 dark:from-teal-900/20 dark:to-zinc-800 border-b border-zinc-200 dark:border-zinc-700">
+                      <Eye className="w-3 h-3 text-teal-500" /><span className="text-[10px] font-bold text-teal-600 uppercase tracking-widest">{lang === 'ru' ? 'Превью' : 'Live Preview'}</span>
+                    </div>
+                    <div className="bg-zinc-950 max-h-[600px] overflow-y-auto"><div dangerouslySetInnerHTML={{ __html: renderAboutHTML((ab.data as AboutData) || defaultAboutData, lt) }} className="pointer-events-none" /></div>
+                  </CardContent></Card>
+                </>
+              ) : ab.type === 'htmlblock' && editMode === 'structured' ? (
+                <>
+                  <HtmlBlockEditor
+                    data={(ab.data as any as HtmlBlockData) || defaultHtmlBlockData()}
+                    onChange={(data) => {
+                      const contentEn = renderHtmlBlockHTML(data, 'en')
+                      const contentRu = renderHtmlBlockHTML(data, 'ru')
+                      upd(ab.id, { data: data as any, contentEn, contentRu })
+                    }}
+                    lang={lt}
+                  />
+                  <Card className="overflow-hidden"><CardContent className="p-0">
+                    <div className="flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-teal-50 to-zinc-50 dark:from-teal-900/20 dark:to-zinc-800 border-b border-zinc-200 dark:border-zinc-700">
+                      <Eye className="w-3 h-3 text-teal-500" /><span className="text-[10px] font-bold text-teal-600 uppercase tracking-widest">{lang === 'ru' ? 'Превью' : 'Live Preview'}</span>
+                    </div>
+                    <div className="bg-zinc-950 max-h-[500px] overflow-y-auto"><div dangerouslySetInnerHTML={{ __html: renderHtmlBlockHTML((ab.data as any as HtmlBlockData) || defaultHtmlBlockData(), lt) }} className="pointer-events-none" /></div>
+                  </CardContent></Card>
+                </>
+              ) : ab.type === 'slider' && editMode === 'structured' ? (
+                <>
+                  <SliderEditor
+                    data={(ab.data as any as SliderData) || defaultSliderData()}
+                    onChange={(data) => {
+                      const contentEn = renderSliderHTML(data, 'en')
+                      const contentRu = renderSliderHTML(data, 'ru')
+                      upd(ab.id, { data: data as any, contentEn, contentRu })
+                    }}
+                    lang={lt}
+                  />
+                  <Card className="overflow-hidden"><CardContent className="p-0">
+                    <div className="flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-teal-50 to-zinc-50 dark:from-teal-900/20 dark:to-zinc-800 border-b border-zinc-200 dark:border-zinc-700">
+                      <Eye className="w-3 h-3 text-teal-500" /><span className="text-[10px] font-bold text-teal-600 uppercase tracking-widest">{lang === 'ru' ? 'Превью' : 'Live Preview'}</span>
+                    </div>
+                    <div className="bg-zinc-950 max-h-[500px] overflow-y-auto"><div dangerouslySetInnerHTML={{ __html: renderSliderHTML((ab.data as any as SliderData) || defaultSliderData(), lt) }} /></div>
+                  </CardContent></Card>
+                </>
+              ) : ab.type === 'herotemplate' && editMode === 'structured' ? (
+                <>
+                  <HeroTemplateEditor
+                    data={(ab.data as any as HeroTemplateData) || defaultHeroTemplateData()}
+                    onChange={(data) => {
+                      const contentEn = renderHeroTemplateHTML(data, 'en')
+                      const contentRu = renderHeroTemplateHTML(data, 'ru')
+                      upd(ab.id, { data: data as any, contentEn, contentRu })
+                    }}
+                    lang={lt}
+                  />
+                  <Card className="overflow-hidden"><CardContent className="p-0">
+                    <div className="flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-teal-50 to-zinc-50 dark:from-teal-900/20 dark:to-zinc-800 border-b border-zinc-200 dark:border-zinc-700">
+                      <Eye className="w-3 h-3 text-teal-500" /><span className="text-[10px] font-bold text-teal-600 uppercase tracking-widest">{lang === 'ru' ? 'Превью' : 'Live Preview'}</span>
+                    </div>
+                    <div className="bg-zinc-950 max-h-[600px] overflow-y-auto"><div dangerouslySetInnerHTML={{ __html: renderHeroTemplateHTML((ab.data as any as HeroTemplateData) || defaultHeroTemplateData(), lt) }} /></div>
+                  </CardContent></Card>
                 </>
               ) : (
                 <RichEditor key={`${ab.id}__${lt}`} content={lt === 'ru' ? ab.contentRu : ab.contentEn}
