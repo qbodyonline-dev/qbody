@@ -201,7 +201,22 @@ function DynamicBlock({ block, lang }: { block: PageBlock; lang: 'en' | 'ru' }) 
   if (!content) return null
 
   // ✅ XSS PROTECTION: Sanitize all HTML before rendering
-  const safeContent = sanitizeHTML(content)
+  let safeContent = sanitizeHTML(content)
+
+  // ✅ LCP OPTIMIZATION: Add fetchpriority="high" and dimensions to hero images
+  if (block.type === 'hero') {
+    safeContent = safeContent.replace(
+      /<img\s+(class="hero-image")/gi,
+      '<img fetchpriority="high" loading="eager" width="400" height="600" $1'
+    )
+    // Also add fetchpriority to any other hero images without the class
+    if (!safeContent.includes('fetchpriority')) {
+      safeContent = safeContent.replace(
+        /<img\s/i,
+        '<img fetchpriority="high" loading="eager" '
+      )
+    }
+  }
 
   // For structured blocks rendered on-the-fly, skip section styles (renderer includes its own bg)
   const isStructured = ['about', 'courses', 'programs', 'results'].includes(block.type) && (block.data || block.items)
@@ -221,23 +236,38 @@ function DynamicBlock({ block, lang }: { block: PageBlock; lang: 'en' | 'ru' }) 
     : block.type === 'footer' ? 'contacts'
     : cleanHtmlId || undefined
 
+  // ✅ CLS FIX: Reserve space for hero section to prevent layout shift
+  const heroStyle = block.type === 'hero' ? { minHeight: '100vh', ...sectionStyle } : sectionStyle
+
   return (
-    <section id={sectionId} style={sectionStyle}>
+    <section id={sectionId} style={heroStyle}>
       <div dangerouslySetInnerHTML={{ __html: safeContent }} />
     </section>
   )
 }
 
-/* ═══════════ LOADING SKELETON ═══════════ */
+/* ═══════════ LOADING SKELETON — matches hero layout to prevent CLS ═══════════ */
 function LoadingSkeleton() {
   return (
     <div className="min-h-screen bg-zinc-950">
-      {/* Hero skeleton */}
-      <div className="h-screen flex items-center justify-center">
-        <div className="text-center space-y-4">
-          <div className="w-64 h-8 bg-zinc-800 rounded-lg mx-auto animate-pulse" />
-          <div className="w-96 h-12 bg-zinc-800 rounded-lg mx-auto animate-pulse" />
-          <div className="w-80 h-6 bg-zinc-800 rounded-lg mx-auto animate-pulse" />
+      {/* Hero skeleton — exact match to real hero to prevent CLS */}
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', paddingTop: '80px' }}>
+        <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 24px', width: '100%' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '48px', flexWrap: 'wrap' }}>
+            {/* Text side skeleton */}
+            <div style={{ flex: 1, minWidth: '300px' }}>
+              <div style={{ width: '200px', height: '24px', background: '#27272a', borderRadius: '8px', marginBottom: '16px' }} />
+              <div style={{ width: '100%', maxWidth: '500px', height: '48px', background: '#27272a', borderRadius: '8px', marginBottom: '12px' }} />
+              <div style={{ width: '80%', maxWidth: '400px', height: '48px', background: '#27272a', borderRadius: '8px', marginBottom: '24px' }} />
+              <div style={{ width: '60%', maxWidth: '350px', height: '20px', background: '#27272a', borderRadius: '8px', marginBottom: '32px' }} />
+              <div style={{ display: 'flex', gap: '12px' }}>
+                <div style={{ width: '160px', height: '48px', background: '#27272a', borderRadius: '12px' }} />
+                <div style={{ width: '160px', height: '48px', background: '#1c1c1e', borderRadius: '12px', border: '1px solid #3f3f46' }} />
+              </div>
+            </div>
+            {/* Image side skeleton */}
+            <div style={{ width: '400px', height: '500px', background: '#27272a', borderRadius: '24px', flexShrink: 0 }} />
+          </div>
         </div>
       </div>
     </div>

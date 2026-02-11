@@ -7,7 +7,7 @@ import {
   MessageSquare, CreditCard, Settings, Menu, X, Bell, 
   ChevronDown, Video, ListVideo,
   Target, Layers, FileText, BarChart3,
-  Moon, Sun, FormInput, BellRing, LogOut
+  Moon, Sun, FormInput, BellRing, LogOut, Database
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Avatar } from '@/components/ui/avatar'
@@ -205,6 +205,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     { name: ru ? 'Редактор страницы' : 'Page Editor', href: '/dashboard/page-editor', icon: FileText },
     { name: ru ? 'Конструктор форм' : 'Form Builder', href: '/dashboard/form-builder', icon: FormInput },
     { name: ru ? 'Уведомления' : 'Notifications', href: '/dashboard/notifications', icon: BellRing },
+    { name: ru ? 'Кэш сайта' : 'Site Cache', href: '/dashboard/cache', icon: Database },
     { name: t('common.settings'), href: '/dashboard/settings', icon: Settings },
   ]
 

@@ -39,7 +39,8 @@ export async function POST(request: Request) {
 
     // Convert file to buffer
     const arrayBuffer = await file.arrayBuffer()
-    let buffer: Buffer = Buffer.from(arrayBuffer) as Buffer
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let buffer: any = Buffer.from(arrayBuffer)
 
     // ✅ IMAGE OPTIMIZATION: Compress & convert to WebP
     let finalContentType = file.type
@@ -50,7 +51,7 @@ export async function POST(request: Request) {
       const preset = presetFromFolder(cleanFolder)
       const result = await optimizeImage(buffer, file.type, preset)
       
-      buffer = result.buffer as Buffer
+      buffer = result.buffer
       finalContentType = result.contentType
       finalExtension = result.extension
       optimizedSize = result.optimizedSize

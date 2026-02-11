@@ -11,100 +11,166 @@ const nextConfig = {
         hostname: 'images.unsplash.com',
       },
     ],
+    formats: ['image/webp', 'image/avif'],
   },
 
-  // ═══════════ SECURITY HEADERS ═══════════
+  // ═══════════ SECURITY + CACHE HEADERS ═══════════
   async headers() {
     return [
+      // ── Static assets: long-lived cache (Next.js hashed filenames) ──
       {
-        // Apply to ALL routes
-        source: '/:path*',
+        source: '/_next/static/:path*',
         headers: [
-          // Prevent MIME type sniffing
           {
-            key: 'X-Content-Type-Options',
-            value: 'nosniff',
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
           },
-          // Prevent clickjacking — site cannot be embedded in iframes
+        ],
+      },
+      // ── Next.js image optimization cache ──
+      {
+        source: '/_next/image',
+        headers: [
           {
-            key: 'X-Frame-Options',
-            value: 'DENY',
+            key: 'Cache-Control',
+            value: 'public, max-age=86400, stale-while-revalidate=604800',
           },
-          // XSS Protection (legacy browsers)
+        ],
+      },
+      // ── Fonts cache ──
+      {
+        source: '/fonts/:path*',
+        headers: [
           {
-            key: 'X-XSS-Protection',
-            value: '1; mode=block',
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
           },
-          // Control referrer info sent to other sites
+        ],
+      },
+      // ── Public pages: short cache + stale-while-revalidate ──
+      {
+        source: '/',
+        headers: [
           {
-            key: 'Referrer-Policy',
-            value: 'strict-origin-when-cross-origin',
-          },
-          // Disable browser features we don't need
-          {
-            key: 'Permissions-Policy',
-            value: 'camera=(), microphone=(), geolocation=(), interest-cohort=()',
-          },
-          // Force HTTPS for 1 year
-          {
-            key: 'Strict-Transport-Security',
-            value: 'max-age=31536000; includeSubDomains; preload',
-          },
-          // Content Security Policy
-          {
-            key: 'Content-Security-Policy',
-            value: [
-              // Default: only same origin
-              "default-src 'self'",
-              // Scripts: self + reCAPTCHA + inline (needed for JSON-LD & page builder)
-              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.google.com https://www.gstatic.com",
-              // Styles: self + inline (Tailwind + page builder inline styles)
-              "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-              // Images: self + Supabase storage + Unsplash + data URIs
-              "img-src 'self' data: blob: https://*.supabase.co https://images.unsplash.com",
-              // Fonts: self + Google Fonts
-              "font-src 'self' https://fonts.gstatic.com",
-              // API connections: self + Supabase + Stripe
-              "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.stripe.com https://www.google.com",
-              // Frames: only reCAPTCHA
-              "frame-src https://www.google.com https://js.stripe.com",
-              // Media: self + Supabase storage (video courses)
-              "media-src 'self' https://*.supabase.co blob:",
-              // Block all object/embed/applet
-              "object-src 'none'",
-              // Base URI: only self
-              "base-uri 'self'",
-              // Form submissions: only self + Stripe
-              "form-action 'self' https://checkout.stripe.com",
-              // Upgrade HTTP to HTTPS
-              "upgrade-insecure-requests",
-            ].join('; '),
+            key: 'Cache-Control',
+            value: 'public, max-age=60, s-maxage=300, stale-while-revalidate=600',
           },
         ],
       },
       {
-        // API routes — extra protection
-        source: '/api/:path*',
+        source: '/programs/:path*',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=60, s-maxage=300, stale-while-revalidate=600',
+          },
+        ],
+      },
+      // ── Public API: cacheable with revalidation ──
+      {
+        source: '/api/page-blocks',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=30, s-maxage=120, stale-while-revalidate=300',
+          },
+        ],
+      },
+      {
+        source: '/api/settings',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=30, s-maxage=120, stale-while-revalidate=300',
+          },
+        ],
+      },
+      // ── Protected API: no cache (all API routes not listed above) ──
+      {
+        source: '/api/clients/:path*',
+        headers: [
+          { key: 'Cache-Control', value: 'no-store, no-cache, must-revalidate' },
+          { key: 'X-Content-Type-Options', value: 'nosniff' },
+        ],
+      },
+      {
+        source: '/api/conversations/:path*',
+        headers: [
+          { key: 'Cache-Control', value: 'no-store, no-cache, must-revalidate' },
+          { key: 'X-Content-Type-Options', value: 'nosniff' },
+        ],
+      },
+      {
+        source: '/api/upload',
+        headers: [
+          { key: 'Cache-Control', value: 'no-store' },
+          { key: 'X-Content-Type-Options', value: 'nosniff' },
+        ],
+      },
+      {
+        source: '/api/analytics',
+        headers: [
+          { key: 'Cache-Control', value: 'no-store' },
+          { key: 'X-Content-Type-Options', value: 'nosniff' },
+        ],
+      },
+      {
+        source: '/api/cache',
+        headers: [
+          { key: 'Cache-Control', value: 'no-store' },
+          { key: 'X-Content-Type-Options', value: 'nosniff' },
+        ],
+      },
+      // ── All routes: security headers ──
+      {
+        source: '/:path*',
         headers: [
           {
             key: 'X-Content-Type-Options',
             value: 'nosniff',
           },
-          // Prevent API responses from being cached by browsers
           {
-            key: 'Cache-Control',
-            value: 'no-store, no-cache, must-revalidate, proxy-revalidate',
+            key: 'X-Frame-Options',
+            value: 'DENY',
           },
           {
-            key: 'Pragma',
-            value: 'no-cache',
+            key: 'X-XSS-Protection',
+            value: '1; mode=block',
+          },
+          {
+            key: 'Referrer-Policy',
+            value: 'strict-origin-when-cross-origin',
+          },
+          {
+            key: 'Permissions-Policy',
+            value: 'camera=(), microphone=(), geolocation=(), interest-cohort=()',
+          },
+          {
+            key: 'Strict-Transport-Security',
+            value: 'max-age=31536000; includeSubDomains; preload',
+          },
+          {
+            key: 'Content-Security-Policy',
+            value: [
+              "default-src 'self'",
+              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.google.com https://www.gstatic.com",
+              "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+              "img-src 'self' data: blob: https://*.supabase.co https://images.unsplash.com",
+              "font-src 'self' https://fonts.gstatic.com",
+              "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.stripe.com https://www.google.com",
+              "frame-src https://www.google.com https://js.stripe.com",
+              "media-src 'self' https://*.supabase.co blob:",
+              "object-src 'none'",
+              "base-uri 'self'",
+              "form-action 'self' https://checkout.stripe.com",
+              "upgrade-insecure-requests",
+            ].join('; '),
           },
         ],
       },
     ]
   },
 
-  // Disable X-Powered-By header (hides Next.js from attackers)
   poweredByHeader: false,
 }
 
