@@ -8,9 +8,11 @@ import { Badge } from '@/components/ui/badge'
 import { useTranslation } from '@/lib/i18n'
 import {
   ArrowLeft, ArrowRight, Check, User, Heart, Target, Ruler, CreditCard,
-  Camera, Upload, ChevronRight
+  Camera, Upload, ChevronRight, Loader2
 } from 'lucide-react'
 import { toast } from 'sonner'
+import { useRouter } from 'next/navigation'
+import { useAuth } from '@/lib/auth'
 
 const steps = [
   { id: 'personal', icon: User },
@@ -22,8 +24,11 @@ const steps = [
 
 export default function OnboardClientPage() {
   const { locale } = useTranslation()
+  const { session } = useAuth()
+  const router = useRouter()
   const ru = locale === 'ru'
   const [step, setStep] = useState(0)
+  const [submitting, setSubmitting] = useState(false)
 
   const [data, setData] = useState({
     firstName: '', lastName: '', email: '', phone: '', birthDate: '', gender: 'female',
@@ -39,9 +44,56 @@ export default function OnboardClientPage() {
     ? ['Личные данные', 'Здоровье', 'Цели', 'Замеры', 'Подписка']
     : ['Personal Info', 'Health', 'Goals', 'Measurements', 'Subscription']
 
-  const next = () => step < 4 && setStep(step + 1)
+  const next = () => {
+    // Validate email on step 0 before proceeding
+    if (step === 0 && !data.email.includes('@')) {
+      toast.error(ru ? 'Укажите корректный email' : 'Please enter a valid email')
+      return
+    }
+    step < 4 && setStep(step + 1)
+  }
   const prev = () => step > 0 && setStep(step - 1)
-  const submit = () => { toast.success(ru ? 'Клиент добавлен!' : 'Client added!') }
+
+  const submit = async () => {
+    if (!session?.access_token) {
+      toast.error(ru ? 'Нет авторизации' : 'Not authorized')
+      return
+    }
+    if (!data.email.includes('@')) {
+      toast.error(ru ? 'Укажите корректный email' : 'Please enter a valid email')
+      return
+    }
+
+    setSubmitting(true)
+    try {
+      const res = await fetch('/api/clients/onboard', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      })
+
+      const result = await res.json()
+
+      if (!res.ok) {
+        throw new Error(result.error || 'Failed to create client')
+      }
+
+      toast.success(ru ? 'Клиент успешно создан!' : 'Client created successfully!')
+      router.push(`/dashboard/clients/${result.client.id}`)
+    } catch (err: any) {
+      const msg = err.message || ''
+      if (msg.includes('already exists')) {
+        toast.error(ru ? 'Пользователь с таким email уже существует' : 'A user with this email already exists')
+      } else {
+        toast.error(ru ? `Ошибка: ${msg}` : `Error: ${msg}`)
+      }
+    } finally {
+      setSubmitting(false)
+    }
+  }
 
   return (
     <div className="max-w-3xl mx-auto space-y-6">
@@ -249,7 +301,10 @@ export default function OnboardClientPage() {
         {step < 4 ? (
           <Button variant="gradient" onClick={next}>{ru ? 'Далее' : 'Next'}<ArrowRight className="w-4 h-4 ml-2" /></Button>
         ) : (
-          <Button variant="gradient" onClick={submit}><Check className="w-4 h-4 mr-2" />{ru ? 'Создать клиента' : 'Create client'}</Button>
+          <Button variant="gradient" onClick={submit} disabled={submitting}>
+            {submitting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Check className="w-4 h-4 mr-2" />}
+            {submitting ? (ru ? 'Создание...' : 'Creating...') : (ru ? 'Создать клиента' : 'Create client')}
+          </Button>
         )}
       </div>
     </div>

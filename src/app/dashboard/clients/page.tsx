@@ -51,6 +51,12 @@ export default function ClientsPage() {
           <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">{t('clients.title')}</h1>
           <p className="text-zinc-500 mt-1">{clients.length} {ru ? 'клиентов' : 'clients total'}</p>
         </div>
+        <Link href="/dashboard/clients/onboard">
+          <Button className="gap-2">
+            <Plus className="w-4 h-4" />
+            {ru ? 'Добавить клиента' : 'Add Client'}
+          </Button>
+        </Link>
       </div>
 
       <Card><CardContent className="p-4">
