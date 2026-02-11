@@ -26,12 +26,12 @@ export async function POST(request: Request) {
     }
 
     // Also try to update profiles table (column may or may not exist)
-    await supabase
-      .from('profiles')
-      .update({ avatar_url: avatarUrl, updated_at: new Date().toISOString() })
-      .eq('id', userId)
-      .then(() => {})
-      .catch(() => {}) // Ignore if column doesn't exist
+    try {
+      await supabase
+        .from('profiles')
+        .update({ avatar_url: avatarUrl, updated_at: new Date().toISOString() })
+        .eq('id', userId)
+    } catch {} // Ignore if column doesn't exist
 
     return NextResponse.json({ success: true })
   } catch (err: any) {
