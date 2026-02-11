@@ -5,7 +5,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import { 
   LayoutDashboard, Users, Dumbbell, BookOpen,
   MessageSquare, CreditCard, Settings, Menu, X, Bell, 
-  Search, ChevronDown, Video, ListVideo,
+  ChevronDown, Video, ListVideo,
   Target, Layers, FileText, BarChart3,
   Moon, Sun, FormInput, BellRing, LogOut
 } from 'lucide-react'
@@ -17,6 +17,7 @@ import { useTranslation } from '@/lib/i18n'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/lib/auth'
 import { createClient } from '@/lib/supabase'
+import { DashboardSearch } from '@/components/dashboard/DashboardSearch'
 
 type NavItem = {
   name: string; href: string; icon: any; badge?: number
@@ -263,12 +264,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <header className="sticky top-0 z-30 h-16 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-xl border-b border-zinc-200 dark:border-zinc-700">
           <div className="h-full px-4 lg:px-6 flex items-center justify-between gap-4">
             <button onClick={() => setIsMobileSidebarOpen(true)} className="lg:hidden p-2 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800"><Menu className="w-5 h-5" /></button>
-            <div className="flex-1 max-w-md hidden sm:block">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
-                <input type="text" placeholder={t('sidebar.search')} className="w-full h-10 pl-10 pr-4 rounded-xl bg-zinc-100 dark:bg-zinc-800 dark:text-zinc-100 border-0 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500" />
-              </div>
-            </div>
+            <DashboardSearch />
             <div className="flex items-center gap-2">
               <LanguageSwitcher variant="dropdown" />
               <Button variant="ghost" size="icon" onClick={() => setIsDark(!isDark)} title={isDark ? 'Light mode' : 'Dark mode'}>
