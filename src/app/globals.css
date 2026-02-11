@@ -16,6 +16,12 @@
     scroll-behavior: smooth;
   }
 
+  /* Prevent text overflow in all containers */
+  p, span, h1, h2, h3, h4, h5, h6, li, td, th, label, a {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+
   /* === DARK MODE — Global overrides === */
   .dark {
     color-scheme: dark;

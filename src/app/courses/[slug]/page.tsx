@@ -146,8 +146,8 @@ export default function CoursePage() {
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             <div>
               <Badge className="mb-4 bg-white/20 text-white border-0">{course.duration_weeks} {ru ? 'недель' : 'weeks'}</Badge>
-              <h1 className="text-4xl lg:text-5xl font-bold text-white mb-6">{ru && course.title_ru ? course.title_ru : course.title}</h1>
-              <p className="text-xl text-white/90 mb-6">{ru && course.description_ru ? course.description_ru : course.description}</p>
+              <h1 className="text-4xl lg:text-5xl font-bold text-white mb-6 break-all">{ru && course.title_ru ? course.title_ru : course.title}</h1>
+              <p className="text-xl text-white/90 mb-6 break-all">{ru && course.description_ru ? course.description_ru : course.description}</p>
               
               {course.rating && (
                 <div className="flex items-center gap-2 mb-6">
@@ -191,7 +191,7 @@ export default function CoursePage() {
                   <CardContent className="p-6">
                     <h2 className="text-xl font-bold mb-4">{ru ? 'Что вы узнаете' : "What you'll learn"}</h2>
                     <div className="grid sm:grid-cols-2 gap-3">
-                      {features.map((f: string, i: number) => <div key={i} className="flex items-center gap-3"><CheckCircle2 className="w-5 h-5 text-teal-500 flex-shrink-0" /><span className="text-zinc-700">{f}</span></div>)}
+                      {features.map((f: string, i: number) => <div key={i} className="flex items-start gap-3 min-w-0"><CheckCircle2 className="w-5 h-5 text-teal-500 flex-shrink-0 mt-0.5" /><span className="text-zinc-700 break-all">{f}</span></div>)}
                     </div>
                   </CardContent>
                 </Card>
@@ -204,12 +204,12 @@ export default function CoursePage() {
                     <h2 className="text-xl font-bold mb-4">{ru ? 'Учебный план' : 'Curriculum'}</h2>
                     <div className="space-y-3">
                       {course.course_modules.map((mod: any, i: number) => (
-                        <div key={mod.id} className="flex items-center justify-between p-4 bg-zinc-50 rounded-xl">
-                          <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-lg bg-teal-500 text-white flex items-center justify-center font-bold text-sm">{i + 1}</div>
-                            <span className="font-medium text-zinc-900">{ru && mod.title_ru ? mod.title_ru : mod.title}</span>
+                        <div key={mod.id} className="flex items-center justify-between gap-3 p-4 bg-zinc-50 rounded-xl">
+                          <div className="flex items-center gap-3 min-w-0">
+                            <div className="w-8 h-8 rounded-lg bg-teal-500 text-white flex items-center justify-center font-bold text-sm flex-shrink-0">{i + 1}</div>
+                            <span className="font-medium text-zinc-900 break-all">{ru && mod.title_ru ? mod.title_ru : mod.title}</span>
                           </div>
-                          <span className="text-sm text-zinc-500">{mod.course_lessons?.length || 0} {ru ? 'уроков' : 'lessons'}</span>
+                          <span className="text-sm text-zinc-500 flex-shrink-0">{mod.course_lessons?.length || 0} {ru ? 'уроков' : 'lessons'}</span>
                         </div>
                       ))}
                     </div>
@@ -222,7 +222,7 @@ export default function CoursePage() {
                 <Card>
                   <CardContent className="p-6">
                     <h2 className="text-xl font-bold mb-4">{ru ? 'Инструктор' : 'Instructor'}</h2>
-                    <div className="flex items-start gap-4">
+                    <div className="flex items-start gap-4 min-w-0">
                       <div className="w-16 h-16 rounded-full bg-teal-100 flex items-center justify-center flex-shrink-0">
                         {course.instructor_image_url ? (
                           <img src={course.instructor_image_url} alt="" className="w-full h-full object-cover rounded-full" />
@@ -230,13 +230,13 @@ export default function CoursePage() {
                           <User className="w-8 h-8 text-teal-500" />
                         )}
                       </div>
-                      <div>
-                        <h3 className="font-semibold text-zinc-900">{course.instructor_name}</h3>
+                      <div className="min-w-0">
+                        <h3 className="font-semibold text-zinc-900 break-all">{course.instructor_name}</h3>
                         {(course.instructor_title || course.instructor_title_ru) && (
-                          <p className="text-sm text-zinc-500">{ru && course.instructor_title_ru ? course.instructor_title_ru : course.instructor_title}</p>
+                          <p className="text-sm text-zinc-500 break-all">{ru && course.instructor_title_ru ? course.instructor_title_ru : course.instructor_title}</p>
                         )}
                         {(course.instructor_bio || course.instructor_bio_ru) && (
-                          <p className="text-zinc-600 mt-2">{ru && course.instructor_bio_ru ? course.instructor_bio_ru : course.instructor_bio}</p>
+                          <p className="text-zinc-600 mt-2 break-all">{ru && course.instructor_bio_ru ? course.instructor_bio_ru : course.instructor_bio}</p>
                         )}
                       </div>
                     </div>
@@ -257,7 +257,7 @@ export default function CoursePage() {
                         {originalPrice && <span className="text-xl text-zinc-400 line-through">${originalPrice}</span>}
                         {originalPrice && <Badge className="bg-green-100 text-green-700 border-0">-{Math.round((1 - price/originalPrice) * 100)}%</Badge>}
                       </div>
-                      {guarantee && <p className="text-sm text-zinc-500">{guarantee}</p>}
+                      {guarantee && <p className="text-sm text-zinc-500 break-all">{guarantee}</p>}
                     </div>
 
                     <Button variant="gradient" className="w-full h-14 text-lg mb-4" onClick={handleBuy} disabled={isCheckoutLoading}>
@@ -268,10 +268,10 @@ export default function CoursePage() {
                       <div className="space-y-3 text-sm text-zinc-600">
                         <p className="font-medium text-zinc-900">{ru ? 'Этот курс включает:' : 'This course includes:'}</p>
                         {includes.map((item: string, i: number) => (
-                          <div key={i} className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-teal-500" /><span>{item}</span></div>
+                          <div key={i} className="flex items-start gap-2 min-w-0"><CheckCircle2 className="w-4 h-4 text-teal-500 flex-shrink-0 mt-0.5" /><span className="break-all">{item}</span></div>
                         ))}
-                        <div className="flex items-center gap-2"><BookOpen className="w-4 h-4 text-teal-500" /><span>{course.lessons_count || 0} {ru ? 'уроков' : 'lessons'}</span></div>
-                        <div className="flex items-center gap-2"><Clock className="w-4 h-4 text-teal-500" /><span>{course.total_hours || 0} {ru ? 'часов видео' : 'hours of video'}</span></div>
+                        <div className="flex items-center gap-2"><BookOpen className="w-4 h-4 text-teal-500 flex-shrink-0" /><span>{course.lessons_count || 0} {ru ? 'уроков' : 'lessons'}</span></div>
+                        <div className="flex items-center gap-2"><Clock className="w-4 h-4 text-teal-500 flex-shrink-0" /><span>{course.total_hours || 0} {ru ? 'часов видео' : 'hours of video'}</span></div>
                       </div>
                     )}
 
@@ -290,9 +290,9 @@ export default function CoursePage() {
       {(course.cta_title || course.cta_title_ru) && (
         <section className="py-16 bg-zinc-900">
           <div className="max-w-4xl mx-auto px-4 text-center">
-            <h2 className="text-3xl font-bold text-white mb-4">{ru && course.cta_title_ru ? course.cta_title_ru : course.cta_title}</h2>
+            <h2 className="text-3xl font-bold text-white mb-4 break-all">{ru && course.cta_title_ru ? course.cta_title_ru : course.cta_title}</h2>
             {(course.cta_subtitle || course.cta_subtitle_ru) && (
-              <p className="text-zinc-400 mb-8">{ru && course.cta_subtitle_ru ? course.cta_subtitle_ru : course.cta_subtitle}</p>
+              <p className="text-zinc-400 mb-8 break-all">{ru && course.cta_subtitle_ru ? course.cta_subtitle_ru : course.cta_subtitle}</p>
             )}
             <Button variant="gradient" size="lg" className="h-14 px-10 text-lg" onClick={handleBuy} disabled={isCheckoutLoading}>
               {isCheckoutLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : (ru && course.cta_button_text_ru ? course.cta_button_text_ru : (course.cta_button_text || (ru ? 'Начать сейчас' : 'Start Now')))}
