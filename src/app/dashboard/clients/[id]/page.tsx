@@ -18,6 +18,7 @@ import {
 import { toast } from 'sonner'
 import { fetchWithAuth } from '@/lib/api'
 import ClientQuestionnaire from '@/components/dashboard/ClientQuestionnaire'
+import ClientProgress from '@/components/dashboard/ClientProgress'
 
 const coursesMeta: Record<string, { title: string; titleRu: string; icon: any; color: string }> = {
   'breast-augmentation-recovery': { title: 'Breast Augmentation Recovery', titleRu: 'Восстановление после увеличения груди', icon: Heart, color: 'from-pink-500 to-rose-500' },
@@ -570,6 +571,9 @@ export default function ClientDetailPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Client Progress */}
+      <ClientProgress clientId={clientId} ru={ru} />
 
       {/* Client Questionnaire */}
       <ClientQuestionnaire clientId={clientId} ru={ru} />
