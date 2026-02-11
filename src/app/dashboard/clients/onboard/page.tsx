@@ -1,91 +1,158 @@
 'use client'
-import React, { useState } from 'react'
+import React, { useState, useRef } from 'react'
 import Link from 'next/link'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Badge } from '@/components/ui/badge'
 import { useTranslation } from '@/lib/i18n'
 import {
-  ArrowLeft, ArrowRight, Check, User, Heart, Target, Ruler, CreditCard,
-  Camera, Upload, ChevronRight, Loader2
+  ArrowLeft, Check, User, Camera, Loader2, AlertCircle, X, Upload
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/lib/auth'
-
-const steps = [
-  { id: 'personal', icon: User },
-  { id: 'health', icon: Heart },
-  { id: 'goals', icon: Target },
-  { id: 'measurements', icon: Ruler },
-  { id: 'subscription', icon: CreditCard },
-]
 
 export default function OnboardClientPage() {
   const { locale } = useTranslation()
   const { session } = useAuth()
   const router = useRouter()
   const ru = locale === 'ru'
-  const [step, setStep] = useState(0)
   const [submitting, setSubmitting] = useState(false)
+  const [avatarFile, setAvatarFile] = useState<File | null>(null)
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
+  const [uploadingAvatar, setUploadingAvatar] = useState(false)
+  const fileRef = useRef<HTMLInputElement>(null)
 
   const [data, setData] = useState({
-    firstName: '', lastName: '', email: '', phone: '', birthDate: '', gender: 'female',
-    conditions: '', surgeries: '', medications: '', allergies: '', injuries: '',
-    goal: '', experience: '', daysPerWeek: '3', equipment: '', motivation: '',
-    weight: '', height: '', chest: '', waist: '', hips: '', arm: '', thigh: '',
-    plan: 'premium', program: 'weightLoss', startDate: '', notes: '',
+    firstName: '',
+    lastName: '',
+    email: '',
+    phone: '',
+    birthDate: '',
+    gender: 'female',
   })
 
-  const u = (key: string, val: string) => setData({ ...data, [key]: val })
+  const [errors, setErrors] = useState<Record<string, string>>({})
 
-  const stepLabels = ru
-    ? ['Личные данные', 'Здоровье', 'Цели', 'Замеры', 'Подписка']
-    : ['Personal Info', 'Health', 'Goals', 'Measurements', 'Subscription']
+  const u = (key: string, val: string) => {
+    setData(prev => ({ ...prev, [key]: val }))
+    if (errors[key]) setErrors(prev => { const n = { ...prev }; delete n[key]; return n })
+  }
 
-  const next = () => {
-    // Validate email on step 0 before proceeding
-    if (step === 0 && !data.email.includes('@')) {
-      toast.error(ru ? 'Укажите корректный email' : 'Please enter a valid email')
+  const validate = (): boolean => {
+    const errs: Record<string, string> = {}
+    if (!data.email.trim()) {
+      errs.email = ru ? 'Email обязателен' : 'Email is required'
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email.trim())) {
+      errs.email = ru ? 'Некорректный email' : 'Invalid email'
+    }
+    if (!data.firstName.trim()) {
+      errs.firstName = ru ? 'Имя обязательно' : 'First name is required'
+    }
+    setErrors(errs)
+    return Object.keys(errs).length === 0
+  }
+
+  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (!file.type.startsWith('image/')) {
+      toast.error(ru ? 'Выберите изображение' : 'Please select an image')
       return
     }
-    step < 4 && setStep(step + 1)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error(ru ? 'Максимум 5 МБ' : 'Max 5 MB')
+      return
+    }
+    setAvatarFile(file)
+    const reader = new FileReader()
+    reader.onload = () => setAvatarPreview(reader.result as string)
+    reader.readAsDataURL(file)
   }
-  const prev = () => step > 0 && setStep(step - 1)
+
+  const removeAvatar = () => {
+    setAvatarFile(null)
+    setAvatarPreview(null)
+    if (fileRef.current) fileRef.current.value = ''
+  }
+
+  const uploadAvatar = async (userId: string): Promise<string | null> => {
+    if (!avatarFile || !session?.access_token) return null
+    try {
+      setUploadingAvatar(true)
+      const formData = new FormData()
+      formData.append('file', avatarFile)
+      formData.append('folder', 'avatars')
+      formData.append('fileName', `${userId}-avatar`)
+
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${session.access_token}` },
+        body: formData,
+      })
+      if (!res.ok) throw new Error('Upload failed')
+      const result = await res.json()
+      return result.url || null
+    } catch (err) {
+      console.error('Avatar upload error:', err)
+      return null
+    } finally {
+      setUploadingAvatar(false)
+    }
+  }
 
   const submit = async () => {
+    if (!validate()) return
     if (!session?.access_token) {
       toast.error(ru ? 'Нет авторизации' : 'Not authorized')
-      return
-    }
-    if (!data.email.includes('@')) {
-      toast.error(ru ? 'Укажите корректный email' : 'Please enter a valid email')
       return
     }
 
     setSubmitting(true)
     try {
+      // 1. Create client account
       const res = await fetch('/api/clients/onboard', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${session.access_token}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(data),
+        body: JSON.stringify({
+          ...data,
+          // Send empty strings for fields we removed
+          conditions: '', surgeries: '', medications: '', allergies: '', injuries: '',
+          goal: '', experience: '', daysPerWeek: '', equipment: '', motivation: '',
+          weight: '', height: '', chest: '', waist: '', hips: '', arm: '', thigh: '',
+          plan: '', program: '', startDate: '', notes: '',
+        }),
       })
 
       const result = await res.json()
+      if (!res.ok) throw new Error(result.error || 'Failed to create client')
 
-      if (!res.ok) {
-        throw new Error(result.error || 'Failed to create client')
+      const userId = result.client.id
+
+      // 2. Upload avatar if selected
+      if (avatarFile) {
+        const avatarUrl = await uploadAvatar(userId)
+        if (avatarUrl) {
+          // Update profile with avatar
+          await fetch('/api/clients/update-avatar', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${session.access_token}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ userId, avatarUrl }),
+          }).catch(() => {}) // Non-critical
+        }
       }
 
-      toast.success(ru ? 'Клиент успешно создан!' : 'Client created successfully!')
-      router.push(`/dashboard/clients/${result.client.id}`)
+      toast.success(ru ? 'Клиент создан!' : 'Client created!')
+      router.push(`/dashboard/clients/${userId}`)
     } catch (err: any) {
       const msg = err.message || ''
-      if (msg.includes('already exists')) {
+      if (msg.includes('already exists') || msg.includes('already')) {
         toast.error(ru ? 'Пользователь с таким email уже существует' : 'A user with this email already exists')
       } else {
         toast.error(ru ? `Ошибка: ${msg}` : `Error: ${msg}`)
@@ -96,216 +163,200 @@ export default function OnboardClientPage() {
   }
 
   return (
-    <div className="max-w-3xl mx-auto space-y-6">
+    <div className="max-w-2xl mx-auto space-y-6">
       {/* Header */}
       <div className="flex items-center gap-4">
-        <Link href="/dashboard/clients"><Button variant="ghost" size="icon"><ArrowLeft className="w-5 h-5" /></Button></Link>
+        <Link href="/dashboard/clients">
+          <Button variant="ghost" size="icon"><ArrowLeft className="w-5 h-5" /></Button>
+        </Link>
         <div>
           <h1 className="text-2xl font-bold text-zinc-900">{ru ? 'Новый клиент' : 'New Client'}</h1>
-          <p className="text-zinc-500 mt-1">{ru ? 'Пошаговая регистрация' : 'Step-by-step registration'}</p>
+          <p className="text-zinc-500 mt-1">{ru ? 'Создание аккаунта клиента' : 'Create a client account'}</p>
         </div>
       </div>
 
-      {/* Stepper */}
-      <div className="flex items-center justify-between">
-        {steps.map((s, i) => {
-          const Icon = s.icon
-          const done = i < step, active = i === step
-          return (
-            <React.Fragment key={s.id}>
-              <button onClick={() => i <= step && setStep(i)} className="flex flex-col items-center gap-1.5">
-                <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${done ? 'bg-teal-500 text-white' : active ? 'bg-teal-500 text-white ring-4 ring-teal-500/20' : 'bg-zinc-100 text-zinc-400'}`}>
-                  {done ? <Check className="w-5 h-5" /> : <Icon className="w-5 h-5" />}
-                </div>
-                <span className={`text-xs font-medium ${active ? 'text-teal-600' : 'text-zinc-400'}`}>{stepLabels[i]}</span>
-              </button>
-              {i < 4 && <div className={`flex-1 h-0.5 mx-2 rounded ${i < step ? 'bg-teal-500' : 'bg-zinc-200'}`} />}
-            </React.Fragment>
-          )
-        })}
-      </div>
-
-      {/* Step content */}
       <Card>
         <CardContent className="p-6 space-y-6">
-          {/* Step 1: Personal */}
-          {step === 0 && (<>
-            <div className="grid sm:grid-cols-2 gap-4">
-              <Input label={ru ? 'Имя' : 'First name'} value={data.firstName} onChange={e => u('firstName', e.target.value)} />
-              <Input label={ru ? 'Фамилия' : 'Last name'} value={data.lastName} onChange={e => u('lastName', e.target.value)} />
+          {/* Section title */}
+          <div className="flex items-center gap-3 pb-2 border-b border-zinc-100">
+            <div className="w-9 h-9 rounded-lg bg-teal-500/10 flex items-center justify-center">
+              <User className="w-5 h-5 text-teal-600" />
             </div>
-            <div className="grid sm:grid-cols-2 gap-4">
-              <Input label="Email" type="email" value={data.email} onChange={e => u('email', e.target.value)} />
-              <Input label={ru ? 'Телефон' : 'Phone'} value={data.phone} onChange={e => u('phone', e.target.value)} />
-            </div>
-            <div className="grid sm:grid-cols-2 gap-4">
-              <Input label={ru ? 'Дата рождения' : 'Date of birth'} type="date" value={data.birthDate} onChange={e => u('birthDate', e.target.value)} />
-              <div>
-                <label className="text-sm font-medium text-zinc-700 mb-1.5 block">{ru ? 'Пол' : 'Gender'}</label>
-                <div className="flex gap-3">
-                  {(['female', 'male'] as const).map(g => (
-                    <button key={g} onClick={() => u('gender', g)} className={`flex-1 h-11 rounded-xl border text-sm font-medium transition-all ${data.gender === g ? 'border-teal-500 bg-teal-50 text-teal-700' : 'border-zinc-200 text-zinc-500 hover:border-zinc-300'}`}>
-                      {g === 'female' ? (ru ? 'Женский' : 'Female') : (ru ? 'Мужской' : 'Male')}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </>)}
+            <h2 className="text-lg font-semibold text-zinc-900">
+              {ru ? 'Личные данные' : 'Personal Information'}
+            </h2>
+          </div>
 
-          {/* Step 2: Health */}
-          {step === 1 && (<>
-            <div>
-              <label className="text-sm font-medium text-zinc-700 mb-1.5 block">{ru ? 'Состояние здоровья / хронические заболевания' : 'Health conditions / chronic issues'}</label>
-              <textarea className="w-full px-4 py-3 rounded-xl border border-zinc-200 text-sm" rows={3} value={data.conditions} onChange={e => u('conditions', e.target.value)} placeholder={ru ? 'Перечислите если есть...' : 'List any if applicable...'} />
-            </div>
-            <div>
-              <label className="text-sm font-medium text-zinc-700 mb-1.5 block">{ru ? 'Операции' : 'Surgeries'}</label>
-              <textarea className="w-full px-4 py-3 rounded-xl border border-zinc-200 text-sm" rows={2} value={data.surgeries} onChange={e => u('surgeries', e.target.value)} />
-            </div>
-            <div className="grid sm:grid-cols-2 gap-4">
-              <div>
-                <label className="text-sm font-medium text-zinc-700 mb-1.5 block">{ru ? 'Лекарства' : 'Medications'}</label>
-                <textarea className="w-full px-4 py-3 rounded-xl border border-zinc-200 text-sm" rows={2} value={data.medications} onChange={e => u('medications', e.target.value)} />
+          {/* Avatar */}
+          <div className="flex items-center gap-5">
+            <div className="relative">
+              <div
+                onClick={() => fileRef.current?.click()}
+                className="w-20 h-20 rounded-2xl border-2 border-dashed border-zinc-300 flex items-center justify-center cursor-pointer hover:border-teal-500 transition-colors overflow-hidden bg-zinc-50"
+              >
+                {avatarPreview ? (
+                  <img src={avatarPreview} alt="Avatar" className="w-full h-full object-cover" />
+                ) : (
+                  <Camera className="w-7 h-7 text-zinc-300" />
+                )}
               </div>
-              <div>
-                <label className="text-sm font-medium text-zinc-700 mb-1.5 block">{ru ? 'Травмы' : 'Injuries'}</label>
-                <textarea className="w-full px-4 py-3 rounded-xl border border-zinc-200 text-sm" rows={2} value={data.injuries} onChange={e => u('injuries', e.target.value)} />
-              </div>
+              {avatarPreview && (
+                <button
+                  onClick={removeAvatar}
+                  className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-red-500 text-white flex items-center justify-center shadow-md hover:bg-red-600 transition-colors"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              )}
+              <input
+                ref={fileRef}
+                type="file"
+                accept="image/*"
+                onChange={handleAvatarChange}
+                className="hidden"
+              />
             </div>
-            <Input label={ru ? 'Аллергии' : 'Allergies'} value={data.allergies} onChange={e => u('allergies', e.target.value)} />
-          </>)}
+            <div>
+              <p className="text-sm font-medium text-zinc-700">{ru ? 'Фото клиента' : 'Client photo'}</p>
+              <p className="text-xs text-zinc-400 mt-0.5">{ru ? 'JPG, PNG до 5 МБ' : 'JPG, PNG up to 5 MB'}</p>
+              <button
+                onClick={() => fileRef.current?.click()}
+                className="text-xs text-teal-600 hover:text-teal-700 font-medium mt-1 flex items-center gap-1"
+              >
+                <Upload className="w-3 h-3" />
+                {avatarPreview ? (ru ? 'Заменить' : 'Replace') : (ru ? 'Загрузить' : 'Upload')}
+              </button>
+            </div>
+          </div>
 
-          {/* Step 3: Goals */}
-          {step === 2 && (<>
+          {/* Name */}
+          <div className="grid sm:grid-cols-2 gap-4">
             <div>
-              <label className="text-sm font-medium text-zinc-700 mb-3 block">{ru ? 'Основная цель' : 'Primary goal'}</label>
-              <div className="grid grid-cols-2 gap-3">
-                {[
-                  { v: 'weightLoss', en: '🔥 Weight Loss', ru: '🔥 Похудение' },
-                  { v: 'muscleGain', en: '💪 Muscle Gain', ru: '💪 Набор массы' },
-                  { v: 'recovery', en: '🏥 Recovery', ru: '🏥 Восстановление' },
-                  { v: 'generalFitness', en: '⚡ General Fitness', ru: '⚡ Общий тонус' },
-                ].map(g => (
-                  <button key={g.v} onClick={() => u('goal', g.v)} className={`p-4 rounded-xl border text-left transition-all ${data.goal === g.v ? 'border-teal-500 bg-teal-50' : 'border-zinc-200 hover:border-zinc-300'}`}>
-                    <span className="text-sm font-medium">{ru ? g.ru : g.en}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div>
-              <label className="text-sm font-medium text-zinc-700 mb-3 block">{ru ? 'Опыт тренировок' : 'Training experience'}</label>
-              <div className="flex gap-3">
-                {[
-                  { v: 'beginner', en: 'Beginner', ru: 'Новичок' },
-                  { v: 'intermediate', en: '1-3 years', ru: '1-3 года' },
-                  { v: 'advanced', en: '3+ years', ru: '3+ лет' },
-                ].map(e => (
-                  <button key={e.v} onClick={() => u('experience', e.v)} className={`flex-1 p-3 rounded-xl border text-center text-sm font-medium transition-all ${data.experience === e.v ? 'border-teal-500 bg-teal-50 text-teal-700' : 'border-zinc-200 text-zinc-500'}`}>
-                    {ru ? e.ru : e.en}
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div className="grid sm:grid-cols-2 gap-4">
-              <div>
-                <label className="text-sm font-medium text-zinc-700 mb-3 block">{ru ? 'Дней в неделю' : 'Days per week'}</label>
-                <div className="flex gap-2">
-                  {['2', '3', '4', '5', '6'].map(d => (
-                    <button key={d} onClick={() => u('daysPerWeek', d)} className={`w-12 h-12 rounded-xl border text-sm font-bold transition-all ${data.daysPerWeek === d ? 'border-teal-500 bg-teal-50 text-teal-700' : 'border-zinc-200 text-zinc-500'}`}>{d}</button>
-                  ))}
-                </div>
-              </div>
-              <div>
-                <label className="text-sm font-medium text-zinc-700 mb-3 block">{ru ? 'Оборудование' : 'Equipment'}</label>
-                <select className="w-full h-11 px-4 rounded-xl border border-zinc-200 text-sm" value={data.equipment} onChange={e => u('equipment', e.target.value)}>
-                  <option value="">{ru ? '— выберите —' : '— select —'}</option>
-                  <option value="fullGym">{ru ? 'Полный зал' : 'Full gym'}</option>
-                  <option value="homeGym">{ru ? 'Домашний зал' : 'Home gym'}</option>
-                  <option value="minimal">{ru ? 'Минимальное' : 'Minimal'}</option>
-                  <option value="none">{ru ? 'Нет' : 'None'}</option>
-                </select>
-              </div>
+              <label className="text-sm font-medium text-zinc-700 mb-1.5 block">
+                {ru ? 'Имя' : 'First name'} <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                value={data.firstName}
+                onChange={e => u('firstName', e.target.value)}
+                placeholder={ru ? 'Александра' : 'Alexandra'}
+                className={`w-full h-11 px-4 rounded-xl border text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-teal-500/20 ${
+                  errors.firstName ? 'border-red-400 bg-red-50' : 'border-zinc-200 focus:border-teal-500'
+                }`}
+              />
+              {errors.firstName && (
+                <p className="text-red-500 text-xs mt-1 flex items-center gap-1">
+                  <AlertCircle className="w-3 h-3" />{errors.firstName}
+                </p>
+              )}
             </div>
             <div>
-              <label className="text-sm font-medium text-zinc-700 mb-1.5 block">{ru ? 'Мотивация / пожелания' : 'Motivation / notes'}</label>
-              <textarea className="w-full px-4 py-3 rounded-xl border border-zinc-200 text-sm" rows={3} value={data.motivation} onChange={e => u('motivation', e.target.value)} />
+              <label className="text-sm font-medium text-zinc-700 mb-1.5 block">
+                {ru ? 'Фамилия' : 'Last name'}
+              </label>
+              <input
+                type="text"
+                value={data.lastName}
+                onChange={e => u('lastName', e.target.value)}
+                placeholder={ru ? 'Иванова' : 'Smith'}
+                className="w-full h-11 px-4 rounded-xl border border-zinc-200 text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
+              />
             </div>
-          </>)}
+          </div>
 
-          {/* Step 4: Measurements */}
-          {step === 3 && (<>
-            <div className="grid grid-cols-2 gap-4">
-              <Input label={ru ? 'Вес (кг)' : 'Weight (kg)'} type="number" value={data.weight} onChange={e => u('weight', e.target.value)} />
-              <Input label={ru ? 'Рост (см)' : 'Height (cm)'} type="number" value={data.height} onChange={e => u('height', e.target.value)} />
-            </div>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-              <Input label={ru ? 'Грудь (см)' : 'Chest (cm)'} type="number" value={data.chest} onChange={e => u('chest', e.target.value)} />
-              <Input label={ru ? 'Талия (см)' : 'Waist (cm)'} type="number" value={data.waist} onChange={e => u('waist', e.target.value)} />
-              <Input label={ru ? 'Бёдра (см)' : 'Hips (cm)'} type="number" value={data.hips} onChange={e => u('hips', e.target.value)} />
-              <Input label={ru ? 'Рука (см)' : 'Arm (cm)'} type="number" value={data.arm} onChange={e => u('arm', e.target.value)} />
-              <Input label={ru ? 'Бедро (см)' : 'Thigh (cm)'} type="number" value={data.thigh} onChange={e => u('thigh', e.target.value)} />
-            </div>
-            <div>
-              <label className="text-sm font-medium text-zinc-700 mb-3 block">{ru ? 'Фото до (фронт + бок)' : 'Starting photos (front + side)'}</label>
-              <div className="grid grid-cols-2 gap-4">
-                {['Front', 'Side'].map(side => (
-                  <div key={side} className="border-2 border-dashed border-zinc-300 rounded-xl p-8 text-center hover:border-teal-500 transition-colors cursor-pointer">
-                    <Camera className="w-8 h-8 text-zinc-300 mx-auto mb-2" />
-                    <p className="text-sm text-zinc-400">{side}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </>)}
+          {/* Email */}
+          <div>
+            <label className="text-sm font-medium text-zinc-700 mb-1.5 block">
+              Email <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="email"
+              value={data.email}
+              onChange={e => u('email', e.target.value)}
+              placeholder="client@example.com"
+              className={`w-full h-11 px-4 rounded-xl border text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-teal-500/20 ${
+                errors.email ? 'border-red-400 bg-red-50' : 'border-zinc-200 focus:border-teal-500'
+              }`}
+            />
+            {errors.email && (
+              <p className="text-red-500 text-xs mt-1 flex items-center gap-1">
+                <AlertCircle className="w-3 h-3" />{errors.email}
+              </p>
+            )}
+            <p className="text-xs text-zinc-400 mt-1">
+              {ru ? 'На этот email будет создан аккаунт с временным паролем' : 'An account with a temporary password will be created'}
+            </p>
+          </div>
 
-          {/* Step 5: Subscription */}
-          {step === 4 && (<>
+          {/* Phone + Birth date */}
+          <div className="grid sm:grid-cols-2 gap-4">
             <div>
-              <label className="text-sm font-medium text-zinc-700 mb-3 block">{ru ? 'Тарифный план' : 'Subscription plan'}</label>
-              <div className="grid sm:grid-cols-3 gap-3">
-                {[
-                  { v: 'basic', en: 'Basic', ru: 'Базовый', price: '$49/mo', desc: ru ? 'Программа + питание' : 'Program + nutrition' },
-                  { v: 'premium', en: 'Premium', ru: 'Премиум', price: '$99/mo', desc: ru ? '+ чаты + чекины' : '+ chats + check-ins' },
-                  { v: 'vip', en: 'VIP', ru: 'VIP', price: '$199/mo', desc: ru ? '+ видеозвонки' : '+ video calls' },
-                ].map(p => (
-                  <button key={p.v} onClick={() => u('plan', p.v)} className={`p-4 rounded-xl border text-center transition-all ${data.plan === p.v ? 'border-teal-500 bg-teal-50 ring-2 ring-teal-500/20' : 'border-zinc-200'}`}>
-                    <div className="font-bold text-lg">{p.price}</div>
-                    <div className="font-medium text-sm">{ru ? p.ru : p.en}</div>
-                    <div className="text-xs text-zinc-500 mt-1">{p.desc}</div>
-                  </button>
-                ))}
-              </div>
+              <label className="text-sm font-medium text-zinc-700 mb-1.5 block">
+                {ru ? 'Телефон' : 'Phone'}
+              </label>
+              <input
+                type="tel"
+                value={data.phone}
+                onChange={e => u('phone', e.target.value)}
+                placeholder="+1 (555) 123-4567"
+                className="w-full h-11 px-4 rounded-xl border border-zinc-200 text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
+              />
             </div>
             <div>
-              <label className="text-sm font-medium text-zinc-700 mb-3 block">{ru ? 'Назначить программу' : 'Assign program'}</label>
-              <select className="w-full h-11 px-4 rounded-xl border border-zinc-200 text-sm" value={data.program} onChange={e => u('program', e.target.value)}>
-                <option value="weightLoss">{ru ? '8 недель: Похудение' : '8 weeks: Weight Loss'}</option>
-                <option value="muscleGain">{ru ? '8 недель: Набор массы' : '8 weeks: Muscle Gain'}</option>
-                <option value="beginner">{ru ? '8 недель: Новичок' : '8 weeks: Beginner'}</option>
-                <option value="recovery">{ru ? 'Восстановление' : 'Recovery'}</option>
-              </select>
+              <label className="text-sm font-medium text-zinc-700 mb-1.5 block">
+                {ru ? 'Дата рождения' : 'Date of birth'}
+              </label>
+              <input
+                type="date"
+                value={data.birthDate}
+                onChange={e => u('birthDate', e.target.value)}
+                className="w-full h-11 px-4 rounded-xl border border-zinc-200 text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
+              />
             </div>
-            <Input label={ru ? 'Дата старта' : 'Start date'} type="date" value={data.startDate} onChange={e => u('startDate', e.target.value)} />
-            <div>
-              <label className="text-sm font-medium text-zinc-700 mb-1.5 block">{ru ? 'Заметки тренера' : 'Trainer notes'}</label>
-              <textarea className="w-full px-4 py-3 rounded-xl border border-zinc-200 text-sm" rows={3} value={data.notes} onChange={e => u('notes', e.target.value)} />
+          </div>
+
+          {/* Gender */}
+          <div>
+            <label className="text-sm font-medium text-zinc-700 mb-2 block">
+              {ru ? 'Пол' : 'Gender'}
+            </label>
+            <div className="flex gap-3">
+              {([
+                { v: 'female', en: 'Female', ru: 'Женский' },
+                { v: 'male', en: 'Male', ru: 'Мужской' },
+              ] as const).map(g => (
+                <button
+                  key={g.v}
+                  type="button"
+                  onClick={() => u('gender', g.v)}
+                  className={`flex-1 h-11 rounded-xl border text-sm font-medium transition-all ${
+                    data.gender === g.v
+                      ? 'border-teal-500 bg-teal-50 text-teal-700'
+                      : 'border-zinc-200 text-zinc-500 hover:border-zinc-300'
+                  }`}
+                >
+                  {ru ? g.ru : g.en}
+                </button>
+              ))}
             </div>
-          </>)}
+          </div>
         </CardContent>
       </Card>
 
-      {/* Navigation */}
-      <div className="flex justify-between">
-        <Button variant="outline" onClick={prev} disabled={step === 0}><ArrowLeft className="w-4 h-4 mr-2" />{ru ? 'Назад' : 'Back'}</Button>
-        {step < 4 ? (
-          <Button variant="gradient" onClick={next}>{ru ? 'Далее' : 'Next'}<ArrowRight className="w-4 h-4 ml-2" /></Button>
-        ) : (
-          <Button variant="gradient" onClick={submit} disabled={submitting}>
-            {submitting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Check className="w-4 h-4 mr-2" />}
-            {submitting ? (ru ? 'Создание...' : 'Creating...') : (ru ? 'Создать клиента' : 'Create client')}
+      {/* Submit */}
+      <div className="flex justify-between items-center">
+        <Link href="/dashboard/clients">
+          <Button variant="outline">
+            <ArrowLeft className="w-4 h-4 mr-2" />{ru ? 'Отмена' : 'Cancel'}
           </Button>
-        )}
+        </Link>
+        <Button variant="gradient" onClick={submit} disabled={submitting}>
+          {submitting ? (
+            <><Loader2 className="w-4 h-4 mr-2 animate-spin" />{ru ? 'Создание...' : 'Creating...'}</>
+          ) : (
+            <><Check className="w-4 h-4 mr-2" />{ru ? 'Создать клиента' : 'Create Client'}</>
+          )}
+        </Button>
       </div>
     </div>
   )
