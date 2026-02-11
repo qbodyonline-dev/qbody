@@ -48,7 +48,7 @@ export async function GET(request: NextRequest) {
     if (ifNoneMatch === cached.etag) {
       return new NextResponse(null, { status: 304 })
     }
-    return new NextResponse(cached.buffer, {
+    return new NextResponse(cached.buffer as any, {
       headers: {
         'Content-Type': 'image/webp',
         'Cache-Control': 'public, max-age=2592000, stale-while-revalidate=86400',
@@ -100,7 +100,7 @@ export async function GET(request: NextRequest) {
       return new NextResponse(null, { status: 304 })
     }
 
-    return new NextResponse(optimized, {
+    return new NextResponse(optimized as any, {
       headers: {
         'Content-Type': 'image/webp',
         'Cache-Control': 'public, max-age=2592000, stale-while-revalidate=86400',
