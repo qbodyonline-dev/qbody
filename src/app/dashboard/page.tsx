@@ -149,7 +149,7 @@ export default function DashboardPage() {
               <div className="text-center py-8">
                 <BookOpen className="w-12 h-12 mx-auto text-zinc-300 mb-3" />
                 <p className="text-zinc-500">{ru ? 'Курсов пока нет' : 'No courses yet'}</p>
-                <Link href="/dashboard/courses/new"><Button variant="outline" size="sm" className="mt-3">{ru ? 'Создать курс' : 'Create Course'}</Button></Link>
+                <Link href="/dashboard/courses?new=1"><Button variant="outline" size="sm" className="mt-3">{ru ? 'Создать курс' : 'Create Course'}</Button></Link>
               </div>
             ) : (
               <div className="space-y-3">
@@ -181,7 +181,7 @@ export default function DashboardPage() {
         <CardHeader><CardTitle className="text-lg">{ru ? 'Быстрые действия' : 'Quick Actions'}</CardTitle></CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            <Link href="/dashboard/courses/new">
+            <Link href="/dashboard/courses?new=1">
               <div className="p-4 rounded-xl bg-teal-50 dark:bg-teal-900/20 hover:bg-teal-100 dark:hover:bg-teal-900/30 transition-colors text-center cursor-pointer">
                 <BookOpen className="w-8 h-8 mx-auto text-teal-600 mb-2" />
                 <p className="text-sm font-medium text-teal-700 dark:text-teal-400">{ru ? 'Новый курс' : 'New Course'}</p>

@@ -48,25 +48,43 @@ export function Modal({ isOpen, onClose, title, description, children, size = 'm
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-[100] flex items-start sm:items-center justify-center overflow-y-auto">
+      {/* Overlay */}
       <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
+      
+      {/* Modal container */}
       <div className={cn(
-        'relative w-full bg-white dark:bg-zinc-900 rounded-2xl shadow-xl animate-in fade-in zoom-in-95 duration-200',
+        'relative w-full bg-white dark:bg-zinc-900 rounded-2xl shadow-xl',
+        'animate-in fade-in zoom-in-95 duration-200',
+        'my-4 sm:my-8 mx-4',
+        'max-h-[calc(100vh-2rem)] sm:max-h-[calc(100vh-4rem)]',
+        'flex flex-col',
         sizeClasses[size]
       )}>
-        {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-zinc-200 dark:border-zinc-700">
-          <div>
-            {title && <h2 className="text-xl font-semibold text-zinc-900 dark:text-zinc-100">{title}</h2>}
-            {description && <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">{description}</p>}
+        {/* Header — sticky */}
+        {(title || description) && (
+          <div className="flex items-center justify-between p-4 sm:p-6 border-b border-zinc-200 dark:border-zinc-700 flex-shrink-0">
+            <div className="min-w-0 flex-1 mr-4">
+              {title && <h2 className="text-lg sm:text-xl font-semibold text-zinc-900 dark:text-zinc-100 truncate">{title}</h2>}
+              {description && <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">{description}</p>}
+            </div>
+            <Button variant="ghost" size="icon" onClick={onClose} className="flex-shrink-0">
+              <X className="w-5 h-5" />
+            </Button>
           </div>
-          <Button variant="ghost" size="icon" onClick={onClose}>
-            <X className="w-5 h-5" />
-          </Button>
-        </div>
+        )}
+
+        {/* Close button if no header */}
+        {!title && !description && (
+          <div className="absolute top-3 right-3 z-10">
+            <Button variant="ghost" size="icon" onClick={onClose}>
+              <X className="w-5 h-5" />
+            </Button>
+          </div>
+        )}
         
-        {/* Content */}
-        <div className="p-6">
+        {/* Content — scrollable */}
+        <div className="p-4 sm:p-6 overflow-y-auto flex-1 overscroll-contain">
           {children}
         </div>
       </div>

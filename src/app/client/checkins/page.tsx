@@ -267,7 +267,7 @@ export default function ClientCheckinsPage() {
       {/* ═══ New Check-in Modal ═══ */}
       <Modal isOpen={isNewOpen} onClose={() => setIsNewOpen(false)}
         title={ru ? 'Новый чекин' : 'New Check-in'} size="lg">
-        <div className="space-y-5 max-h-[70vh] overflow-y-auto pr-1">
+        <div className="space-y-5">
 
           {/* Measurements */}
           <div>
@@ -349,7 +349,7 @@ export default function ClientCheckinsPage() {
         title={selectedCheckin ? new Date(selectedCheckin.checkin_date).toLocaleDateString(ru ? 'ru-RU' : 'en-US', { weekday: 'long', day: 'numeric', month: 'long' }) : ''}
         size="lg">
         {selectedCheckin && (
-          <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-1">
+          <div className="space-y-4">
             {/* Status */}
             <div className="flex gap-2">
               <Badge variant={selectedCheckin.status === 'reviewed' ? 'success' : selectedCheckin.flagged ? 'destructive' : 'secondary'}>

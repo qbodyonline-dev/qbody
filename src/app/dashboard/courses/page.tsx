@@ -60,6 +60,13 @@ export default function CoursesAdminPage() {
 
   useEffect(() => { loadCourses() }, [])
 
+  // Auto-open add modal from ?new=1
+  useEffect(() => {
+    if (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('new') === '1') {
+      setIsAddOpen(true)
+    }
+  }, [])
+
   const resetForm = () => setForm({
     title: '', title_ru: '', slug: '',
     description: '', description_ru: '',
