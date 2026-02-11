@@ -79,6 +79,16 @@ function Header({ headerData, lang }: { headerData?: any; lang: 'en' | 'ru' }) {
     return () => window.removeEventListener('scroll', handleScroll)
   }, [])
 
+  // Lock body scroll when mobile menu open
+  React.useEffect(() => {
+    if (isMobileMenuOpen) {
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.body.style.overflow = 'unset'
+    }
+    return () => { document.body.style.overflow = 'unset' }
+  }, [isMobileMenuOpen])
+
   // Use DB data if available, otherwise defaults
   const d = headerData
   const navigation = d?.navLinks?.length
@@ -100,85 +110,184 @@ function Header({ headerData, lang }: { headerData?: any; lang: 'en' | 'ru' }) {
   const logoIcon = d?.logoIcon || 'Q'
 
   return (
-    <header role="banner" className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-      isScrolled ? 'bg-zinc-900/95 backdrop-blur-xl border-b border-zinc-800' : 'bg-transparent'
-    }`}>
-      <nav className="container-custom">
-        <div className="flex items-center justify-between h-20">
-          <Link href="/" className="flex items-center gap-3">
-            {d?.logoImage ? (
-              <img src={d.logoImage.includes('supabase.co') ? `/api/img?src=${encodeURIComponent(d.logoImage)}&w=80&q=75` : d.logoImage} alt={logoText} width="40" height="40" className="w-10 h-10 rounded-xl object-contain" />
-            ) : (
-              <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${d?.logoGradient || 'bg-gradient-to-br from-teal-400 to-teal-600'}`}>
-                <span className="text-white font-bold text-lg">{logoIcon}</span>
+    <>
+      {/* ── Header bar ── */}
+      <header role="banner" className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+        isScrolled || isMobileMenuOpen ? 'bg-black border-b border-zinc-800' : 'bg-black lg:bg-transparent'
+      }`}>
+        <nav className="container-custom">
+          <div className="flex items-center justify-between h-16 lg:h-20">
+            {/* Logo */}
+            <Link href="/" className="flex items-center gap-2.5 flex-shrink-0">
+              {d?.logoImage ? (
+                <img src={d.logoImage.includes('supabase.co') ? `/api/img?src=${encodeURIComponent(d.logoImage)}&w=80&q=75` : d.logoImage} alt={logoText} width="36" height="36" className="w-9 h-9 rounded-xl object-contain" />
+              ) : (
+                <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${d?.logoGradient || 'bg-gradient-to-br from-teal-400 to-teal-600'}`}>
+                  <span className="text-white font-bold text-base">{logoIcon}</span>
+                </div>
+              )}
+              {/* Mobile: brand name between logo and hamburger */}
+              <span className="lg:hidden text-sm font-semibold" style={{ color: '#14B8A6' }}>Qbody by Khavanskaia</span>
+              {/* Desktop: full logo */}
+              <div className="hidden lg:block">
+                <span className="text-white font-semibold text-lg">{logoText}</span>
+                <span className="text-teal-400 text-sm block -mt-1">by Khavanskaia</span>
               </div>
-            )}
-            <div className="hidden sm:block">
-              <span className="text-white font-semibold text-lg">{logoText}</span>
-              <span className="text-teal-400 text-sm block -mt-1">by Khavanskaia</span>
+            </Link>
+
+            {/* Desktop nav */}
+            <div className="hidden lg:flex items-center gap-8">
+              {navigation.map((item: any) => (
+                <Link key={item.name} href={item.href} className="text-zinc-300 hover:text-white transition-colors text-sm font-medium">
+                  {item.name}
+                </Link>
+              ))}
             </div>
-          </Link>
 
-          <div className="hidden lg:flex items-center gap-8">
-            {navigation.map((item: any) => (
-              <Link key={item.name} href={item.href} className="text-zinc-300 hover:text-white transition-colors text-sm font-medium">
-                {item.name}
-              </Link>
-            ))}
-          </div>
-
-          <div className="flex items-center gap-4">
-            <LanguageSwitcher variant="dropdown" className="hidden sm:block" />
-            {!authLoading && user ? (
-              <Link href="/dashboard" className="hidden sm:block">
-                <Button variant="gradient">
-                  <LayoutDashboard className="w-4 h-4 mr-2" />
-                  {t('nav.dashboard') || 'Dashboard'}
-                </Button>
-              </Link>
-            ) : (
-              <>
-                <Link href={loginLink} className="hidden sm:block">
-                  <Button variant="ghost" className="text-zinc-300 hover:text-white">
-                    <User className="w-4 h-4 mr-2" />
-                    {loginText}
+            {/* Right side */}
+            <div className="flex items-center gap-4">
+              <LanguageSwitcher variant="dropdown" className="hidden sm:block" />
+              {!authLoading && user ? (
+                <Link href="/dashboard" className="hidden lg:block">
+                  <Button variant="gradient">
+                    <LayoutDashboard className="w-4 h-4 mr-2" />
+                    {t('nav.dashboard') || 'Dashboard'}
                   </Button>
                 </Link>
-                <Link href={ctaLink} className="hidden sm:block">
-                  <Button variant="gradient">{ctaText}</Button>
-                </Link>
-              </>
-            )}
-            <button className="lg:hidden text-white p-2" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}>
-              {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-            </button>
+              ) : (
+                <>
+                  <Link href={loginLink} className="hidden lg:block">
+                    <Button variant="ghost" className="text-zinc-300 hover:text-white">
+                      <User className="w-4 h-4 mr-2" />
+                      {loginText}
+                    </Button>
+                  </Link>
+                  <Link href={ctaLink} className="hidden lg:block">
+                    <Button variant="gradient">{ctaText}</Button>
+                  </Link>
+                </>
+              )}
+              {/* Hamburger */}
+              <button
+                className="lg:hidden text-white p-2 relative z-[60]"
+                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                aria-label="Toggle menu"
+              >
+                {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+              </button>
+            </div>
           </div>
+        </nav>
+      </header>
+
+      {/* ── Fullscreen Mobile Menu ── */}
+      {/* Overlay */}
+      <div
+        className={`fixed inset-0 bg-black/60 z-[55] lg:hidden transition-opacity duration-300 ${
+          isMobileMenuOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
+        }`}
+        onClick={() => setIsMobileMenuOpen(false)}
+      />
+
+      {/* Slide-in panel from right */}
+      <div
+        className={`fixed top-0 right-0 bottom-0 w-full max-w-sm z-[56] lg:hidden
+          bg-black flex flex-col
+          transition-transform duration-300 ease-in-out
+          ${isMobileMenuOpen ? 'translate-x-0' : 'translate-x-full'}
+        `}
+      >
+        {/* Menu header */}
+        <div className="flex items-center justify-between h-16 px-6 border-b border-zinc-800 flex-shrink-0">
+          <span className="text-sm font-semibold" style={{ color: '#14B8A6' }}>Qbody by Khavanskaia</span>
+          <button onClick={() => setIsMobileMenuOpen(false)} className="text-white p-2">
+            <X className="w-6 h-6" />
+          </button>
         </div>
 
-        {isMobileMenuOpen && (
-          <div className="lg:hidden py-4 border-t border-zinc-800 mobile-menu-enter">
-            {navigation.map((item: any) => (
-              <Link key={item.name} href={item.href} onClick={() => setIsMobileMenuOpen(false)}
-                className="block text-zinc-300 hover:text-white px-4 py-3 rounded-xl">
+        {/* Nav links */}
+        <nav className="flex-1 overflow-y-auto px-6 py-6">
+          <div className="space-y-1">
+            {navigation.map((item: any, i: number) => (
+              <Link
+                key={item.name}
+                href={item.href}
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="block text-lg font-medium text-zinc-200 hover:text-white px-4 py-3.5 rounded-xl
+                  hover:bg-zinc-800/50 transition-all"
+                style={{
+                  transitionDelay: isMobileMenuOpen ? `${(i + 1) * 60}ms` : '0ms',
+                  transform: isMobileMenuOpen ? 'translateX(0)' : 'translateX(40px)',
+                  opacity: isMobileMenuOpen ? 1 : 0,
+                  transition: 'transform 0.3s ease, opacity 0.3s ease, background-color 0.15s ease',
+                }}
+              >
                 {item.name}
               </Link>
             ))}
-            {!authLoading && !user && (
+          </div>
+
+          {/* Divider */}
+          <div
+            className="my-6 border-t border-zinc-800"
+            style={{
+              transitionDelay: isMobileMenuOpen ? `${(navigation.length + 1) * 60}ms` : '0ms',
+              opacity: isMobileMenuOpen ? 1 : 0,
+              transition: 'opacity 0.3s ease',
+            }}
+          />
+
+          {/* Auth buttons */}
+          <div
+            className="space-y-3"
+            style={{
+              transitionDelay: isMobileMenuOpen ? `${(navigation.length + 2) * 60}ms` : '0ms',
+              transform: isMobileMenuOpen ? 'translateX(0)' : 'translateX(40px)',
+              opacity: isMobileMenuOpen ? 1 : 0,
+              transition: 'transform 0.3s ease, opacity 0.3s ease',
+            }}
+          >
+            {!authLoading && user ? (
+              <Link href="/dashboard" onClick={() => setIsMobileMenuOpen(false)} className="block">
+                <button className="w-full flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl font-medium text-white"
+                  style={{ background: 'linear-gradient(135deg, #14B8A6, #0D9488)' }}>
+                  <LayoutDashboard className="w-5 h-5" />
+                  {t('nav.dashboard') || 'Dashboard'}
+                </button>
+              </Link>
+            ) : (
               <>
-                <Link href={loginLink} onClick={() => setIsMobileMenuOpen(false)}
-                  className="block text-zinc-300 hover:text-white px-4 py-3 rounded-xl">
-                  {loginText}
+                <Link href={loginLink} onClick={() => setIsMobileMenuOpen(false)} className="block">
+                  <button className="w-full flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl font-medium
+                    text-white border border-zinc-700 hover:border-zinc-500 hover:bg-zinc-800/50 transition-colors">
+                    <User className="w-5 h-5" />
+                    {ru ? 'Войти' : 'Log In'}
+                  </button>
                 </Link>
-                <Link href={ctaLink} onClick={() => setIsMobileMenuOpen(false)}
-                  className="block text-teal-400 hover:text-teal-300 px-4 py-3 rounded-xl font-medium">
-                  {ctaText}
+                <Link href="/auth/register" onClick={() => setIsMobileMenuOpen(false)} className="block">
+                  <button className="w-full flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl font-medium text-white"
+                    style={{ background: 'linear-gradient(135deg, #14B8A6, #0D9488)' }}>
+                    {ru ? 'Регистрация' : 'Sign Up'}
+                  </button>
                 </Link>
               </>
             )}
           </div>
-        )}
-      </nav>
-    </header>
+        </nav>
+
+        {/* Bottom branding */}
+        <div
+          className="px-6 py-4 border-t border-zinc-800 flex-shrink-0"
+          style={{
+            transitionDelay: isMobileMenuOpen ? `${(navigation.length + 3) * 60}ms` : '0ms',
+            opacity: isMobileMenuOpen ? 1 : 0,
+            transition: 'opacity 0.4s ease',
+          }}
+        >
+          <p className="text-xs text-zinc-600 text-center">© {new Date().getFullYear()} Qbody by Khavanskaia</p>
+        </div>
+      </div>
+    </>
   )
 }
 
