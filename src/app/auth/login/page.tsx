@@ -15,11 +15,18 @@ import { useRecaptcha } from '@/lib/recaptcha'
 function LoginForm() {
   const { t, locale } = useTranslation()
   const searchParams = useSearchParams()
-  const { signIn } = useAuth()
+  const { signIn, user, isClient, loading: authLoading } = useAuth()
   const [isLoading, setIsLoading] = useState(false)
   const [formData, setFormData] = useState({ email: '', password: '' })
 
   const ru = locale === 'ru'
+
+  // Redirect already logged-in users
+  useEffect(() => {
+    if (!authLoading && user) {
+      window.location.href = isClient ? '/client/home' : '/dashboard'
+    }
+  }, [authLoading, user, isClient])
 
   // Handle auth callback errors
   useEffect(() => {

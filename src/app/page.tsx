@@ -538,6 +538,30 @@ export default function HomePage() {
     return () => clearTimeout(timer)
   }, [loading, blocks])
 
+  // ✅ SMART CTA: Intercept auth links when user is already logged in
+  const { user: currentUser, isClient: isClientUser, loading: authLoad } = useAuth()
+  useEffect(() => {
+    if (authLoad || !currentUser) return
+    const dest = isClientUser ? '/client/home' : '/dashboard'
+
+    const handleClick = (e: MouseEvent) => {
+      const anchor = (e.target as HTMLElement).closest('a')
+      if (!anchor) return
+      const href = anchor.getAttribute('href') || ''
+      // Intercept auth links when user is already logged in
+      if (
+        href.includes('/auth/login') ||
+        href.includes('/auth/register') ||
+        href.includes('/auth/signup')
+      ) {
+        e.preventDefault()
+        window.location.href = dest
+      }
+    }
+    document.addEventListener('click', handleClick, true)
+    return () => document.removeEventListener('click', handleClick, true)
+  }, [authLoad, currentUser, isClientUser])
+
   if (loading) return <LoadingSkeleton />
 
   // Separate header blocks from content blocks

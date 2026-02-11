@@ -26,6 +26,26 @@ function RegisterContent() {
   const [formData, setFormData] = useState({ name: '', email: '', phone: '', password: '', confirmPassword: '' })
 
   const ru = locale === 'ru'
+
+  // Redirect already logged-in users
+  React.useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const { createClient } = await import('@/lib/supabase')
+        const supabase = createClient()
+        const { data: { session } } = await supabase.auth.getSession()
+        if (session?.user) {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('role')
+            .eq('id', session.user.id)
+            .single()
+          window.location.href = profile?.role === 'client' ? '/client/home' : '/dashboard'
+        }
+      } catch {}
+    }
+    checkAuth()
+  }, [])
   const { execute: executeRecaptcha } = useRecaptcha()
 
   const validatePassword = (pw: string): string | null => {
