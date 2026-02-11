@@ -165,11 +165,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en" className={inter.variable}>
       <head>
         <JsonLd />
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link rel="dns-prefetch" href="https://fonts.googleapis.com" />
         {/* Preconnect to Supabase storage for faster hero/LCP image loading */}
-        <link rel="preconnect" href="https://crybeycjfpyyxjgszcpu.supabase.co" />
+        <link rel="preconnect" href="https://crybeycjfpyyxjgszcpu.supabase.co" crossOrigin="anonymous" />
         <link rel="dns-prefetch" href="https://crybeycjfpyyxjgszcpu.supabase.co" />
       </head>
       <body className={`${inter.className} antialiased`}>

@@ -14,10 +14,15 @@ const nextConfig = {
     formats: ['image/webp', 'image/avif'],
   },
 
+  // Target modern browsers — eliminates legacy polyfills (~12 KiB savings)
+  experimental: {
+    optimizeCss: false, // Keep false unless critters is installed
+  },
+
   // ═══════════ SECURITY + CACHE HEADERS ═══════════
   async headers() {
     return [
-      // ── Static assets: long-lived cache (Next.js hashed filenames) ──
+      // ── Static assets: long cache ──
       {
         source: '/_next/static/:path*',
         headers: [
@@ -27,52 +32,56 @@ const nextConfig = {
           },
         ],
       },
-      // ── Next.js image optimization cache ──
+      // ── Static files (images, fonts, etc.) ──
       {
-        source: '/_next/image',
+        source: '/images/:path*',
         headers: [
           {
             key: 'Cache-Control',
-            value: 'public, max-age=86400, stale-while-revalidate=604800',
+            value: 'public, max-age=2592000, stale-while-revalidate=86400',
           },
         ],
       },
-      // ── Fonts cache ──
       {
-        source: '/fonts/:path*',
+        source: '/favicon:path*',
         headers: [
           {
             key: 'Cache-Control',
-            value: 'public, max-age=31536000, immutable',
+            value: 'public, max-age=2592000',
           },
         ],
       },
-      // ── Public pages: short cache + stale-while-revalidate ──
+      // ── Image proxy — long cache ──
+      {
+        source: '/api/img',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=2592000, stale-while-revalidate=86400',
+          },
+          {
+            key: 'CDN-Cache-Control',
+            value: 'public, max-age=2592000',
+          },
+        ],
+      },
+      // ── Public pages — ISR-style cache ──
       {
         source: '/',
         headers: [
           {
             key: 'Cache-Control',
-            value: 'public, max-age=60, s-maxage=300, stale-while-revalidate=600',
+            value: 'public, max-age=60, stale-while-revalidate=300',
           },
         ],
       },
-      {
-        source: '/programs/:path*',
-        headers: [
-          {
-            key: 'Cache-Control',
-            value: 'public, max-age=60, s-maxage=300, stale-while-revalidate=600',
-          },
-        ],
-      },
-      // ── Public API: cacheable with revalidation ──
+      // ── Public API data (page blocks, settings) — short cache ──
       {
         source: '/api/page-blocks',
         headers: [
           {
             key: 'Cache-Control',
-            value: 'public, max-age=30, s-maxage=120, stale-while-revalidate=300',
+            value: 'public, max-age=30, stale-while-revalidate=120',
           },
         ],
       },
@@ -81,47 +90,11 @@ const nextConfig = {
         headers: [
           {
             key: 'Cache-Control',
-            value: 'public, max-age=30, s-maxage=120, stale-while-revalidate=300',
+            value: 'public, max-age=30, stale-while-revalidate=120',
           },
         ],
       },
-      // ── Protected API: no cache (all API routes not listed above) ──
-      {
-        source: '/api/clients/:path*',
-        headers: [
-          { key: 'Cache-Control', value: 'no-store, no-cache, must-revalidate' },
-          { key: 'X-Content-Type-Options', value: 'nosniff' },
-        ],
-      },
-      {
-        source: '/api/conversations/:path*',
-        headers: [
-          { key: 'Cache-Control', value: 'no-store, no-cache, must-revalidate' },
-          { key: 'X-Content-Type-Options', value: 'nosniff' },
-        ],
-      },
-      {
-        source: '/api/upload',
-        headers: [
-          { key: 'Cache-Control', value: 'no-store' },
-          { key: 'X-Content-Type-Options', value: 'nosniff' },
-        ],
-      },
-      {
-        source: '/api/analytics',
-        headers: [
-          { key: 'Cache-Control', value: 'no-store' },
-          { key: 'X-Content-Type-Options', value: 'nosniff' },
-        ],
-      },
-      {
-        source: '/api/cache',
-        headers: [
-          { key: 'Cache-Control', value: 'no-store' },
-          { key: 'X-Content-Type-Options', value: 'nosniff' },
-        ],
-      },
-      // ── All routes: security headers ──
+      // ── ALL routes: security headers ──
       {
         source: '/:path*',
         headers: [
@@ -165,6 +138,24 @@ const nextConfig = {
               "form-action 'self' https://checkout.stripe.com",
               "upgrade-insecure-requests",
             ].join('; '),
+          },
+        ],
+      },
+      // ── API routes: no cache ──
+      {
+        source: '/api/:path((?!img|page-blocks|settings).*)',
+        headers: [
+          {
+            key: 'X-Content-Type-Options',
+            value: 'nosniff',
+          },
+          {
+            key: 'Cache-Control',
+            value: 'no-store, no-cache, must-revalidate, proxy-revalidate',
+          },
+          {
+            key: 'Pragma',
+            value: 'no-cache',
           },
         ],
       },

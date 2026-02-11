@@ -1,0 +1,30 @@
+{
+  "headers": [
+    {
+      "source": "/api/img",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=2592000, s-maxage=2592000, stale-while-revalidate=86400"
+        },
+        {
+          "key": "CDN-Cache-Control",
+          "value": "public, max-age=2592000"
+        },
+        {
+          "key": "Vercel-CDN-Cache-Control",
+          "value": "public, max-age=2592000"
+        }
+      ]
+    },
+    {
+      "source": "/api/(page-blocks|settings)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=30, s-maxage=60, stale-while-revalidate=120"
+        }
+      ]
+    }
+  ]
+}

@@ -32,7 +32,7 @@ const PAGE_ITEMS = [
   { id: 'page-editor', titleEn: 'Page Editor', titleRu: 'Редактор страницы', href: '/dashboard/page-editor', icon: FileText, keywords: 'landing edit редактор' },
   { id: 'form-builder', titleEn: 'Form Builder', titleRu: 'Конструктор форм', href: '/dashboard/form-builder', icon: FormInput, keywords: 'questionnaire анкета опрос' },
   { id: 'notifications', titleEn: 'Notifications', titleRu: 'Уведомления', href: '/dashboard/notifications', icon: BellRing, keywords: 'email alerts оповещения' },
-  { id: 'cache', titleEn: 'Site Cache', titleRu: 'Кэш сайта', href: '/dashboard/cache', icon: Database, keywords: 'cache кэш CDN purge очистка performance speed скорость TTL' },
+  { id: 'site-cache', titleEn: 'Site Cache', titleRu: 'Кеш сайта', href: '/dashboard/site-cache', icon: Database, keywords: 'cache кеш CDN purge очистка performance speed скорость TTL' },
   { id: 'settings', titleEn: 'Settings', titleRu: 'Настройки', href: '/dashboard/settings', icon: Settings, keywords: 'config конфигурация profile профиль' },
 ]
 

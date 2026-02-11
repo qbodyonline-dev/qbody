@@ -26,6 +26,14 @@
     "stripe": "^15.5.0",
     "tailwind-merge": "^2.3.0"
   },
+  "browserslist": [
+    "Chrome >= 90",
+    "Firefox >= 90",
+    "Safari >= 15",
+    "Edge >= 90",
+    "not dead",
+    "not op_mini all"
+  ],
   "devDependencies": {
     "@types/node": "^20.12.10",
     "@types/react": "^18.3.1",

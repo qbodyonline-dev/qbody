@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { requireAdmin } from '@/lib/api-auth'
 import { sanitizeString, sanitizeHTMLContent } from '@/lib/security'
+import { pageBlocksCache, PAGE_CACHE_TTL } from '@/app/api/cache/route'
 
 /** Public-safe Supabase client (anon key, respects RLS) */
 function getPublicSupabase() {
@@ -37,13 +38,21 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url)
     const pageSlug = searchParams.get('page') || 'home'
 
-    // ✅ VALIDATION: Sanitize pageSlug — alphanumeric, hyphens, underscores only
+    // ✅ VALIDATION: Sanitize pageSlug
     const cleanSlug = pageSlug.replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 50)
     if (!cleanSlug) {
       return NextResponse.json({ blocks: [], pageSlug: 'home', error: 'Invalid page slug' })
     }
 
-    // ✅ SECURITY: Use anon key for public reads (respects RLS)
+    // ✅ CACHE: Check in-memory cache first
+    const cacheKey = `blocks:${cleanSlug}`
+    const cached = pageBlocksCache.get(cacheKey)
+    if (cached && Date.now() - cached.ts < PAGE_CACHE_TTL) {
+      return NextResponse.json(cached.data, {
+        headers: { 'X-Cache': 'HIT' },
+      })
+    }
+
     const supabase = getPublicSupabase()
 
     const { data, error } = await supabase
@@ -70,7 +79,14 @@ export async function GET(request: Request) {
       items: row.items || undefined,
     }))
 
-    return NextResponse.json({ blocks, pageSlug: cleanSlug })
+    const responseData = { blocks, pageSlug: cleanSlug }
+
+    // ✅ CACHE: Store in memory
+    pageBlocksCache.set(cacheKey, { data: responseData, ts: Date.now() })
+
+    return NextResponse.json(responseData, {
+      headers: { 'X-Cache': 'MISS' },
+    })
   } catch (err: any) {
     console.error('GET /api/page-blocks error:', err)
     return NextResponse.json({ blocks: [], error: 'Internal server error' }, { status: 500 })
@@ -141,6 +157,9 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: 'Insert failed: ' + insertError.message }, { status: 500 })
       }
     }
+
+    // ✅ CACHE: Invalidate page blocks cache after save
+    pageBlocksCache.delete(`blocks:${cleanSlug}`)
 
     return NextResponse.json({ success: true, count: rows.length })
   } catch (err: any) {

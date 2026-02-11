@@ -106,7 +106,7 @@ function Header({ headerData, lang }: { headerData?: any; lang: 'en' | 'ru' }) {
         <div className="flex items-center justify-between h-20">
           <Link href="/" className="flex items-center gap-3">
             {d?.logoImage ? (
-              <img src={d.logoImage} alt={logoText} className="w-10 h-10 rounded-xl object-contain" />
+              <img src={d.logoImage.includes('supabase.co') ? `/api/img?src=${encodeURIComponent(d.logoImage)}&w=80&q=75` : d.logoImage} alt={logoText} width="40" height="40" className="w-10 h-10 rounded-xl object-contain" />
             ) : (
               <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${d?.logoGradient || 'bg-gradient-to-br from-teal-400 to-teal-600'}`}>
                 <span className="text-white font-bold text-lg">{logoIcon}</span>
@@ -181,6 +181,20 @@ function Header({ headerData, lang }: { headerData?: any; lang: 'en' | 'ru' }) {
   )
 }
 
+/* ═══════════ IMAGE PROXY HELPER ═══════════ */
+/** Rewrite Supabase image URLs → /api/img proxy with resize + WebP + cache */
+function proxyImages(html: string, widthHint?: number, qualityHint?: number): string {
+  return html.replace(
+    /src="(https:\/\/crybeycjfpyyxjgszcpu\.supabase\.co\/storage\/v1\/object\/public\/[^"]+)"/g,
+    (_, url) => {
+      const params = new URLSearchParams({ src: url })
+      if (widthHint) params.set('w', String(widthHint))
+      if (qualityHint) params.set('q', String(qualityHint))
+      return `src="/api/img?${params.toString()}"`
+    }
+  )
+}
+
 /* ═══════════ DYNAMIC BLOCK RENDERER ═══════════ */
 function DynamicBlock({ block, lang }: { block: PageBlock; lang: 'en' | 'ru' }) {
   if (!block.visible) return null
@@ -203,19 +217,45 @@ function DynamicBlock({ block, lang }: { block: PageBlock; lang: 'en' | 'ru' }) 
   // ✅ XSS PROTECTION: Sanitize all HTML before rendering
   let safeContent = sanitizeHTML(content)
 
+  // ✅ IMAGE OPTIMIZATION: Route Supabase images through /api/img proxy
+  if (block.type === 'hero') {
+    safeContent = proxyImages(safeContent, 800, 80) // Hero: 800px wide for 2x retina
+  } else if (block.type === 'about') {
+    safeContent = proxyImages(safeContent, 600, 78)
+  } else {
+    safeContent = proxyImages(safeContent, 1200, 80)
+  }
+
+  // ✅ LOGO: Proxy logo at small size
+  safeContent = safeContent.replace(
+    /src="(https:\/\/crybeycjfpyyxjgszcpu\.supabase\.co[^"]+)"/g,
+    (match, url) => {
+      if (match.includes('/api/img')) return match // Already proxied
+      const params = new URLSearchParams({ src: url, w: '160', q: '75' })
+      return `src="/api/img?${params.toString()}"`
+    }
+  )
+
   // ✅ LCP OPTIMIZATION: Add fetchpriority="high" and dimensions to hero images
   if (block.type === 'hero') {
     safeContent = safeContent.replace(
       /<img\s+(class="hero-image")/gi,
       '<img fetchpriority="high" loading="eager" width="400" height="600" $1'
     )
-    // Also add fetchpriority to any other hero images without the class
     if (!safeContent.includes('fetchpriority')) {
       safeContent = safeContent.replace(
         /<img\s/i,
         '<img fetchpriority="high" loading="eager" '
       )
     }
+  }
+
+  // ✅ LAZY LOAD: Add loading="lazy" to non-hero images
+  if (block.type !== 'hero') {
+    safeContent = safeContent.replace(
+      /<img(?![^>]*loading=)/gi,
+      '<img loading="lazy" '
+    )
   }
 
   // For structured blocks rendered on-the-fly, skip section styles (renderer includes its own bg)
@@ -310,6 +350,29 @@ export default function HomePage() {
     }
     loadData()
   }, [])
+
+  // Preload hero image for faster LCP
+  useEffect(() => {
+    if (loading || !blocks.length) return
+    const heroBlock = blocks.find(b => b.type === 'hero' && b.visible)
+    if (!heroBlock) return
+    const content = lang === 'ru' ? heroBlock.contentRu : heroBlock.contentEn
+    const match = content.match(/src="(https:\/\/crybeycjfpyyxjgszcpu\.supabase\.co[^"]+)"/) 
+    if (match?.[1]) {
+      const proxyUrl = `/api/img?src=${encodeURIComponent(match[1])}&w=800&q=80`
+      const existing = document.querySelector(`link[rel="preload"][href="${proxyUrl}"]`)
+      if (!existing) {
+        const link = document.createElement('link')
+        link.rel = 'preload'
+        link.as = 'image'
+        link.type = 'image/webp'
+        link.href = proxyUrl
+        // @ts-ignore
+        link.fetchPriority = 'high'
+        document.head.appendChild(link)
+      }
+    }
+  }, [loading, blocks, lang])
 
   // Observe .about-fade-up elements for scroll-triggered animations
   useEffect(() => {
