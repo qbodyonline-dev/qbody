@@ -39,7 +39,7 @@ export async function POST(request: Request) {
 
     // Convert file to buffer
     const arrayBuffer = await file.arrayBuffer()
-    let buffer = Buffer.from(arrayBuffer)
+    let buffer: Buffer = Buffer.from(arrayBuffer) as Buffer
 
     // ✅ IMAGE OPTIMIZATION: Compress & convert to WebP
     let finalContentType = file.type
@@ -50,7 +50,7 @@ export async function POST(request: Request) {
       const preset = presetFromFolder(cleanFolder)
       const result = await optimizeImage(buffer, file.type, preset)
       
-      buffer = result.buffer
+      buffer = result.buffer as Buffer
       finalContentType = result.contentType
       finalExtension = result.extension
       optimizedSize = result.optimizedSize
