@@ -1,6 +1,7 @@
 'use client'
 
 import * as React from 'react'
+import { createPortal } from 'react-dom'
 import { X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from './button'
@@ -24,11 +25,16 @@ const sizeClasses = {
 
 export function Modal({ isOpen, onClose, title, description, children, size = 'md' }: ModalProps) {
   const contentRef = React.useRef<HTMLDivElement>(null)
+  const [mounted, setMounted] = React.useState(false)
+
+  // Only render portal on client
+  React.useEffect(() => {
+    setMounted(true)
+  }, [])
 
   React.useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = 'hidden'
-      // Reset scroll to top when modal opens
       setTimeout(() => {
         if (contentRef.current) contentRef.current.scrollTop = 0
       }, 10)
@@ -50,26 +56,26 @@ export function Modal({ isOpen, onClose, title, description, children, size = 'm
     return () => document.removeEventListener('keydown', handleEscape)
   }, [isOpen, onClose])
 
-  if (!isOpen) return null
+  if (!isOpen || !mounted) return null
 
-  return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-6">
+  const modalContent = (
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-3 sm:p-6">
       {/* Overlay */}
       <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
       
-      {/* Modal box — constrained to viewport, no outer scroll */}
+      {/* Modal box */}
       <div className={cn(
-        'relative w-full bg-white dark:bg-zinc-900 rounded-2xl shadow-xl',
+        'relative w-full bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl',
         'animate-in fade-in zoom-in-95 duration-200',
         'max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-3rem)]',
         'flex flex-col',
         sizeClasses[size]
       )}>
-        {/* Header — always visible, never scrolls */}
+        {/* Header — fixed at top */}
         {(title || description) && (
-          <div className="flex items-center justify-between p-4 sm:p-6 border-b border-zinc-200 dark:border-zinc-700 flex-shrink-0 rounded-t-2xl">
+          <div className="flex items-center justify-between p-4 sm:p-6 border-b border-zinc-200 dark:border-zinc-700 flex-shrink-0 rounded-t-2xl bg-white dark:bg-zinc-900">
             <div className="min-w-0 flex-1 mr-4">
-              {title && <h2 className="text-lg sm:text-xl font-semibold text-zinc-900 dark:text-zinc-100 truncate">{title}</h2>}
+              {title && <h2 className="text-lg sm:text-xl font-semibold text-zinc-900 dark:text-zinc-100">{title}</h2>}
               {description && <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">{description}</p>}
             </div>
             <Button variant="ghost" size="icon" onClick={onClose} className="flex-shrink-0">
@@ -87,11 +93,14 @@ export function Modal({ isOpen, onClose, title, description, children, size = 'm
           </div>
         )}
         
-        {/* Content — this is the only thing that scrolls */}
+        {/* Content — scrollable */}
         <div ref={contentRef} className="p-4 sm:p-6 overflow-y-auto flex-1 overscroll-contain">
           {children}
         </div>
       </div>
     </div>
   )
+
+  // Portal to body — escapes ALL parent stacking contexts
+  return createPortal(modalContent, document.body)
 }
