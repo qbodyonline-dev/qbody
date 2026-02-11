@@ -57,7 +57,7 @@ export async function GET(request: NextRequest) {
 
     // Per-client completion
     const clientLessonCounts = new Map<string, { completed: number; total: number }>()
-    for (const uid of activeClientIds) {
+    for (const uid of Array.from(activeClientIds)) {
       const userCompleted = completedLessons.filter(p => p.client_id === uid).length
       clientLessonCounts.set(uid, { completed: userCompleted, total: totalPublishedLessons })
     }
