@@ -272,7 +272,7 @@ export default function CheckinDetailPage() {
                     <p className={`font-bold text-zinc-900 dark:text-zinc-100 ${m.big ? 'text-2xl' : 'text-xl'}`}>
                       {m.val} <span className="text-sm font-normal text-zinc-400">{m.unit}</span>
                     </p>
-                    <DiffBadge val={diff(m.val, m.prevVal)} />
+                    <DiffBadge val={diff(m.val ?? null, m.prevVal ?? null)} />
                   </div>
                 ))}
                 {checkin.weight === null && checkin.waist === null && (
