@@ -23,7 +23,7 @@ export async function GET(
       { data: clientProgram },
     ] = await Promise.all([
       supabase.from('workout_logs')
-        .select('id, workout_id, scheduled_date, started_at, completed_at, duration_minutes, status, rpe, mood, comment, workouts(name_en, name_ru, type)')
+        .select('id, workout_id, scheduled_date, started_at, completed_at, duration_minutes, status, rpe, mood, comment, workouts(name, name_ru, type)')
         .eq('client_id', clientId)
         .order('started_at', { ascending: false })
         .limit(100),
@@ -32,7 +32,7 @@ export async function GET(
         .eq('client_id', clientId)
         .order('checkin_date', { ascending: true }),
       supabase.from('client_programs')
-        .select('id, start_date, end_date, status, training_programs(name_en, name_ru, duration_weeks)')
+        .select('id, start_date, end_date, status, training_programs(name, name_ru, duration_weeks)')
         .eq('client_id', clientId)
         .eq('status', 'active')
         .maybeSingle(),
@@ -115,7 +115,7 @@ export async function GET(
 
     return NextResponse.json({
       program: clientProgram ? {
-        name_en: (clientProgram.training_programs as any)?.name_en,
+        name: (clientProgram.training_programs as any)?.name,
         name_ru: (clientProgram.training_programs as any)?.name_ru,
         duration_weeks: (clientProgram.training_programs as any)?.duration_weeks,
         start_date: clientProgram.start_date,

@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
       { data: programDays },
       { data: profiles },
     ] = await Promise.all([
-      supabase.from('client_programs').select('id, client_id, program_id, start_date, end_date, status, training_programs(id, name_en, name_ru, duration_weeks)').eq('status', 'active'),
+      supabase.from('client_programs').select('id, client_id, program_id, start_date, end_date, status, training_programs(id, name, name_ru, duration_weeks)').eq('status', 'active'),
       supabase.from('workout_logs').select('id, client_id, workout_id, scheduled_date, started_at, completed_at, duration_minutes, status, rpe, mood').order('started_at', { ascending: false }),
       supabase.from('checkins').select('id, client_id, checkin_date, weight, status, flagged, created_at').order('checkin_date', { ascending: false }),
       supabase.from('program_days').select('id, program_id, week_number, day_of_week, workout_id, is_rest_day'),
@@ -76,8 +76,8 @@ export async function GET(request: NextRequest) {
       clientCompliance.push({
         id: cp.client_id,
         name: profile.full_name || profile.email || 'Unknown',
-        programName: program.name_en || '',
-        programNameRu: program.name_ru || program.name_en || '',
+        programName: program.name || '',
+        programNameRu: program.name_ru || program.name || '',
         totalScheduled: Math.max(totalScheduled, 1),
         completed: clientLogs.length,
         compliancePct: totalScheduled > 0 ? Math.min(Math.round((clientLogs.length / totalScheduled) * 100), 100) : 0,
@@ -103,7 +103,7 @@ export async function GET(request: NextRequest) {
       ...(checkins || []).map(c => c.client_id),
     ])
 
-    for (const clientId of clientIds) {
+    for (const clientId of Array.from(clientIds)) {
       const profile = profileMap.get(clientId)
       if (!profile) continue
 
