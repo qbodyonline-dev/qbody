@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react'
 import { Loader2 } from 'lucide-react'
 import { sanitizeHTML, sanitizeStyleObj } from '@/lib/sanitize-html'
+import { useScrollReveal, useSmoothAnchor, useLazyImages } from '@/components/ui/scroll-reveal'
 
 interface PageBlock {
   id: string
@@ -71,6 +72,11 @@ export function DynamicPageContent({ locale = 'ru' }: { locale?: 'en' | 'ru' }) 
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
+  // ✅ SMOOTH ANIMATIONS
+  useScrollReveal()
+  useSmoothAnchor(80)
+  useLazyImages()
+
   useEffect(() => {
     const loadBlocks = async () => {
       try {
@@ -101,10 +107,10 @@ export function DynamicPageContent({ locale = 'ru' }: { locale?: 'en' | 'ru' }) 
   }
 
   return (
-    <div className="dynamic-page-content">
+    <div className="dynamic-page-content page-enter">
       {blocks
         .filter(block => block.visible)
-        .map(block => {
+        .map((block, i) => {
           const content = locale === 'ru' ? block.contentRu : block.contentEn
           // ✅ XSS PROTECTION: Sanitize style object and HTML content
           const safeStyle = sanitizeStyleObj(block.style || {})
@@ -113,13 +119,16 @@ export function DynamicPageContent({ locale = 'ru' }: { locale?: 'en' | 'ru' }) 
           // ✅ XSS PROTECTION: Sanitize htmlId
           const cleanHtmlId = (block.style.htmlId || '').replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 50) || undefined
           // ✅ XSS PROTECTION: Sanitize cssClass
-          const cleanCssClass = (block.style.cssClass || '').replace(/[^a-zA-Z0-9_ -]/g, '').slice(0, 200) || undefined
+          const cleanCssClass = (block.style.cssClass || '').replace(/[^a-zA-Z0-9_ -]/g, '').slice(0, 200) || ''
+          
+          // ✅ SMOOTH ANIMATIONS: First block visible immediately, rest reveal on scroll
+          const revealClass = i === 0 ? '' : 'reveal-up'
           
           return (
             <section
               key={block.id}
               id={cleanHtmlId}
-              className={cleanCssClass}
+              className={`${cleanCssClass} ${revealClass}`.trim()}
               style={sectionStyle}
             >
               {/* ✅ XSS PROTECTION: Sanitize HTML before rendering */}

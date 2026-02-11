@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { LanguageSwitcher } from '@/components/ui/language-switcher'
+import { useScrollReveal, useSmoothAnchor, useLazyImages } from '@/components/ui/scroll-reveal'
 import {
   ArrowLeft, ArrowRight, CheckCircle2, Clock, Dumbbell, Target, Zap, Star,
   Heart, Users, Calendar, ChevronDown, ChevronUp, Play, Shield, Award,
@@ -497,9 +498,11 @@ function FaqItem({ question, answer }: { question: string; answer: string }) {
         <span className="font-medium text-zinc-900 pr-4">{question}</span>
         {isOpen ? <ChevronUp className="w-5 h-5 text-zinc-500 flex-shrink-0" /> : <ChevronDown className="w-5 h-5 text-zinc-500 flex-shrink-0" />}
       </button>
-      {isOpen && (
-        <div className="px-5 pb-5 text-zinc-600 animate-in slide-in-from-top-2">{answer}</div>
-      )}
+      <div className={`grid transition-all duration-300 ease-out ${isOpen ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}>
+        <div className="overflow-hidden">
+          <div className="px-5 pb-5 text-zinc-600">{answer}</div>
+        </div>
+      </div>
     </div>
   )
 }
@@ -522,6 +525,11 @@ export default function ProgramPage() {
       </div>
     )
   }
+
+  // ✅ SMOOTH ANIMATIONS
+  useScrollReveal()
+  useSmoothAnchor(80)
+  useLazyImages()
 
   const Icon = program.icon
   const data = program[locale] || program.en
@@ -586,7 +594,7 @@ export default function ProgramPage() {
       </section>
 
       {/* Description */}
-      <section className="py-16 bg-white">
+      <section className="py-16 bg-white reveal-up">
         <div className="container-custom">
           <div className="max-w-3xl mx-auto">
             <p className="text-lg text-zinc-700 leading-relaxed">{data.description}</p>
@@ -595,7 +603,7 @@ export default function ProgramPage() {
       </section>
 
       {/* For Whom + Includes */}
-      <section className="py-16 bg-zinc-50">
+      <section className="py-16 bg-zinc-50 reveal-up">
         <div className="container-custom">
           <div className="grid lg:grid-cols-2 gap-8 lg:gap-12">
             <Card className="overflow-hidden">
@@ -640,7 +648,7 @@ export default function ProgramPage() {
       </section>
 
       {/* Weekly Plan */}
-      <section className="py-16 bg-white">
+      <section className="py-16 bg-white reveal-up">
         <div className="container-custom">
           <div className="text-center mb-12">
             <h2 className="text-3xl sm:text-4xl font-bold text-zinc-900 mb-4">
@@ -669,7 +677,7 @@ export default function ProgramPage() {
       </section>
 
       {/* Results */}
-      <section className="py-16 bg-zinc-50">
+      <section className="py-16 bg-zinc-50 reveal-up">
         <div className="container-custom">
           <div className="text-center mb-12">
             <h2 className="text-3xl sm:text-4xl font-bold text-zinc-900 mb-4">
@@ -694,7 +702,7 @@ export default function ProgramPage() {
       </section>
 
       {/* FAQ */}
-      <section className="py-16 bg-white">
+      <section className="py-16 bg-white reveal-up">
         <div className="container-custom">
           <div className="max-w-3xl mx-auto">
             <div className="text-center mb-12">
@@ -712,7 +720,7 @@ export default function ProgramPage() {
       </section>
 
       {/* CTA */}
-      <section className={`py-20 bg-gradient-to-br ${program.color}`}>
+      <section className={`py-20 bg-gradient-to-br ${program.color} reveal-scale`}>
         <div className="container-custom text-center">
           <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">
             {locale === 'ru' ? 'Готовы начать?' : 'Ready to Start?'}

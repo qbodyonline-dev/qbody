@@ -6,6 +6,7 @@ import { useTranslation } from '@/lib/i18n'
 import { useAuth } from '@/lib/auth'
 import { Button } from '@/components/ui/button'
 import { LanguageSwitcher } from '@/components/ui/language-switcher'
+import { useScrollReveal, useSmoothAnchor, useLazyImages } from '@/components/ui/scroll-reveal'
 import {
   Menu, X, User, LayoutDashboard
 } from 'lucide-react'
@@ -155,7 +156,7 @@ function Header({ headerData, lang }: { headerData?: any; lang: 'en' | 'ru' }) {
         </div>
 
         {isMobileMenuOpen && (
-          <div className="lg:hidden py-4 border-t border-zinc-800">
+          <div className="lg:hidden py-4 border-t border-zinc-800 mobile-menu-enter">
             {navigation.map((item: any) => (
               <Link key={item.name} href={item.href} onClick={() => setIsMobileMenuOpen(false)}
                 className="block text-zinc-300 hover:text-white px-4 py-3 rounded-xl">
@@ -196,7 +197,7 @@ function proxyImages(html: string, widthHint?: number, qualityHint?: number): st
 }
 
 /* ═══════════ DYNAMIC BLOCK RENDERER ═══════════ */
-function DynamicBlock({ block, lang }: { block: PageBlock; lang: 'en' | 'ru' }) {
+function DynamicBlock({ block, lang, index }: { block: PageBlock; lang: 'en' | 'ru'; index?: number }) {
   if (!block.visible) return null
 
   // Re-render structured blocks from data/items to ensure latest dark theme design
@@ -279,8 +280,16 @@ function DynamicBlock({ block, lang }: { block: PageBlock; lang: 'en' | 'ru' }) 
   // ✅ CLS FIX: Reserve space for hero section to prevent layout shift
   const heroStyle = block.type === 'hero' ? { minHeight: '100vh', ...sectionStyle } : sectionStyle
 
+  // ✅ SMOOTH ANIMATIONS: Assign reveal class based on block type
+  // Hero gets instant reveal (above fold), other blocks get scroll-triggered
+  const revealClass = block.type === 'hero'
+    ? '' // Hero uses hero-reveal inside its HTML
+    : index !== undefined && index % 2 === 0
+      ? 'reveal-up'
+      : 'reveal-up'
+
   return (
-    <section id={sectionId} style={heroStyle}>
+    <section id={sectionId} style={heroStyle} className={revealClass}>
       <div dangerouslySetInnerHTML={{ __html: safeContent }} />
     </section>
   )
@@ -374,34 +383,23 @@ export default function HomePage() {
     }
   }, [loading, blocks, lang])
 
-  // Observe .about-fade-up elements for scroll-triggered animations
+  // ✅ SMOOTH ANIMATIONS: Scroll-reveal for all blocks, smooth anchors, lazy images
+  useScrollReveal()
+  useSmoothAnchor(80)
+  useLazyImages()
+
+  // Observe .about-fade-up elements (from renderers) — add reveal class
   useEffect(() => {
     if (loading) return
     const timer = setTimeout(() => {
       const items = document.querySelectorAll('.about-fade-up')
       if (!items.length) return
-      // Remove CSS animation, use IntersectionObserver instead
-      items.forEach(el => {
-        ;(el as HTMLElement).style.animation = 'none'
-        ;(el as HTMLElement).style.opacity = '0'
-        ;(el as HTMLElement).style.transform = 'translateY(40px)'
-        ;(el as HTMLElement).style.transition = 'opacity 0.8s ease, transform 0.8s ease'
+      items.forEach((el, i) => {
+        const htmlEl = el as HTMLElement
+        htmlEl.style.animation = 'none'
+        htmlEl.classList.add('reveal-up')
+        htmlEl.style.transitionDelay = `${i * 0.12}s`
       })
-      const observer = new IntersectionObserver((entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            const el = entry.target as HTMLElement
-            el.style.opacity = '1'
-            el.style.transform = 'translateY(0)'
-            observer.unobserve(el)
-          }
-        })
-      }, { threshold: 0.15, rootMargin: '0px 0px -60px 0px' })
-      items.forEach((item, i) => {
-        ;(item as HTMLElement).style.transitionDelay = `${i * 0.15}s`
-        observer.observe(item)
-      })
-      return () => observer.disconnect()
     }, 100)
     return () => clearTimeout(timer)
   }, [loading, blocks])
@@ -433,16 +431,16 @@ export default function HomePage() {
       {/* Header reads data from Page Editor DB */}
       <Header headerData={headerBlock?.data} lang={lang} />
 
-      <main className="min-h-screen bg-zinc-950">
+      <main className="min-h-screen bg-zinc-950 page-enter">
         {/* Render all content blocks dynamically from the database */}
-        {processedBlocks.map(block => (
-          <DynamicBlock key={block.id} block={block} lang={lang} />
+        {processedBlocks.map((block, i) => (
+          <DynamicBlock key={block.id} block={block} lang={lang} index={i} />
         ))}
       </main>
 
       {/* Footer from DB */}
       {footerBlock && footerBlock.visible && (
-        <footer id="contacts">
+        <footer id="contacts" className="reveal-up">
           <div
             style={styleToCSS(sanitizeStyleObj(footerBlock.style || {}) as any)}
             dangerouslySetInnerHTML={{ __html: sanitizeHTML(lang === 'ru' ? footerBlock.contentRu : footerBlock.contentEn) }}
@@ -451,7 +449,7 @@ export default function HomePage() {
       )}
 
       {/* Policy Links Footer */}
-      <div className="bg-zinc-950 border-t border-zinc-800 py-6">
+      <div className="bg-zinc-950 border-t border-zinc-800 py-6 reveal-up">
         <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-3">
           <p className="text-xs text-zinc-500">© {new Date().getFullYear()} Qbody by Khavanskaia. All rights reserved.</p>
           <div className="flex items-center gap-4 text-xs">

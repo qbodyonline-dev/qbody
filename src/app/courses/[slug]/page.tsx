@@ -10,6 +10,7 @@ import { useAuth } from '@/lib/auth'
 import { LanguageSwitcher } from '@/components/ui/language-switcher'
 import { ArrowLeft, Play, Clock, BookOpen, CheckCircle2, Shield, Award, Heart, Baby, Star, User, Loader2, Video, FileText, ListChecks } from 'lucide-react'
 import { toast } from 'sonner'
+import { useScrollReveal, useSmoothAnchor, useLazyImages } from '@/components/ui/scroll-reveal'
 
 const iconMap: Record<string, any> = {
   'breast-augmentation-recovery': { icon: Heart, color: 'from-pink-500 to-rose-500' },
@@ -26,6 +27,11 @@ export default function CoursePage() {
   const [course, setCourse] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [isCheckoutLoading, setIsCheckoutLoading] = useState(false)
+
+  // ✅ SMOOTH ANIMATIONS
+  useScrollReveal()
+  useSmoothAnchor(64)
+  useLazyImages()
 
   useEffect(() => {
     const load = async () => {
@@ -181,7 +187,7 @@ export default function CoursePage() {
       </section>
 
       {/* Content */}
-      <section className="py-16">
+      <section className="py-16 reveal-up">
         <div className="max-w-7xl mx-auto px-4">
           <div className="grid lg:grid-cols-3 gap-8">
             <div className="lg:col-span-2 space-y-8">
@@ -288,7 +294,7 @@ export default function CoursePage() {
 
       {/* CTA Footer */}
       {(course.cta_title || course.cta_title_ru) && (
-        <section className="py-16 bg-zinc-900">
+        <section className="py-16 bg-zinc-900 reveal-up">
           <div className="max-w-4xl mx-auto px-4 text-center">
             <h2 className="text-3xl font-bold text-white mb-4 break-all">{ru && course.cta_title_ru ? course.cta_title_ru : course.cta_title}</h2>
             {(course.cta_subtitle || course.cta_subtitle_ru) && (

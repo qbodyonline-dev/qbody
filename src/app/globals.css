@@ -155,6 +155,186 @@
   @apply bg-teal-500/30 text-teal-900;
 }
 
+/* ═══════════════════════════════════════════════════════════════
+   SMOOTH ANIMATIONS SYSTEM (consolidated)
+   Scroll-reveal, page transitions, image fades, anchors, hover
+   ═══════════════════════════════════════════════════════════════ */
+
+/* --- Smooth Scroll --- */
+html {
+  scroll-padding-top: 90px; /* offset for fixed header */
+}
+
+/* --- Scroll Reveal: hidden until IntersectionObserver fires --- */
+.reveal,
+.reveal-up,
+.reveal-left,
+.reveal-right,
+.reveal-scale {
+  opacity: 0;
+  will-change: opacity, transform;
+  transition: opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1),
+              transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.reveal         { transform: none; }
+.reveal-up      { transform: translateY(40px); }
+.reveal-left    { transform: translateX(-40px); }
+.reveal-right   { transform: translateX(40px); }
+.reveal-scale   { transform: scale(0.92); }
+
+.reveal.is-visible,
+.reveal-up.is-visible,
+.reveal-left.is-visible,
+.reveal-right.is-visible,
+.reveal-scale.is-visible {
+  opacity: 1;
+  transform: translateY(0) translateX(0) scale(1);
+}
+
+/* --- Stagger children (.stagger-item inside .stagger-parent) --- */
+.stagger-item {
+  opacity: 0;
+  transform: translateY(24px);
+  transition: opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1),
+              transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.stagger-parent.is-visible .stagger-item {
+  opacity: 1;
+  transform: translateY(0);
+}
+.stagger-parent.is-visible .stagger-item:nth-child(1) { transition-delay: 0.05s; }
+.stagger-parent.is-visible .stagger-item:nth-child(2) { transition-delay: 0.12s; }
+.stagger-parent.is-visible .stagger-item:nth-child(3) { transition-delay: 0.19s; }
+.stagger-parent.is-visible .stagger-item:nth-child(4) { transition-delay: 0.26s; }
+.stagger-parent.is-visible .stagger-item:nth-child(5) { transition-delay: 0.33s; }
+.stagger-parent.is-visible .stagger-item:nth-child(6) { transition-delay: 0.40s; }
+.stagger-parent.is-visible .stagger-item:nth-child(7) { transition-delay: 0.47s; }
+.stagger-parent.is-visible .stagger-item:nth-child(8) { transition-delay: 0.54s; }
+
+/* Alternative stagger: direct children of stagger-parent */
+@keyframes stagger-in {
+  from { opacity: 0; transform: translateY(24px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.stagger-parent.is-visible > *:not(.stagger-item) {
+  animation: stagger-in 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+.stagger-parent.is-visible > *:nth-child(1)  { animation-delay: 0ms; }
+.stagger-parent.is-visible > *:nth-child(2)  { animation-delay: 80ms; }
+.stagger-parent.is-visible > *:nth-child(3)  { animation-delay: 160ms; }
+.stagger-parent.is-visible > *:nth-child(4)  { animation-delay: 240ms; }
+.stagger-parent.is-visible > *:nth-child(5)  { animation-delay: 320ms; }
+.stagger-parent.is-visible > *:nth-child(6)  { animation-delay: 400ms; }
+.stagger-parent.is-visible > *:nth-child(7)  { animation-delay: 480ms; }
+.stagger-parent.is-visible > *:nth-child(8)  { animation-delay: 560ms; }
+.stagger-parent.is-visible > *:nth-child(n+9) { animation-delay: 640ms; }
+
+/* --- Hero: fast entrance on page load --- */
+.hero-reveal {
+  opacity: 0;
+  transform: translateY(24px);
+  animation: heroEntrance 0.9s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+.hero-reveal-delay-1 { animation-delay: 0.1s; }
+.hero-reveal-delay-2 { animation-delay: 0.25s; }
+.hero-reveal-delay-3 { animation-delay: 0.4s; }
+.hero-reveal-delay-4 { animation-delay: 0.55s; }
+
+@keyframes heroEntrance {
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Hero section — always visible, skip reveal */
+section:first-of-type:not([id]),
+section[style*="min-height"],
+.hero-section-visible {
+  opacity: 1 !important;
+  transform: none !important;
+  animation: none !important;
+}
+
+/* --- Page transition: main fades in on load --- */
+@keyframes page-fade-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+main {
+  animation: page-fade-in 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.page-enter {
+  animation: page-fade-in 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* --- Lazy image reveal --- */
+img[loading="lazy"] {
+  opacity: 0;
+  transition: opacity 0.5s ease;
+}
+img[loading="lazy"].loaded,
+img[loading="lazy"][data-loaded="true"] {
+  opacity: 1;
+}
+img[loading="eager"],
+img[fetchpriority="high"] {
+  opacity: 1 !important;
+}
+
+/* --- Mobile menu slide-in --- */
+@keyframes mobile-menu-enter {
+  from { opacity: 0; transform: translateY(-8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.mobile-menu-enter {
+  animation: mobile-menu-enter 0.25s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.mobile-menu-enter > a,
+.mobile-menu-enter > button {
+  opacity: 0;
+  animation: stagger-in 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+.mobile-menu-enter > *:nth-child(1) { animation-delay: 30ms; }
+.mobile-menu-enter > *:nth-child(2) { animation-delay: 60ms; }
+.mobile-menu-enter > *:nth-child(3) { animation-delay: 90ms; }
+.mobile-menu-enter > *:nth-child(4) { animation-delay: 120ms; }
+.mobile-menu-enter > *:nth-child(5) { animation-delay: 150ms; }
+.mobile-menu-enter > *:nth-child(6) { animation-delay: 180ms; }
+.mobile-menu-enter > *:nth-child(7) { animation-delay: 210ms; }
+.mobile-menu-enter > *:nth-child(n+8) { animation-delay: 240ms; }
+
+/* --- Button / Link hover smoothness --- */
+a, button {
+  transition: color 0.2s ease, background-color 0.2s ease,
+              border-color 0.2s ease, box-shadow 0.2s ease,
+              transform 0.2s ease, opacity 0.2s ease;
+}
+
+/* --- Card smooth hover lift --- */
+.card-smooth {
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.card-smooth:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+}
+
+/* --- Accessibility: respect reduced-motion --- */
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  .reveal, .reveal-up, .reveal-left, .reveal-right, .reveal-scale,
+  .stagger-item, .hero-reveal {
+    opacity: 1 !important;
+    transform: none !important;
+  }
+  main { animation: none !important; }
+  img[loading="lazy"] { opacity: 1 !important; }
+}
+
 /* Hide reCAPTCHA v3 badge - text attribution is shown in forms instead */
 .grecaptcha-badge {
   visibility: hidden !important;
