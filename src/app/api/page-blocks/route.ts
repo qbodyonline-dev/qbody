@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { requireAdmin } from '@/lib/api-auth'
 import { sanitizeString, sanitizeHTMLContent } from '@/lib/security'
-import { pageBlocksCache, PAGE_CACHE_TTL } from '@/app/api/cache/route'
+import { pageBlocksCache, PAGE_CACHE_TTL } from '@/lib/cache'
 
 /** Public-safe Supabase client (anon key, respects RLS) */
 function getPublicSupabase() {

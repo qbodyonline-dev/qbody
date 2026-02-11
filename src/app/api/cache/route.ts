@@ -1,11 +1,7 @@
 import { NextResponse } from 'next/server'
 import { requireAdmin } from '@/lib/api-auth'
 import { createServerClient } from '@/lib/supabase-server'
-
-// ═══════════ In-memory page-blocks cache ═══════════
-// This is the shared cache that page-blocks GET can use
-export const pageBlocksCache = new Map<string, { data: any; ts: number }>()
-export const PAGE_CACHE_TTL = 60 * 1000 // 60 seconds
+import { pageBlocksCache, clearPageCache } from '@/lib/cache'
 
 // GET — Cache status
 export async function GET(request: Request) {
@@ -17,7 +13,6 @@ export async function GET(request: Request) {
   try {
     const supabase = createServerClient()
     
-    // Load cache settings from DB
     const { data: settingsRow } = await supabase
       .from('site_settings')
       .select('value')
@@ -55,8 +50,7 @@ export async function POST(request: Request) {
     const { action, settings } = body
 
     if (action === 'purge_all' || action === 'purge_pages') {
-      // Clear in-memory page blocks cache
-      pageBlocksCache.clear()
+      clearPageCache()
     }
 
     if (action === 'update_settings' && settings) {
