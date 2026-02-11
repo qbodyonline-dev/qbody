@@ -14,15 +14,20 @@ import type {
   HeroTemplateData, HeroTemplateVariant, HeroTemplateButton, AnimationType
 } from './types'
 import { defaultSliderSlide } from './new-block-renderers'
+import { fetchWithAuthUpload } from '@/lib/api'
 
 /* ═══════════ SHARED UPLOAD HELPER ═══════════ */
 async function uploadFile(file: File, folder: string): Promise<string> {
   const formData = new FormData()
   formData.append('file', file)
   formData.append('folder', folder)
-  const res = await fetch('/api/upload', { method: 'POST', body: formData })
-  if (!res.ok) throw new Error((await res.json()).error || 'Upload failed')
-  return (await res.json()).url
+  const res = await fetchWithAuthUpload('/api/upload', { method: 'POST', body: formData })
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: 'Upload failed' }))
+    throw new Error(err.error || 'Upload failed')
+  }
+  const data = await res.json()
+  return data.url
 }
 
 /* ═══════════ SHARED: ANIMATION PICKER ═══════════ */

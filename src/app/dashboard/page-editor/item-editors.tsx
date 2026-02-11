@@ -10,6 +10,7 @@ import { toast } from 'sonner'
 
 import type { CourseItem, ProgramItem, ResultItem, HeaderData, HeroData, AboutData, NavLink } from './types'
 import { COURSE_GRADIENTS, PROGRAM_GRADIENTS, EMOJI_ICONS, HERO_GRADIENTS, LOGO_GRADIENTS } from './renderers'
+import { fetchWithAuthUpload } from '@/lib/api'
 
 /* ═══════════ SHARED COMPONENTS ═══════════ */
 
@@ -744,9 +745,9 @@ export function HeaderEditor({ data, onChange, lang }: HeaderEditorProps) {
       const formData = new FormData()
       formData.append('file', file)
       formData.append('folder', 'logo')
-      const res = await fetch('/api/upload', { method: 'POST', body: formData })
+      const res = await fetchWithAuthUpload('/api/upload', { method: 'POST', body: formData })
       if (!res.ok) {
-        const err = await res.json()
+        const err = await res.json().catch(() => ({ error: 'Upload failed' }))
         throw new Error(err.error || 'Upload failed')
       }
       const { url } = await res.json()
@@ -906,13 +907,13 @@ export function HeroEditor({ data, onChange, lang }: HeroEditorProps) {
       formData.append('file', file)
       formData.append('folder', 'hero')
 
-      const res = await fetch('/api/upload', {
+      const res = await fetchWithAuthUpload('/api/upload', {
         method: 'POST',
         body: formData
       })
 
       if (!res.ok) {
-        const err = await res.json()
+        const err = await res.json().catch(() => ({ error: 'Upload failed' }))
         throw new Error(err.error || 'Upload failed')
       }
 
@@ -1262,9 +1263,9 @@ export function AboutEditor({ data, onChange, lang }: AboutEditorProps) {
       const formData = new FormData()
       formData.append('file', file)
       formData.append('folder', 'about')
-      const res = await fetch('/api/upload', { method: 'POST', body: formData })
+      const res = await fetchWithAuthUpload('/api/upload', { method: 'POST', body: formData })
       if (!res.ok) {
-        const err = await res.json()
+        const err = await res.json().catch(() => ({ error: 'Upload failed' }))
         throw new Error(err.error || 'Upload failed')
       }
       const { url } = await res.json()
