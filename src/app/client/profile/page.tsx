@@ -11,10 +11,12 @@ import { createClient } from '@/lib/supabase'
 import { User, Mail, Phone, Lock, Save, Loader2, Camera, Trash2, AlertTriangle } from 'lucide-react'
 import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
+import ClientQuestionnaire from '@/components/dashboard/ClientQuestionnaire'
 
 export default function ProfilePage() {
-  const { t } = useTranslation()
+  const { t, locale } = useTranslation()
   const { user, profile, signOut } = useAuth()
+  const ru = locale === 'ru'
   const router = useRouter()
   const fileInputRef = useRef<HTMLInputElement>(null)
   
@@ -293,6 +295,9 @@ export default function ProfilePage() {
           </form>
         </CardContent>
       </Card>
+
+      {/* Client Questionnaire */}
+      {user && <ClientQuestionnaire clientId={user.id} ru={ru} />}
 
       {/* Security Card */}
       <Card>

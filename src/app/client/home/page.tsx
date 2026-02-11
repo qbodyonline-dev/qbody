@@ -7,30 +7,48 @@ import { Badge } from '@/components/ui/badge'
 import { useTranslation } from '@/lib/i18n'
 import { useAuth } from '@/lib/auth'
 import { createClient } from '@/lib/supabase'
-import { BookOpen, Clock, CheckCircle2, ArrowRight, Trophy, Target, ShoppingBag, Heart, Baby, Loader2 } from 'lucide-react'
+import { fetchWithAuth } from '@/lib/api'
+import {
+  BookOpen, Clock, CheckCircle2, ArrowRight, Target,
+  Heart, Baby, Loader2, Dumbbell, Scale, Calendar,
+  Play, Moon, TrendingDown, TrendingUp, MessageCircle
+} from 'lucide-react'
 
 const coursesMeta: Record<string, { title: string; titleRu: string; icon: any; color: string; lessons: number }> = {
   'breast-augmentation-recovery': { title: 'Breast Augmentation Recovery', titleRu: 'Восстановление после увеличения груди', icon: Heart, color: 'from-pink-500 to-rose-500', lessons: 18 },
   'cesarean-recovery': { title: 'C-Section Recovery', titleRu: 'Восстановление после кесарева сечения', icon: Baby, color: 'from-purple-500 to-violet-500', lessons: 24 },
 }
 
-type CourseAccess = {
-  course_slug: string
-  granted_at: string
+type CourseAccess = { course_slug: string; granted_at: string }
+type Order = { course_slug: string; status: string; amount: number; paid_at: string | null }
+type TodayWorkout = {
+  is_rest_day: boolean
+  day_of_week: number
+  workouts: { id: string; name_en: string; name_ru: string; type: string; duration_minutes: number | null; workout_exercises: any[] } | null
+}
+type ProgramInfo = {
+  name_en: string; name_ru: string; goal: string; duration_weeks: number
+  current_week: number; start_date: string; end_date: string
+}
+type LatestCheckin = {
+  id: string; checkin_date: string; weight: number | null
+  weight_change: number | null; status: string; has_response: boolean
 }
 
-type Order = {
-  course_slug: string
-  status: string
-  amount: number
-  paid_at: string | null
-}
+const DAY_FULL_EN = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+const DAY_FULL_RU = ['Воскресенье', 'Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота']
 
 export default function ClientHomePage() {
   const { t, locale } = useTranslation()
   const { user, profile } = useAuth()
+  const ru = locale === 'ru'
+
   const [courses, setCourses] = useState<CourseAccess[]>([])
   const [orders, setOrders] = useState<Order[]>([])
+  const [program, setProgram] = useState<ProgramInfo | null>(null)
+  const [todayWorkout, setTodayWorkout] = useState<TodayWorkout | null>(null)
+  const [latestCheckin, setLatestCheckin] = useState<LatestCheckin | null>(null)
+  const [checkinCount, setCheckinCount] = useState(0)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -53,6 +71,28 @@ export default function ClientHomePage() {
 
       setCourses((accessData || []) as CourseAccess[])
       setOrders((ordersData || []) as Order[])
+
+      // Fetch training data
+      try {
+        const trainingRes = await fetchWithAuth('/api/client/training')
+        if (trainingRes.ok) {
+          const tdata = await trainingRes.json()
+          if (tdata.program) setProgram(tdata.program)
+          if (tdata.today_workout) setTodayWorkout(tdata.today_workout)
+        }
+      } catch { /* ignore */ }
+
+      // Fetch latest checkin
+      try {
+        const checkinRes = await fetchWithAuth('/api/checkins')
+        if (checkinRes.ok) {
+          const cdata = await checkinRes.json()
+          const list = cdata.checkins || cdata || []
+          setCheckinCount(list.length)
+          if (list.length > 0) setLatestCheckin(list[0])
+        }
+      } catch { /* ignore */ }
+
       setLoading(false)
     }
 
@@ -60,134 +100,238 @@ export default function ClientHomePage() {
   }, [user])
 
   const paidOrders = orders.filter(o => o.status === 'paid')
-  const totalSpent = paidOrders.reduce((s, o) => s + o.amount, 0)
   const firstName = profile?.full_name?.split(' ')[0] || user?.email?.split('@')[0] || ''
+  const dayFull = ru ? DAY_FULL_RU : DAY_FULL_EN
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center py-20">
-        <Loader2 className="w-8 h-8 animate-spin text-teal-500" />
-      </div>
-    )
+    return <div className="flex items-center justify-center py-20"><Loader2 className="w-8 h-8 animate-spin text-teal-500" /></div>
   }
 
+  const progressPercent = program ? Math.round((program.current_week / program.duration_weeks) * 100) : 0
+
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       {/* Welcome */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-zinc-900">
+          <h1 className="text-2xl sm:text-3xl font-bold text-zinc-900 dark:text-zinc-100">
             {t('client.home.welcomeUser').replace('{name}', firstName)} 👋
           </h1>
-          <p className="text-zinc-600 mt-1">
-            {courses.length > 0
-              ? t('client.home.continueRecovery')
-              : t('client.home.startRecovery')
+          <p className="text-zinc-500 mt-1">
+            {program
+              ? (ru ? `Неделя ${program.current_week} из ${program.duration_weeks}` : `Week ${program.current_week} of ${program.duration_weeks}`)
+              : courses.length > 0 ? t('client.home.continueRecovery') : t('client.home.startRecovery')
             }
           </p>
         </div>
-        <Link href="/client/courses">
-          <Button variant="outline">{t('client.home.allCourses')}<ArrowRight className="w-4 h-4 ml-2" /></Button>
-        </Link>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* Quick stats */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {[
-          { icon: BookOpen, value: String(courses.length), label: t('client.home.stats.activeCourses'), color: 'bg-teal-500/10 text-teal-500' },
-          { icon: ShoppingBag, value: String(paidOrders.length), label: t('client.home.stats.purchases'), color: 'bg-green-500/10 text-green-500' },
-          { icon: Clock, value: totalSpent > 0 ? `$${(totalSpent / 100).toFixed(0)}` : '$0', label: t('client.home.stats.totalSpent'), color: 'bg-orange-500/10 text-orange-500' },
-          { icon: Trophy, value: courses.length > 0 ? t('client.home.stats.active') : '—', label: t('client.home.stats.status'), color: 'bg-purple-500/10 text-purple-500' },
+          { icon: Dumbbell, value: program ? `${ru ? 'Нед.' : 'Wk'} ${program.current_week}/${program.duration_weeks}` : '—', label: ru ? 'Программа' : 'Program', color: 'bg-teal-500/10 text-teal-500' },
+          { icon: Scale, value: latestCheckin?.weight ? `${latestCheckin.weight} kg` : '—', label: ru ? 'Вес' : 'Weight', color: 'bg-blue-500/10 text-blue-500', sub: latestCheckin?.weight_change },
+          { icon: Calendar, value: String(checkinCount), label: ru ? 'Чекинов' : 'Check-ins', color: 'bg-orange-500/10 text-orange-500' },
+          { icon: BookOpen, value: String(courses.length), label: ru ? 'Курсов' : 'Courses', color: 'bg-purple-500/10 text-purple-500' },
         ].map((stat) => {
           const Icon = stat.icon
           return (
             <Card key={stat.label}><CardContent className="p-4">
               <div className="flex items-center gap-3">
-                <div className={`w-10 h-10 rounded-xl ${stat.color} flex items-center justify-center`}><Icon className="w-5 h-5" /></div>
-                <div><p className="text-2xl font-bold text-zinc-900">{stat.value}</p><p className="text-xs text-zinc-500">{stat.label}</p></div>
+                <div className={`w-10 h-10 rounded-xl ${stat.color} flex items-center justify-center flex-shrink-0`}><Icon className="w-5 h-5" /></div>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-1.5">
+                    <p className="text-lg font-bold text-zinc-900 dark:text-zinc-100 truncate">{stat.value}</p>
+                    {(stat as any).sub != null && (stat as any).sub !== 0 && (
+                      <span className={`text-xs flex items-center ${(stat as any).sub < 0 ? 'text-green-500' : 'text-red-500'}`}>
+                        {(stat as any).sub > 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
+                        {(stat as any).sub > 0 ? '+' : ''}{((stat as any).sub).toFixed(1)}
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-zinc-500">{stat.label}</p>
+                </div>
               </div>
             </CardContent></Card>
           )
         })}
       </div>
 
+      {/* Today's workout card */}
+      {program && todayWorkout && (
+        <Card className="border-2 border-teal-200 dark:border-teal-800 overflow-hidden">
+          <CardContent className="p-0">
+            <div className="bg-gradient-to-r from-teal-500/5 to-emerald-500/5 p-5">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <Target className="w-5 h-5 text-teal-500" />
+                  <h3 className="font-semibold text-zinc-900 dark:text-zinc-100">
+                    {ru ? 'Сегодня' : 'Today'} — {dayFull[todayWorkout.day_of_week]}
+                  </h3>
+                </div>
+                {todayWorkout.workouts && (
+                  <Badge variant="outline">{todayWorkout.workouts.type}</Badge>
+                )}
+              </div>
+
+              {todayWorkout.is_rest_day ? (
+                <div className="flex items-center gap-3 py-4">
+                  <Moon className="w-10 h-10 text-indigo-300" />
+                  <div>
+                    <p className="text-lg font-semibold text-zinc-600 dark:text-zinc-400">{ru ? 'День отдыха' : 'Rest Day'}</p>
+                    <p className="text-sm text-zinc-400">{ru ? 'Восстанавливайтесь!' : 'Take it easy!'}</p>
+                  </div>
+                </div>
+              ) : todayWorkout.workouts ? (
+                <div>
+                  <h4 className="text-lg font-bold text-zinc-900 dark:text-zinc-100">
+                    {ru ? todayWorkout.workouts.name_ru || todayWorkout.workouts.name_en : todayWorkout.workouts.name_en}
+                  </h4>
+                  <div className="flex gap-4 text-sm text-zinc-500 mt-1 mb-4">
+                    {todayWorkout.workouts.duration_minutes && (
+                      <span className="flex items-center gap-1"><Clock className="w-3.5 h-3.5" />{todayWorkout.workouts.duration_minutes} {ru ? 'мин' : 'min'}</span>
+                    )}
+                    <span>{todayWorkout.workouts.workout_exercises?.length || 0} {ru ? 'упражнений' : 'exercises'}</span>
+                  </div>
+                  <Link href="/client/training">
+                    <Button variant="gradient" size="sm">
+                      <Play className="w-4 h-4 mr-2" />{ru ? 'Открыть тренировку' : 'Open Workout'}
+                    </Button>
+                  </Link>
+                </div>
+              ) : (
+                <p className="text-zinc-400 text-sm py-2">{ru ? 'Тренировка не запланирована' : 'No workout scheduled'}</p>
+              )}
+            </div>
+
+            {/* Program progress mini bar */}
+            <div className="px-5 py-3 bg-zinc-50 dark:bg-zinc-800/50 border-t border-zinc-100 dark:border-zinc-800">
+              <div className="flex items-center justify-between text-xs text-zinc-500 mb-1">
+                <span>{ru ? program.name_ru || program.name_en : program.name_en}</span>
+                <span>{progressPercent}%</span>
+              </div>
+              <div className="h-1.5 bg-zinc-200 dark:bg-zinc-700 rounded-full overflow-hidden">
+                <div className="h-full bg-gradient-to-r from-teal-400 to-teal-600 rounded-full" style={{ width: `${progressPercent}%` }} />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* No program placeholder */}
+      {!program && (
+        <Card className="p-8 text-center">
+          <Dumbbell className="w-12 h-12 text-zinc-300 mx-auto mb-3" />
+          <h3 className="text-lg font-semibold text-zinc-600 dark:text-zinc-400 mb-1">{ru ? 'Программа не назначена' : 'No program assigned'}</h3>
+          <p className="text-zinc-400 text-sm">{ru ? 'Ваш тренер назначит программу тренировок' : 'Your trainer will assign a training program'}</p>
+        </Card>
+      )}
+
+      {/* Quick actions */}
+      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+        <Link href="/client/checkins">
+          <Card className="card-hover h-full">
+            <CardContent className="p-5 flex items-center gap-4">
+              <div className="w-12 h-12 rounded-xl bg-blue-500/10 flex items-center justify-center flex-shrink-0">
+                <Scale className="w-6 h-6 text-blue-500" />
+              </div>
+              <div className="min-w-0">
+                <h4 className="font-semibold text-zinc-900 dark:text-zinc-100">{ru ? 'Новый чекин' : 'New Check-in'}</h4>
+                <p className="text-xs text-zinc-500 mt-0.5">
+                  {latestCheckin
+                    ? `${ru ? 'Последний:' : 'Last:'} ${new Date(latestCheckin.checkin_date).toLocaleDateString(ru ? 'ru-RU' : 'en-US', { day: 'numeric', month: 'short' })}`
+                    : (ru ? 'Отправьте первый чекин' : 'Submit your first check-in')
+                  }
+                </p>
+              </div>
+              <ArrowRight className="w-4 h-4 text-zinc-300 flex-shrink-0 ml-auto" />
+            </CardContent>
+          </Card>
+        </Link>
+
+        <Link href="/client/training">
+          <Card className="card-hover h-full">
+            <CardContent className="p-5 flex items-center gap-4">
+              <div className="w-12 h-12 rounded-xl bg-teal-500/10 flex items-center justify-center flex-shrink-0">
+                <Dumbbell className="w-6 h-6 text-teal-500" />
+              </div>
+              <div className="min-w-0">
+                <h4 className="font-semibold text-zinc-900 dark:text-zinc-100">{ru ? 'Расписание' : 'Schedule'}</h4>
+                <p className="text-xs text-zinc-500 mt-0.5">{ru ? 'Смотреть программу' : 'View your program'}</p>
+              </div>
+              <ArrowRight className="w-4 h-4 text-zinc-300 flex-shrink-0 ml-auto" />
+            </CardContent>
+          </Card>
+        </Link>
+
+        <Link href="/client/messages">
+          <Card className="card-hover h-full">
+            <CardContent className="p-5 flex items-center gap-4">
+              <div className="w-12 h-12 rounded-xl bg-purple-500/10 flex items-center justify-center flex-shrink-0">
+                <MessageCircle className="w-6 h-6 text-purple-500" />
+              </div>
+              <div className="min-w-0">
+                <h4 className="font-semibold text-zinc-900 dark:text-zinc-100">{ru ? 'Сообщения' : 'Messages'}</h4>
+                <p className="text-xs text-zinc-500 mt-0.5">{ru ? 'Связаться с тренером' : 'Contact your trainer'}</p>
+              </div>
+              <ArrowRight className="w-4 h-4 text-zinc-300 flex-shrink-0 ml-auto" />
+            </CardContent>
+          </Card>
+        </Link>
+      </div>
+
       {/* My courses */}
-      {courses.length > 0 ? (
+      {courses.length > 0 && (
         <section>
-          <h2 className="text-lg font-semibold text-zinc-900 mb-4">{t('client.courses.title')}</h2>
-          <div className="grid md:grid-cols-2 gap-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">{t('client.courses.title')}</h2>
+            <Link href="/client/courses">
+              <Button variant="ghost" size="sm">{ru ? 'Все' : 'All'}<ArrowRight className="w-3.5 h-3.5 ml-1" /></Button>
+            </Link>
+          </div>
+          <div className="grid md:grid-cols-2 gap-4">
             {courses.map((access) => {
               const meta = coursesMeta[access.course_slug]
               if (!meta) return null
               const Icon = meta.icon
               return (
-                <Card key={access.course_slug} className="overflow-hidden card-hover">
-                  <div className={`h-40 bg-gradient-to-br ${meta.color} flex items-center justify-center relative`}>
-                    <Icon className="w-16 h-16 text-white/50" />
-                    <Badge className="absolute top-4 left-4 bg-white/90 text-green-600">
-                      <CheckCircle2 className="w-3 h-3 mr-1" />{t('client.home.purchased')}
-                    </Badge>
-                  </div>
-                  <CardContent className="p-6">
-                    <h3 className="text-xl font-bold text-zinc-900 mb-2">{locale === 'ru' ? meta.titleRu : meta.title}</h3>
-                    <div className="flex items-center gap-4 text-sm text-zinc-500 mb-4">
-                      <span className="flex items-center gap-1"><BookOpen className="w-4 h-4" />{meta.lessons} {t('client.courses.lessons')}</span>
-                      <span className="flex items-center gap-1"><Clock className="w-4 h-4" />{t('client.home.lifetimeAccess')}</span>
+                <Link key={access.course_slug} href={`/client/courses/${access.course_slug}`}>
+                  <Card className="overflow-hidden card-hover h-full">
+                    <div className={`h-32 bg-gradient-to-br ${meta.color} flex items-center justify-center relative`}>
+                      <Icon className="w-12 h-12 text-white/40" />
+                      <Badge className="absolute top-3 left-3 bg-white/90 text-green-600 text-xs">
+                        <CheckCircle2 className="w-3 h-3 mr-1" />{t('client.home.purchased')}
+                      </Badge>
                     </div>
-                    <Link href={`/client/courses/${access.course_slug}`}>
-                      <Button variant="gradient" className="w-full">
-                        {t('client.courses.openCourse')}
-                        <ArrowRight className="w-4 h-4 ml-2" />
-                      </Button>
-                    </Link>
-                  </CardContent>
-                </Card>
+                    <CardContent className="p-4">
+                      <h3 className="font-bold text-zinc-900 dark:text-zinc-100">{ru ? meta.titleRu : meta.title}</h3>
+                      <div className="flex items-center gap-3 text-xs text-zinc-500 mt-2">
+                        <span className="flex items-center gap-1"><BookOpen className="w-3.5 h-3.5" />{meta.lessons} {t('client.courses.lessons')}</span>
+                        <span className="flex items-center gap-1"><Clock className="w-3.5 h-3.5" />{t('client.home.lifetimeAccess')}</span>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </Link>
               )
             })}
           </div>
         </section>
-      ) : (
-        <Card className="p-12 text-center">
-          <BookOpen className="w-16 h-16 text-zinc-300 mx-auto mb-4" />
-          <h3 className="text-xl font-semibold text-zinc-900 mb-2">{t('client.courses.noCourses')}</h3>
-          <p className="text-zinc-500 mb-6">{t('client.home.purchaseFirst')}</p>
-          <Link href="/#courses"><Button variant="gradient">{t('client.courses.browseCourses')}</Button></Link>
-        </Card>
       )}
 
-      {/* Recent orders */}
-      {orders.length > 0 && (
-        <section>
-          <h2 className="text-lg font-semibold text-zinc-900 mb-4">{t('client.home.purchaseHistory')}</h2>
-          <Card><CardContent className="p-0">
-            <div className="divide-y divide-zinc-200">
-              {orders.slice(0, 5).map((order, i) => {
-                const meta = coursesMeta[order.course_slug]
-                return (
-                  <div key={i} className="flex items-center justify-between p-4">
-                    <div className="flex items-center gap-3">
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center ${order.status === 'paid' ? 'bg-green-500/10' : 'bg-orange-500/10'}`}>
-                        <CheckCircle2 className={`w-4 h-4 ${order.status === 'paid' ? 'text-green-500' : 'text-orange-500'}`} />
-                      </div>
-                      <div>
-                        <p className="font-medium text-zinc-900 text-sm">{meta ? (locale === 'ru' ? meta.titleRu : meta.title) : order.course_slug}</p>
-                        <p className="text-xs text-zinc-500">
-                          {order.paid_at ? new Date(order.paid_at).toLocaleDateString(locale === 'ru' ? 'ru-RU' : 'en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <p className="font-semibold text-zinc-900">${(order.amount / 100).toFixed(0)}</p>
-                      <Badge variant={order.status === 'paid' ? 'success' : 'warning'} className="text-xs">
-                        {order.status === 'paid' ? t('client.home.paid') : t('client.home.pending')}
-                      </Badge>
-                    </div>
-                  </div>
-                )
-              })}
+      {/* Latest checkin response */}
+      {latestCheckin?.has_response && (
+        <Card className="border-l-4 border-l-teal-500">
+          <CardContent className="p-4 flex items-center gap-3">
+            <MessageCircle className="w-5 h-5 text-teal-500 flex-shrink-0" />
+            <div className="min-w-0">
+              <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100">{ru ? 'Тренер ответил на ваш чекин' : 'Trainer responded to your check-in'}</p>
+              <p className="text-xs text-zinc-500">{new Date(latestCheckin.checkin_date).toLocaleDateString(ru ? 'ru-RU' : 'en-US', { day: 'numeric', month: 'short' })}</p>
             </div>
-          </CardContent></Card>
-        </section>
+            <Link href="/client/checkins" className="ml-auto flex-shrink-0">
+              <Button variant="outline" size="sm">{ru ? 'Читать' : 'Read'}</Button>
+            </Link>
+          </CardContent>
+        </Card>
       )}
     </div>
   )
