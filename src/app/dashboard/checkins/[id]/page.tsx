@@ -237,7 +237,7 @@ export default function CheckinDetailPage() {
       <Card><CardContent className="p-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Avatar src={client?.avatar_url || undefined} fallback={getInitials(client?.full_name)} size="lg" />
+            <Avatar src={client?.avatar_url || undefined} fallback={getInitials(client?.full_name ?? null)} size="lg" />
             <div>
               <p className="font-semibold text-zinc-900 dark:text-zinc-100">{clientName}</p>
               <p className="text-sm text-zinc-500">{client?.email}</p>
