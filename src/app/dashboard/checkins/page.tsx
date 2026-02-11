@@ -157,7 +157,7 @@ export default function CheckinsPage() {
                       {/* Client */}
                       <td className="py-3 px-4">
                         <div className="flex items-center gap-3">
-                          <Avatar src={ci.profiles?.avatar_url || undefined} fallback={getInitials(ci.profiles?.full_name)} size="sm" />
+                          <Avatar src={ci.profiles?.avatar_url || undefined} fallback={getInitials(ci.profiles?.full_name ?? null)} size="sm" />
                           <div className="min-w-0">
                             <p className="font-medium text-zinc-900 dark:text-zinc-100 truncate text-sm">{name}</p>
                           </div>
