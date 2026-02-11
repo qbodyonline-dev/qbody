@@ -81,13 +81,12 @@ export function ScrollReveal({
   const staggerClass = stagger ? 'stagger-parent' : ''
 
   return (
-    // @ts-ignore — dynamic tag
-    <Tag
+    <div
       ref={ref}
       className={`${revealClass} ${staggerClass} ${className}`.trim()}
     >
       {children}
-    </Tag>
+    </div>
   )
 }
 
