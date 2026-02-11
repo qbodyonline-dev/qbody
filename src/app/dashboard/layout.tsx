@@ -6,7 +6,7 @@ import {
   LayoutDashboard, Users, Dumbbell, BookOpen,
   MessageSquare, CreditCard, Settings, Menu, X, Bell, 
   Search, ChevronDown, Video, ListVideo,
-  Target, Layers, FileText,
+  Target, Layers, FileText, BarChart3,
   Moon, Sun, FormInput, BellRing, LogOut
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -200,6 +200,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     },
     { name: t('messages.title'), href: '/dashboard/messages', icon: MessageSquare, badge: unreadMessages },
     { name: t('payments.title'), href: '/dashboard/payments', icon: CreditCard },
+    { name: ru ? 'Аналитика' : 'Analytics', href: '/dashboard/analytics', icon: BarChart3 },
     { name: ru ? 'Редактор страницы' : 'Page Editor', href: '/dashboard/page-editor', icon: FileText },
     { name: ru ? 'Конструктор форм' : 'Form Builder', href: '/dashboard/form-builder', icon: FormInput },
     { name: ru ? 'Уведомления' : 'Notifications', href: '/dashboard/notifications', icon: BellRing },
