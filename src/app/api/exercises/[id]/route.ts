@@ -1,0 +1,108 @@
+import { NextRequest, NextResponse } from 'next/server'
+import { createServerClient } from '@/lib/supabase-server'
+import { requireAdmin, authenticateRequest } from '@/lib/api-auth'
+
+// GET — single exercise
+export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+  const auth = await authenticateRequest(request)
+  if (!auth.success) {
+    return NextResponse.json({ error: auth.error.error }, { status: auth.error.status })
+  }
+
+  try {
+    const supabase = createServerClient()
+    const { data, error } = await supabase
+      .from('exercises')
+      .select('*')
+      .eq('id', params.id)
+      .single()
+
+    if (error || !data) {
+      return NextResponse.json({ error: 'Exercise not found' }, { status: 404 })
+    }
+
+    return NextResponse.json(data)
+  } catch (err: any) {
+    console.error('GET /api/exercises/[id] error:', err)
+    return NextResponse.json({ error: 'Server error' }, { status: 500 })
+  }
+}
+
+// PUT — update exercise
+export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
+  const auth = await requireAdmin(request)
+  if (!auth.success) {
+    return NextResponse.json({ error: auth.error.error }, { status: auth.error.status })
+  }
+
+  try {
+    const supabase = createServerClient()
+    const body = await request.json()
+
+    // Only allow updating specific fields
+    const allowedFields = [
+      'name', 'name_ru', 'description', 'description_ru',
+      'muscle_groups', 'equipment', 'category', 'difficulty',
+      'instructions', 'instructions_ru',
+      'common_mistakes', 'common_mistakes_ru',
+      'regressions', 'regressions_ru',
+      'progressions', 'progressions_ru',
+      'video_url', 'thumbnail_url'
+    ]
+
+    const updates: Record<string, any> = {}
+    for (const field of allowedFields) {
+      if (field in body) {
+        updates[field] = body[field]
+      }
+    }
+
+    if (Object.keys(updates).length === 0) {
+      return NextResponse.json({ error: 'No fields to update' }, { status: 400 })
+    }
+
+    const { data, error } = await supabase
+      .from('exercises')
+      .update(updates)
+      .eq('id', params.id)
+      .select()
+      .single()
+
+    if (error) {
+      console.error('Update exercise error:', error)
+      return NextResponse.json({ error: 'Failed to update exercise' }, { status: 500 })
+    }
+
+    return NextResponse.json(data)
+  } catch (err: any) {
+    console.error('PUT /api/exercises/[id] error:', err)
+    return NextResponse.json({ error: 'Server error' }, { status: 500 })
+  }
+}
+
+// DELETE — delete exercise
+export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
+  const auth = await requireAdmin(request)
+  if (!auth.success) {
+    return NextResponse.json({ error: auth.error.error }, { status: auth.error.status })
+  }
+
+  try {
+    const supabase = createServerClient()
+
+    const { error } = await supabase
+      .from('exercises')
+      .delete()
+      .eq('id', params.id)
+
+    if (error) {
+      console.error('Delete exercise error:', error)
+      return NextResponse.json({ error: 'Failed to delete exercise' }, { status: 500 })
+    }
+
+    return NextResponse.json({ success: true })
+  } catch (err: any) {
+    console.error('DELETE /api/exercises/[id] error:', err)
+    return NextResponse.json({ error: 'Server error' }, { status: 500 })
+  }
+}
