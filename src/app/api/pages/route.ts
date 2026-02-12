@@ -1,58 +1,67 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { createServerClient } from '@/lib/supabase-server'
 import { requireAdmin } from '@/lib/api-auth'
-import { sanitizeString } from '@/lib/security'
 
-/** Public-safe Supabase client (anon key) */
 function getPublicSupabase() {
   return createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      auth: { autoRefreshToken: false, persistSession: false },
-      global: {
-        fetch: (url: any, options: any = {}) => fetch(url, { ...options, cache: 'no-store' as RequestCache }),
-      },
-    }
+    { auth: { autoRefreshToken: false, persistSession: false }, global: { fetch: (url: any, opts: any = {}) => fetch(url, { ...opts, cache: 'no-store' as RequestCache }) } }
   )
 }
 
-// GET all pages or specific page by slug — public (for rendering)
+function getAdminSupabase() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    { auth: { autoRefreshToken: false, persistSession: false }, global: { fetch: (url: any, opts: any = {}) => fetch(url, { ...opts, cache: 'no-store' as RequestCache }) } }
+  )
+}
+
+// GET — list all pages (public reads published, admin reads all)
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url)
-    const rawSlug = searchParams.get('slug')
-    // ✅ SANITIZE: Clean slug
-    const slug = rawSlug ? rawSlug.replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 200) : null
-    
-    const supabase = getPublicSupabase()
-    
-    if (slug) {
+    const adminMode = searchParams.get('admin') === '1'
+
+    if (adminMode) {
+      const auth = await requireAdmin(request)
+      if (!auth.success) {
+        return NextResponse.json({ error: auth.error.error }, { status: auth.error.status })
+      }
+      const supabase = getAdminSupabase()
       const { data, error } = await supabase
-        .from('page_content')
+        .from('site_pages')
         .select('*')
-        .eq('page_slug', slug)
-        .single()
-      
-      if (error && error.code !== 'PGRST116') throw error
-      return NextResponse.json(data || null)
-    } else {
-      const { data, error } = await supabase
-        .from('page_content')
-        .select('*')
-        .order('created_at', { ascending: false })
-      
-      if (error) throw error
+        .order('sort_order', { ascending: true })
+
+      if (error) {
+        console.error('GET site_pages error:', error)
+        return NextResponse.json({ error: 'Failed to load pages' }, { status: 500 })
+      }
       return NextResponse.json(data || [])
     }
+
+    // Public — only published
+    const supabase = getPublicSupabase()
+    const { data, error } = await supabase
+      .from('site_pages')
+      .select('id, slug, title, title_ru, is_homepage, sort_order')
+      .eq('is_published', true)
+      .order('sort_order', { ascending: true })
+
+    if (error) {
+      console.error('GET site_pages public error:', error)
+      return NextResponse.json({ error: 'Failed to load pages' }, { status: 500 })
+    }
+    return NextResponse.json(data || [])
   } catch (err: any) {
     console.error('GET /api/pages error:', err)
-    return NextResponse.json({ error: 'Failed to fetch pages' }, { status: 500 })
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
 
-// POST create new page — admin only
+// POST — create new page (admin only)
 export async function POST(request: Request) {
   const auth = await requireAdmin(request)
   if (!auth.success) {
@@ -60,89 +69,121 @@ export async function POST(request: Request) {
   }
 
   try {
-    const supabase = createServerClient()
+    const supabase = getAdminSupabase()
     const body = await request.json()
-    
-    // ✅ SANITIZE: Clean slug
-    const cleanSlug = (body.page_slug || '').replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 200)
-    if (!cleanSlug) {
-      return NextResponse.json({ error: 'Valid page_slug is required' }, { status: 400 })
+    const { title, titleRu, slug: rawSlug } = body
+
+    if (!title || typeof title !== 'string' || title.trim().length === 0) {
+      return NextResponse.json({ error: 'Title is required' }, { status: 400 })
     }
 
+    // Generate slug from title if not provided
+    const slug = (rawSlug || title)
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9\s-]/g, '')
+      .replace(/\s+/g, '-')
+      .replace(/-+/g, '-')
+      .slice(0, 50)
+
+    if (!slug) {
+      return NextResponse.json({ error: 'Invalid slug' }, { status: 400 })
+    }
+
+    // Prevent conflict with existing routes
+    const reserved = ['api', 'auth', 'client', 'dashboard', 'courses', 'programs', 'privacy', 'terms', 'cookies', 'test-api', 'sitemap', 'login', 'register', 'admin']
+    if (reserved.includes(slug)) {
+      return NextResponse.json({ error: `Slug "${slug}" is reserved` }, { status: 400 })
+    }
+
+    // Check if slug already exists
+    const { data: existing } = await supabase
+      .from('site_pages')
+      .select('id')
+      .eq('slug', slug)
+      .single()
+
+    if (existing) {
+      return NextResponse.json({ error: 'Page with this slug already exists' }, { status: 409 })
+    }
+
+    // Get max sort_order
+    const { data: maxOrder } = await supabase
+      .from('site_pages')
+      .select('sort_order')
+      .order('sort_order', { ascending: false })
+      .limit(1)
+      .single()
+
+    const nextOrder = (maxOrder?.sort_order ?? -1) + 1
+
     const { data, error } = await supabase
-      .from('page_content')
+      .from('site_pages')
       .insert({
-        page_slug: cleanSlug,
-        blocks: body.blocks || [],
-        is_published: body.is_published ?? true,
+        slug,
+        title: title.trim().slice(0, 200),
+        title_ru: (titleRu || title).trim().slice(0, 200),
+        is_published: false,
+        is_homepage: false,
+        sort_order: nextOrder,
       })
       .select()
       .single()
-    
-    if (error) throw error
-    return NextResponse.json(data)
+
+    if (error) {
+      console.error('Create page error:', error)
+      return NextResponse.json({ error: 'Failed to create page: ' + error.message }, { status: 500 })
+    }
+
+    return NextResponse.json(data, { status: 201 })
   } catch (err: any) {
     console.error('POST /api/pages error:', err)
-    return NextResponse.json({ error: 'Failed to create page' }, { status: 500 })
+    return NextResponse.json({ error: err.message }, { status: 500 })
   }
 }
 
-// PUT update page — admin only
-export async function PUT(request: Request) {
+// PATCH — update page (admin only)
+export async function PATCH(request: Request) {
   const auth = await requireAdmin(request)
   if (!auth.success) {
     return NextResponse.json({ error: auth.error.error }, { status: auth.error.status })
   }
 
   try {
-    const supabase = createServerClient()
+    const supabase = getAdminSupabase()
     const body = await request.json()
-    
-    // ✅ SANITIZE: Clean slug
-    const cleanSlug = (body.page_slug || '').replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 200)
-    if (!cleanSlug) {
-      return NextResponse.json({ error: 'Valid page_slug is required' }, { status: 400 })
+    const { id, title, titleRu, is_published, sort_order } = body
+
+    if (!id) {
+      return NextResponse.json({ error: 'Page ID is required' }, { status: 400 })
     }
-    
-    const { data: existingData, error: selectError } = await supabase
-      .from('page_content')
-      .select('id')
-      .eq('page_slug', cleanSlug)
-      .single()
-    
-    if (selectError && selectError.code === 'PGRST116') {
-      const { data, error } = await supabase
-        .from('page_content')
-        .insert({
-          page_slug: cleanSlug,
-          blocks: body.blocks || [],
-          is_published: body.is_published ?? true,
-        })
-        .select()
-        .single()
-      
-      if (error) throw error
-      return NextResponse.json(data)
-    }
-    
-    if (selectError) throw selectError
-    
+
+    const updates: Record<string, any> = { updated_at: new Date().toISOString() }
+    if (title !== undefined) updates.title = String(title).trim().slice(0, 200)
+    if (titleRu !== undefined) updates.title_ru = String(titleRu).trim().slice(0, 200)
+    if (is_published !== undefined) updates.is_published = Boolean(is_published)
+    if (sort_order !== undefined) updates.sort_order = Number(sort_order)
+
     const { data, error } = await supabase
-      .from('page_content')
-      .update({ blocks: body.blocks, is_published: body.is_published })
-      .eq('page_slug', cleanSlug)
+      .from('site_pages')
+      .update(updates)
+      .eq('id', id)
       .select()
       .single()
-    
-    if (error) throw error
+
+    if (error) {
+      console.error('Update page error:', error)
+      return NextResponse.json({ error: 'Failed to update page' }, { status: 500 })
+    }
+
     return NextResponse.json(data)
   } catch (err: any) {
-    console.error('PUT /api/pages error:', err)
-    return NextResponse.json({ error: 'Failed to update page' }, { status: 500 })
+    console.error('PATCH /api/pages error:', err)
+    return NextResponse.json({ error: err.message }, { status: 500 })
   }
 }
 
-// DELETE page — admin only
+// DELETE — delete page + its blocks (admin only, cannot delete homepage)
 export async function DELETE(request: Request) {
   const auth = await requireAdmin(request)
   if (!auth.success) {
@@ -150,25 +191,49 @@ export async function DELETE(request: Request) {
   }
 
   try {
+    const supabase = getAdminSupabase()
     const { searchParams } = new URL(request.url)
-    const slug = searchParams.get('slug')
+    const id = searchParams.get('id')
     
-    // ✅ SANITIZE: Clean slug
-    const cleanSlug = slug ? slug.replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 200) : null
-    if (!cleanSlug) {
-      return NextResponse.json({ error: 'Valid slug is required' }, { status: 400 })
+    if (!id) {
+      return NextResponse.json({ error: 'Page ID is required' }, { status: 400 })
     }
-    
-    const supabase = createServerClient()
-    const { error } = await supabase
-      .from('page_content')
+
+    // Check if homepage
+    const { data: page } = await supabase
+      .from('site_pages')
+      .select('slug, is_homepage')
+      .eq('id', id)
+      .single()
+
+    if (!page) {
+      return NextResponse.json({ error: 'Page not found' }, { status: 404 })
+    }
+
+    if (page.is_homepage) {
+      return NextResponse.json({ error: 'Cannot delete homepage' }, { status: 400 })
+    }
+
+    // Delete blocks for this page
+    await supabase
+      .from('page_blocks')
       .delete()
-      .eq('page_slug', cleanSlug)
-    
-    if (error) throw error
+      .eq('page_slug', page.slug)
+
+    // Delete the page
+    const { error } = await supabase
+      .from('site_pages')
+      .delete()
+      .eq('id', id)
+
+    if (error) {
+      console.error('Delete page error:', error)
+      return NextResponse.json({ error: 'Failed to delete page' }, { status: 500 })
+    }
+
     return NextResponse.json({ success: true })
   } catch (err: any) {
     console.error('DELETE /api/pages error:', err)
-    return NextResponse.json({ error: 'Failed to delete page' }, { status: 500 })
+    return NextResponse.json({ error: err.message }, { status: 500 })
   }
 }

@@ -1,5 +1,6 @@
 'use client'
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
+import { useSearchParams, useRouter } from 'next/navigation'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -8,7 +9,8 @@ import {
   Save, Eye, EyeOff, Monitor, Smartphone, Undo2, Redo2,
   ChevronDown, ChevronUp, GripVertical, Trash2, Copy,
   Layout, X, Tablet, Download, Upload, Paintbrush,
-  Maximize2, Minimize2, Plus, Loader2, LayoutList
+  Maximize2, Minimize2, Plus, Loader2, LayoutList,
+  ArrowLeft, Globe, FileText, Home, ChevronRight
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { fetchWithAuth } from '@/lib/api'
@@ -35,51 +37,89 @@ import type { FaqSectionData } from './faq'
 import { ContactSectionEditor, renderContact2HTML, defaultContactSectionData } from './contact'
 import type { ContactSectionData } from './contact'
 
+/* ═══════════ PAGE TYPE ═══════════ */
+interface SitePage {
+  id: string; slug: string; title: string; title_ru: string
+  is_published: boolean; is_homepage: boolean
+}
+
 /* ═══════════ MAIN EDITOR ═══════════ */
 export default function PageEditorPage() {
   const { locale } = useTranslation()
   const lang = locale as 'en' | 'ru'
+  const searchParams = useSearchParams()
+  const router = useRouter()
+
+  // Page management
+  const [pages, setPages] = useState<SitePage[]>([])
+  const [pageSlug, setPageSlug] = useState<string | null>(searchParams.get('page'))
+  const [pagesLoading, setPagesLoading] = useState(true)
+
   const [blocks, setBlocks] = useState<PageBlock[]>(initBlocks)
   const [active, setActive] = useState('hero')
   const [loading, setLoading] = useState(true)
 
-  // Load blocks from database on mount, or save defaults if DB is empty
+  // Load pages list (admin mode — see all pages including drafts)
+  const fetchPages = useCallback(async () => {
+    try {
+      const res = await fetchWithAuth('/api/pages?admin=1')
+      if (res.ok) {
+        const data = await res.json()
+        setPages(Array.isArray(data) ? data : [])
+      }
+    } catch (err) {
+      console.error('Failed to load pages:', err)
+    } finally {
+      setPagesLoading(false)
+    }
+  }, [])
+
+  useEffect(() => { fetchPages() }, [fetchPages])
+
+  // Select page from URL or default
+  const selectPage = useCallback((slug: string) => {
+    setPageSlug(slug)
+    setLoading(true)
+    router.replace(`/dashboard/page-editor?page=${slug}`, { scroll: false })
+  }, [router])
+
+  const goBackToPages = useCallback(() => {
+    setPageSlug(null)
+    setBlocks([])
+    router.replace('/dashboard/page-editor', { scroll: false })
+  }, [router])
+
+  // Load blocks when pageSlug changes
   useEffect(() => {
+    if (!pageSlug) { setLoading(false); return }
     const loadBlocks = async () => {
+      setLoading(true)
       try {
-        const res = await fetch('/api/page-blocks?page=home')
+        const res = await fetch(`/api/page-blocks?page=${pageSlug}`)
         if (res.ok) {
           const data = await res.json()
           if (data.blocks && data.blocks.length > 0) {
-            // Auto-migrate blocks that don't have items/data
             const migratedBlocks = data.blocks.map((block: PageBlock) => {
-              if (block.type === 'courses' && !block.items) {
-                return { ...block, items: defaultCourseItems }
-              }
-              if (block.type === 'programs' && !block.items) {
-                return { ...block, items: defaultProgramItems }
-              }
-              if (block.type === 'results' && !block.items) {
-                return { ...block, items: defaultResultItems }
-              }
-              if (block.type === 'header' && !block.data) {
-                return { ...block, data: defaultHeaderData }
-              }
-              if (block.type === 'hero' && !block.data) {
-                return { ...block, data: defaultHeroData }
-              }
-              if (block.type === 'about' && !block.data) {
-                return { ...block, data: defaultAboutData }
-              }
+              if (block.type === 'courses' && !block.items) return { ...block, items: defaultCourseItems }
+              if (block.type === 'programs' && !block.items) return { ...block, items: defaultProgramItems }
+              if (block.type === 'results' && !block.items) return { ...block, items: defaultResultItems }
+              if (block.type === 'header' && !block.data) return { ...block, data: defaultHeaderData }
+              if (block.type === 'hero' && !block.data) return { ...block, data: defaultHeroData }
+              if (block.type === 'about' && !block.data) return { ...block, data: defaultAboutData }
               return block
             })
             setBlocks(migratedBlocks)
             setActive(migratedBlocks.find((b: any) => b.type === 'hero')?.id || migratedBlocks[0]?.id || 'hero')
           } else {
-            // No blocks in DB — save defaults
-            console.log('No blocks in DB, saving defaults...')
-            await saveBlocksToDB(initBlocks)
-            setActive('hero')
+            // New page — start with default blocks only for home
+            if (pageSlug === 'home') {
+              await saveBlocksToDB(initBlocks)
+              setBlocks(initBlocks)
+              setActive('hero')
+            } else {
+              setBlocks([])
+              setActive('')
+            }
           }
         }
       } catch (err) {
@@ -89,14 +129,14 @@ export default function PageEditorPage() {
       }
     }
     loadBlocks()
-  }, []) // eslint-disable-line
+  }, [pageSlug]) // eslint-disable-line
 
   // Helper to save blocks to DB
   const saveBlocksToDB = async (blocksToSave: PageBlock[]) => {
     try {
       const res = await fetchWithAuth('/api/page-blocks', {
         method: 'POST',
-        body: JSON.stringify({ pageSlug: 'home', blocks: blocksToSave })
+        body: JSON.stringify({ pageSlug: pageSlug || 'home', blocks: blocksToSave })
       })
       if (!res.ok) {
         const err = await res.json()
@@ -291,8 +331,54 @@ export default function PageEditorPage() {
   const wrapClass = fullscreen ? 'fixed inset-0 z-50 bg-white dark:bg-zinc-950 overflow-auto p-4' : 'space-y-4'
   const dw = device === 'mobile' ? 'max-w-[390px]' : device === 'tablet' ? 'max-w-[768px]' : 'w-full'
 
-  if (loading) {
+  if (loading && pageSlug) {
     return <div className="flex items-center justify-center min-h-[60vh]"><Loader2 className="w-8 h-8 animate-spin text-teal-500" /></div>
+  }
+
+  // ═══ PAGE SELECTION VIEW ═══
+  const currentPage = pages.find(p => p.slug === pageSlug)
+  if (!pageSlug) {
+    return (
+      <div className="max-w-3xl mx-auto">
+        <div className="flex items-center justify-between mb-6">
+          <h1 className="text-xl font-bold text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
+            <Globe className="w-5 h-5 text-teal-500" />
+            {lang === 'ru' ? 'Конструктор страниц' : 'Page Builder'}
+          </h1>
+        </div>
+        {pagesLoading ? (
+          <div className="flex items-center justify-center py-20"><Loader2 className="w-6 h-6 animate-spin text-teal-500" /></div>
+        ) : pages.length === 0 ? (
+          <div className="text-center py-20">
+            <Globe className="w-12 h-12 mx-auto mb-3 text-zinc-300" />
+            <p className="text-zinc-500 mb-4">{lang === 'ru' ? 'Нет страниц. Создайте первую в разделе' : 'No pages yet. Create one in'} <a href="/dashboard/pages" className="text-teal-500 underline">{lang === 'ru' ? 'Страницы' : 'Pages'}</a></p>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {pages.map(page => (
+              <button
+                key={page.slug}
+                onClick={() => selectPage(page.slug)}
+                className="w-full bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl p-4 flex items-center gap-4 group hover:border-teal-300 dark:hover:border-teal-700 hover:shadow-sm transition-all text-left"
+              >
+                <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${page.is_homepage ? 'bg-teal-100 dark:bg-teal-900/30 text-teal-600' : 'bg-zinc-100 dark:bg-zinc-700 text-zinc-400'}`}>
+                  {page.is_homepage ? <Home className="w-5 h-5" /> : <FileText className="w-5 h-5" />}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium text-zinc-900 dark:text-zinc-100">{lang === 'ru' ? page.title_ru : page.title}</span>
+                    {page.is_homepage && <span className="text-[10px] font-bold uppercase text-teal-600 bg-teal-50 dark:bg-teal-900/30 px-1.5 py-0.5 rounded">{lang === 'ru' ? 'Главная' : 'Home'}</span>}
+                    {!page.is_published && <span className="text-[10px] font-bold uppercase text-amber-600 bg-amber-50 dark:bg-amber-900/30 px-1.5 py-0.5 rounded">{lang === 'ru' ? 'Черновик' : 'Draft'}</span>}
+                  </div>
+                  <p className="text-xs text-zinc-400 mt-0.5">/{page.slug}</p>
+                </div>
+                <ChevronRight className="w-4 h-4 text-zinc-300 group-hover:text-teal-500 transition-colors" />
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+    )
   }
 
   return (
@@ -301,7 +387,14 @@ export default function PageEditorPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           {fullscreen && <button onClick={() => setFullscreen(false)} className="p-2 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800"><Minimize2 className="w-5 h-5" /></button>}
-          <div><h1 className="text-xl font-bold text-zinc-900 dark:text-zinc-100">{lang === 'ru' ? 'Конструктор' : 'Page Builder'}</h1></div>
+          <div>
+            <div className="flex items-center gap-2 text-xs text-zinc-400 mb-0.5">
+              <button onClick={goBackToPages} className="hover:text-teal-500 transition-colors flex items-center gap-1"><ArrowLeft className="w-3 h-3" />{lang === 'ru' ? 'Страницы' : 'Pages'}</button>
+              <span>/</span>
+              <span className="text-zinc-600 dark:text-zinc-300">{currentPage ? (lang === 'ru' ? currentPage.title_ru : currentPage.title) : pageSlug}</span>
+            </div>
+            <h1 className="text-xl font-bold text-zinc-900 dark:text-zinc-100">{lang === 'ru' ? 'Конструктор' : 'Page Builder'}</h1>
+          </div>
         </div>
         <div className="flex gap-1.5 flex-wrap items-center">
           <div className="flex items-center gap-0.5 mr-2">
@@ -349,11 +442,25 @@ export default function PageEditorPage() {
           <div className="space-y-3">
             <Card className="h-fit lg:sticky lg:top-4">
               <CardContent className="p-2.5">
+                {/* Back to pages */}
+                <button onClick={goBackToPages} className="flex items-center gap-1.5 text-[11px] text-zinc-400 hover:text-teal-500 transition-colors mb-2 -mt-0.5">
+                  <ArrowLeft className="w-3 h-3" />
+                  {lang === 'ru' ? 'Все страницы' : 'All pages'}
+                </button>
                 <div className="flex items-center justify-between mb-2">
                   <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">{lang === 'ru' ? 'Блоки' : 'Blocks'} ({blocks.length})</p>
                   <button onClick={() => { setInsertIdx(-1); setAddModal(true) }} className="p-1 rounded-lg hover:bg-teal-50 dark:hover:bg-teal-900/20 text-teal-500" title="Add"><Plus className="w-4 h-4" /></button>
                 </div>
                 <div className="space-y-0.5 max-h-[50vh] overflow-y-auto">
+                  {blocks.length === 0 && (
+                    <div className="text-center py-8">
+                      <LayoutList className="w-8 h-8 mx-auto mb-2 text-zinc-300 dark:text-zinc-600" />
+                      <p className="text-xs text-zinc-400 mb-3">{lang === 'ru' ? 'Пустая страница' : 'Empty page'}</p>
+                      <button onClick={() => { setInsertIdx(-1); setAddModal(true) }} className="text-xs text-teal-500 hover:text-teal-600 font-medium">
+                        <Plus className="w-3 h-3 inline mr-1" />{lang === 'ru' ? 'Добавить первый блок' : 'Add first block'}
+                      </button>
+                    </div>
+                  )}
                   {blocks.map((b, idx) => {
                     const I = BLOCK_ICONS[b.type]
                     const isA = active === b.id

@@ -7,7 +7,7 @@ import {
   MessageSquare, CreditCard, Settings, Menu, X, Bell, 
   ChevronDown, Video, ListVideo,
   Target, Layers, FileText, BarChart3,
-  Moon, Sun, FormInput, BellRing, LogOut, Database
+  Moon, Sun, FormInput, BellRing, LogOut, Database, Globe
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Avatar } from '@/components/ui/avatar'
@@ -249,7 +249,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     { name: t('messages.title'), href: '/dashboard/messages', icon: MessageSquare, badge: unreadMessages },
     { name: t('payments.title'), href: '/dashboard/payments', icon: CreditCard },
     { name: ru ? 'Аналитика' : 'Analytics', href: '/dashboard/analytics', icon: BarChart3 },
-    { name: ru ? 'Редактор страницы' : 'Page Editor', href: '/dashboard/page-editor', icon: FileText },
+    { name: ru ? 'Сайт' : 'Website', href: '#website', icon: Globe,
+      children: [
+        { name: ru ? 'Страницы' : 'Pages', href: '/dashboard/pages', icon: Globe },
+        { name: ru ? 'Конструктор' : 'Page Builder', href: '/dashboard/page-editor', icon: FileText },
+      ]
+    },
     { name: ru ? 'Конструктор форм' : 'Form Builder', href: '/dashboard/form-builder', icon: FormInput },
     { name: ru ? 'Уведомления' : 'Notifications', href: '/dashboard/notifications', icon: BellRing },
     { name: ru ? 'Кеш сайта' : 'Site Cache', href: '/dashboard/site-cache', icon: Database },
