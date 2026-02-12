@@ -48,8 +48,8 @@ function courseCard(item: CourseItem2, s: CourseSectionData, lang: 'en' | 'ru', 
   const txt = s.textColor || '#fafafa'
   const cardBg = s.cardBg || '#171717'
   const border = s.cardBorder || 'rgba(255,255,255,0.06)'
-  const btn1 = item.btn1 || { text: 'Buy', textRu: 'Купить', link: item.link || '#', style: 'primary' as const }
-  const btn2 = item.btn2 || { text: 'Details', textRu: 'Подробнее', link: item.link || '#', style: 'outline' as const }
+  const btn1 = item.btn1 || { text: 'Buy', textRu: 'Купить', link: '#', style: 'primary' as const }
+  const btn2 = item.btn2 || { text: 'Details', textRu: 'Подробнее', link: '#', style: 'outline' as const }
   const btn1Text = lang === 'ru' ? btn1.textRu : btn1.text
   const btn2Text = lang === 'ru' ? btn2.textRu : btn2.text
   const cur = item.currency || '$'
