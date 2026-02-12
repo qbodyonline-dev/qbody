@@ -39,7 +39,21 @@ export async function GET(request: Request) {
         console.error('GET site_pages error:', error)
         return NextResponse.json({ error: 'Failed to load pages' }, { status: 500 })
       }
-      return NextResponse.json(data || [])
+
+      // Auto-seed: if table is empty, create the Home page
+      if (!data || data.length === 0) {
+        const { data: seeded, error: seedErr } = await supabase
+          .from('site_pages')
+          .insert({ slug: 'home', title: 'Home', title_ru: 'Главная', is_published: true, is_homepage: true, sort_order: 0 })
+          .select()
+        if (seedErr) {
+          console.error('Auto-seed home page error:', seedErr)
+          return NextResponse.json([])
+        }
+        return NextResponse.json(seeded || [])
+      }
+
+      return NextResponse.json(data)
     }
 
     // Public — only published
