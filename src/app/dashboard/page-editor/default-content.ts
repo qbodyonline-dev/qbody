@@ -56,6 +56,7 @@ export const TEMPLATES: BlockTemplate[] = [
   { id: 'courses2block', l: 'Courses Pro', lr: 'Курсы Pro', icon: GraduationCap, en: '__STRUCTURED__courses2', ru: '__STRUCTURED__courses2' },
   { id: 'about2block', l: 'About Pro', lr: 'About Pro', icon: UserCircle, en: '__STRUCTURED__about2', ru: '__STRUCTURED__about2' },
   { id: 'cta2block', l: 'CTA Pro', lr: 'CTA Pro', icon: Zap, en: '__STRUCTURED__cta2', ru: '__STRUCTURED__cta2' },
+  { id: 'faq2block', l: 'FAQ Pro', lr: 'FAQ Pro', icon: MessageSquare, en: '__STRUCTURED__faq2', ru: '__STRUCTURED__faq2' },
   { id: 'htmlblock', l: 'HTML Block', lr: 'HTML Блок', icon: Code2, en: '__STRUCTURED__htmlblock', ru: '__STRUCTURED__htmlblock' },
   { id: 'slider', l: 'Slider', lr: 'Слайдер', icon: SlidersHorizontal, en: '__STRUCTURED__slider', ru: '__STRUCTURED__slider' },
   { id: 'heroblock', l: 'Hero Block', lr: 'Hero Блок', icon: Sparkles, en: '__STRUCTURED__herotemplate', ru: '__STRUCTURED__herotemplate' },

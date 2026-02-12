@@ -30,6 +30,8 @@ import { AboutSectionEditor, renderAbout2HTML, defaultAboutSectionData } from '.
 import type { AboutSectionData } from './about'
 import { CtaSectionEditor, renderCta2HTML, defaultCtaSectionData } from './cta'
 import type { CtaSectionData } from './cta'
+import { FaqSectionEditor, renderFaq2HTML, defaultFaqSectionData } from './faq'
+import type { FaqSectionData } from './faq'
 
 /* ═══════════ MAIN EDITOR ═══════════ */
 export default function PageEditorPage() {
@@ -198,6 +200,9 @@ export default function PageEditorPage() {
       } else if (structType === 'cta2') {
         const sec = { ...defaultCtaSectionData, features: defaultCtaSectionData.features.map(f => ({ ...f })), btn1: { ...defaultCtaSectionData.btn1 }, btn2: { ...defaultCtaSectionData.btn2 } }
         nb = { id: nid, type: 'cta2' as any, label: tpl.l, labelRu: tpl.lr, visible: true, contentEn: renderCta2HTML(sec, 'en'), contentRu: renderCta2HTML(sec, 'ru'), style: {}, data: { section: sec } as any }
+      } else if (structType === 'faq2') {
+        const sec = { ...defaultFaqSectionData, items: defaultFaqSectionData.items.map(i => ({ ...i })) }
+        nb = { id: nid, type: 'faq2' as any, label: tpl.l, labelRu: tpl.lr, visible: true, contentEn: renderFaq2HTML(sec, 'en'), contentRu: renderFaq2HTML(sec, 'ru'), style: {}, data: { section: sec } as any }
       } else {
         nb = { id: nid, type: 'custom', label: tpl.l, labelRu: tpl.lr, visible: true, contentEn: '', contentRu: '', style: {} }
       }
@@ -270,6 +275,7 @@ export default function PageEditorPage() {
     else if (b.type === 'courses2' && b.data) { const dd = b.data as any; c = renderCourses2HTML(dd.items || [], dd.section || defaultCourseSectionData, lt) }
     else if (b.type === 'about2' && b.data) { const dd = b.data as any; c = renderAbout2HTML(dd.section || defaultAboutSectionData, lt) }
     else if ((b.type as any) === 'cta2' && b.data) { const dd = b.data as any; c = renderCta2HTML(dd.section || defaultCtaSectionData, lt) }
+    else if ((b.type as any) === 'faq2' && b.data) { const dd = b.data as any; c = renderFaq2HTML(dd.section || defaultFaqSectionData, lt) }
     else c = lt === 'ru' ? b.contentRu : b.contentEn
     const s = styleToCSS(b.style)
     const a = styleAttrs(b.style)
@@ -643,6 +649,24 @@ export default function PageEditorPage() {
                       <Eye className="w-3 h-3 text-teal-500" /><span className="text-[10px] font-bold text-teal-600 uppercase tracking-widest">{lang === 'ru' ? 'Превью' : 'Live Preview'}</span>
                     </div>
                     <div className="bg-zinc-950 max-h-[400px] overflow-y-auto"><div dangerouslySetInnerHTML={{ __html: renderCta2HTML(((ab.data as any)?.section as CtaSectionData) || defaultCtaSectionData, lt) }} className="pointer-events-none" /></div>
+                  </CardContent></Card>
+                </>
+              ) : (ab.type as any) === 'faq2' ? (
+                <>
+                  <FaqSectionEditor
+                    section={((ab.data as any)?.section as FaqSectionData) || defaultFaqSectionData}
+                    onChangeSection={(sec) => {
+                      const contentEn = renderFaq2HTML(sec, 'en')
+                      const contentRu = renderFaq2HTML(sec, 'ru')
+                      upd(ab.id, { data: { section: sec } as any, contentEn, contentRu })
+                    }}
+                    lang={lt}
+                  />
+                  <Card className="overflow-hidden"><CardContent className="p-0">
+                    <div className="flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-teal-50 to-zinc-50 dark:from-teal-900/20 dark:to-zinc-800 border-b border-zinc-200 dark:border-zinc-700">
+                      <Eye className="w-3 h-3 text-teal-500" /><span className="text-[10px] font-bold text-teal-600 uppercase tracking-widest">{lang === 'ru' ? 'Превью' : 'Live Preview'}</span>
+                    </div>
+                    <div className="bg-zinc-950 max-h-[400px] overflow-y-auto"><div dangerouslySetInnerHTML={{ __html: renderFaq2HTML(((ab.data as any)?.section as FaqSectionData) || defaultFaqSectionData, lt) }} className="pointer-events-none" /></div>
                   </CardContent></Card>
                 </>
               ) : (

@@ -184,7 +184,7 @@ export type StructuredItems = CourseItem[] | ProgramItem[] | ResultItem[]
 // NOTE: CourseSectionData, HtmlBlockData, SliderData, HeroTemplateData also stored in block.data (cast with 'as any')
 export type SectionData = HeaderData | HeroData | AboutData
 
-export type BlockType = 'header' | 'hero' | 'programs' | 'courses' | 'courses2' | 'about' | 'about2' | 'cta2' | 'results' | 'footer' | 'custom' | 'htmlblock' | 'slider' | 'herotemplate'
+export type BlockType = 'header' | 'hero' | 'programs' | 'courses' | 'courses2' | 'about' | 'about2' | 'cta2' | 'faq2' | 'results' | 'footer' | 'custom' | 'htmlblock' | 'slider' | 'herotemplate'
 
 export interface PageBlock {
   id: string
@@ -305,7 +305,7 @@ export interface HeroTemplateData {
 }
 
 /* Block type → icon mapping */
-import { Code2, SlidersHorizontal, Sparkles } from 'lucide-react'
+import { Code2, SlidersHorizontal, Sparkles, HelpCircle } from 'lucide-react'
 export const BLOCK_ICONS: Record<BlockType, any> = {
   header: Globe,
   hero: Layout,
@@ -315,6 +315,7 @@ export const BLOCK_ICONS: Record<BlockType, any> = {
   about: Users,
   about2: Users,
   cta2: Target,
+  faq2: HelpCircle,
   results: Trophy,
   footer: FileText,
   custom: Settings2,
