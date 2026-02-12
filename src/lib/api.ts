@@ -12,28 +12,28 @@ export async function fetchWithAuth(url: string, options: RequestInit = {}) {
     session = refreshed.session
   }
   
-  if (!session?.access_token) {
-    throw new Error('No session')
-  }
-  
-  const headers = {
-    ...options.headers,
-    'Authorization': `Bearer ${session.access_token}`,
+  // Build headers — if we have a token, add Bearer auth
+  // If not, send without Authorization header — server will use cookie-based auth fallback
+  const headers: Record<string, string> = {
     'Content-Type': 'application/json',
+    ...(options.headers as Record<string, string> || {}),
   }
   
-  const res = await fetch(url, { ...options, headers })
+  if (session?.access_token) {
+    headers['Authorization'] = `Bearer ${session.access_token}`
+  }
   
-  // If 401, try once with refreshed token
-  if (res.status === 401) {
+  const res = await fetch(url, { ...options, headers, credentials: 'include' })
+  
+  // If 401 and we had a token, try once with refreshed token
+  if (res.status === 401 && session?.access_token) {
     const { data: refreshed } = await supabase.auth.refreshSession()
     if (refreshed.session?.access_token) {
-      const retryHeaders = {
-        ...options.headers,
+      const retryHeaders: Record<string, string> = {
+        ...headers,
         'Authorization': `Bearer ${refreshed.session.access_token}`,
-        'Content-Type': 'application/json',
       }
-      return fetch(url, { ...options, headers: retryHeaders })
+      return fetch(url, { ...options, headers: retryHeaders, credentials: 'include' })
     }
   }
   
@@ -48,29 +48,28 @@ export async function fetchWithAuthUpload(url: string, options: RequestInit = {}
   let { data: { session } } = await supabase.auth.getSession()
   
   if (!session?.access_token) {
-    // Session might be stale — force refresh
     const { data: refreshed } = await supabase.auth.refreshSession()
     session = refreshed.session
   }
   
-  if (!session?.access_token) {
-    throw new Error('No session')
+  // Build headers — if we have a token, add Bearer auth
+  // If not, send without Authorization header — server will use cookie-based auth fallback
+  const headers: Record<string, string> = {}
+  
+  if (session?.access_token) {
+    headers['Authorization'] = `Bearer ${session.access_token}`
   }
   
-  const headers: Record<string, string> = {
-    'Authorization': `Bearer ${session.access_token}`,
-  }
+  const res = await fetch(url, { ...options, headers, credentials: 'include' })
   
-  const res = await fetch(url, { ...options, headers })
-  
-  // If 401, try once with refreshed token
-  if (res.status === 401) {
+  // If 401 and we had a token, try once with refreshed token
+  if (res.status === 401 && session?.access_token) {
     const { data: refreshed } = await supabase.auth.refreshSession()
     if (refreshed.session?.access_token) {
       const retryHeaders: Record<string, string> = {
         'Authorization': `Bearer ${refreshed.session.access_token}`,
       }
-      return fetch(url, { ...options, headers: retryHeaders })
+      return fetch(url, { ...options, headers: retryHeaders, credentials: 'include' })
     }
   }
   
