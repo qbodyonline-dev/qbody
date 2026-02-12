@@ -1,0 +1,5 @@
+export { CoursesSectionEditor } from './editor'
+export { CourseItemEditor2 } from './item-editor'
+export { renderCourses2HTML } from './renderer'
+export { defaultCourseItems2, defaultCourseSectionData, COURSE_GRADIENTS } from './defaults'
+export type { CourseItem2, CourseSectionData, CourseLayout, CourseTitleVariant, CourseBgType, CourseButton } from './types'

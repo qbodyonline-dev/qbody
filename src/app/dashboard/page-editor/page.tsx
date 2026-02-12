@@ -24,6 +24,8 @@ import { renderCoursesHTML, renderProgramsHTML, renderResultsHTML, renderHeaderH
 import { HtmlBlockEditor, SliderEditor, HeroTemplateEditor } from './new-block-editors'
 import { renderHtmlBlockHTML, renderSliderHTML, renderHeroTemplateHTML, defaultHtmlBlockData, defaultSliderData, defaultHeroTemplateData } from './new-block-renderers'
 import type { HtmlBlockData, SliderData, HeroTemplateData } from './types'
+import { CoursesSectionEditor, renderCourses2HTML, defaultCourseItems2, defaultCourseSectionData } from './courses'
+import type { CourseItem2, CourseSectionData } from './courses'
 
 /* ═══════════ MAIN EDITOR ═══════════ */
 export default function PageEditorPage() {
@@ -182,6 +184,10 @@ export default function PageEditorPage() {
       } else if (structType === 'herotemplate') {
         const d = defaultHeroTemplateData()
         nb = { id: nid, type: 'herotemplate', label: tpl.l, labelRu: tpl.lr, visible: true, contentEn: renderHeroTemplateHTML(d, 'en'), contentRu: renderHeroTemplateHTML(d, 'ru'), style: {}, data: d as any }
+      } else if (structType === 'courses2') {
+        const sec = { ...defaultCourseSectionData }
+        const items = defaultCourseItems2.map(i => ({ ...i }))
+        nb = { id: nid, type: 'courses2', label: tpl.l, labelRu: tpl.lr, visible: true, contentEn: renderCourses2HTML(items, sec, 'en'), contentRu: renderCourses2HTML(items, sec, 'ru'), style: {}, data: { section: sec, items } as any }
       } else {
         nb = { id: nid, type: 'custom', label: tpl.l, labelRu: tpl.lr, visible: true, contentEn: '', contentRu: '', style: {} }
       }
@@ -251,6 +257,7 @@ export default function PageEditorPage() {
     else if (b.type === 'htmlblock' && b.data) c = renderHtmlBlockHTML(b.data as any as HtmlBlockData, lt)
     else if (b.type === 'slider' && b.data) c = renderSliderHTML(b.data as any as SliderData, lt)
     else if (b.type === 'herotemplate' && b.data) c = renderHeroTemplateHTML(b.data as any as HeroTemplateData, lt)
+    else if (b.type === 'courses2' && b.data) { const dd = b.data as any; c = renderCourses2HTML(dd.items || [], dd.section || defaultCourseSectionData, lt) }
     else c = lt === 'ru' ? b.contentRu : b.contentEn
     const s = styleToCSS(b.style)
     const a = styleAttrs(b.style)
@@ -562,6 +569,32 @@ export default function PageEditorPage() {
                       <Eye className="w-3 h-3 text-teal-500" /><span className="text-[10px] font-bold text-teal-600 uppercase tracking-widest">{lang === 'ru' ? 'Превью' : 'Live Preview'}</span>
                     </div>
                     <div className="bg-zinc-950 max-h-[600px] overflow-y-auto"><div dangerouslySetInnerHTML={{ __html: renderHeroTemplateHTML((ab.data as any as HeroTemplateData) || defaultHeroTemplateData(), lt) }} /></div>
+                  </CardContent></Card>
+                </>
+              ) : ab.type === 'courses2' ? (
+                <>
+                  <CoursesSectionEditor
+                    items={((ab.data as any)?.items as CourseItem2[]) || defaultCourseItems2}
+                    section={((ab.data as any)?.section as CourseSectionData) || defaultCourseSectionData}
+                    onChangeItems={(items) => {
+                      const sec = ((ab.data as any)?.section as CourseSectionData) || defaultCourseSectionData
+                      const contentEn = renderCourses2HTML(items, sec, 'en')
+                      const contentRu = renderCourses2HTML(items, sec, 'ru')
+                      upd(ab.id, { data: { section: sec, items } as any, contentEn, contentRu, label: `Courses (${items.length})`, labelRu: `Курсы (${items.length})` })
+                    }}
+                    onChangeSection={(sec) => {
+                      const items = ((ab.data as any)?.items as CourseItem2[]) || defaultCourseItems2
+                      const contentEn = renderCourses2HTML(items, sec, 'en')
+                      const contentRu = renderCourses2HTML(items, sec, 'ru')
+                      upd(ab.id, { data: { section: sec, items } as any, contentEn, contentRu })
+                    }}
+                    lang={lt}
+                  />
+                  <Card className="overflow-hidden"><CardContent className="p-0">
+                    <div className="flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-teal-50 to-zinc-50 dark:from-teal-900/20 dark:to-zinc-800 border-b border-zinc-200 dark:border-zinc-700">
+                      <Eye className="w-3 h-3 text-teal-500" /><span className="text-[10px] font-bold text-teal-600 uppercase tracking-widest">{lang === 'ru' ? 'Превью' : 'Live Preview'}</span>
+                    </div>
+                    <div className="bg-zinc-950 max-h-[400px] overflow-y-auto"><div dangerouslySetInnerHTML={{ __html: renderCourses2HTML(((ab.data as any)?.items as CourseItem2[]) || defaultCourseItems2, ((ab.data as any)?.section as CourseSectionData) || defaultCourseSectionData, lt) }} className="pointer-events-none" /></div>
                   </CardContent></Card>
                 </>
               ) : (

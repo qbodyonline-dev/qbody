@@ -12,6 +12,8 @@ import {
 } from 'lucide-react'
 import { renderAboutHTML, renderCoursesHTML, renderProgramsHTML, renderResultsHTML } from '@/app/dashboard/page-editor/renderers'
 import { renderHtmlBlockHTML, renderSliderHTML, renderHeroTemplateHTML } from '@/app/dashboard/page-editor/new-block-renderers'
+import { renderCourses2HTML } from '@/app/dashboard/page-editor/courses'
+import type { CourseItem2, CourseSectionData } from '@/app/dashboard/page-editor/courses'
 import type { AboutData, CourseItem, ProgramItem, ResultItem, HtmlBlockData, SliderData, HeroTemplateData } from '@/app/dashboard/page-editor/types'
 import { sanitizeHTML, sanitizeStyleObj } from '@/lib/sanitize-html'
 
@@ -386,6 +388,9 @@ function DynamicBlock({ block, lang, index }: { block: PageBlock; lang: 'en' | '
     content = renderSliderHTML(block.data as SliderData, lang)
   } else if (block.type === 'herotemplate' && block.data) {
     content = renderHeroTemplateHTML(block.data as HeroTemplateData, lang)
+  } else if ((block.type as any) === 'courses2' && block.data) {
+    const dd = block.data as any
+    content = renderCourses2HTML(dd.items || [], dd.section || {}, lang)
   } else {
     content = lang === 'ru' ? block.contentRu : block.contentEn
   }
@@ -436,7 +441,7 @@ function DynamicBlock({ block, lang, index }: { block: PageBlock; lang: 'en' | '
   }
 
   // For structured blocks rendered on-the-fly, skip section styles (renderer includes its own bg)
-  const isStructured = ['about', 'courses', 'programs', 'results', 'htmlblock', 'slider', 'herotemplate'].includes(block.type) && (block.data || block.items)
+  const isStructured = ['about', 'courses', 'courses2', 'programs', 'results', 'htmlblock', 'slider', 'herotemplate'].includes(block.type) && (block.data || block.items)
   // ✅ XSS PROTECTION: Sanitize style object (block javascript: in bgImage etc.)
   const safeStyle = sanitizeStyleObj(block.style || {})
   const sectionStyle = isStructured ? {} : styleToCSS(safeStyle as any)
@@ -448,6 +453,7 @@ function DynamicBlock({ block, lang, index }: { block: PageBlock; lang: 'en' | '
   const sectionId = block.type === 'hero' ? undefined
     : block.type === 'programs' ? 'programs'
     : block.type === 'courses' ? 'courses'
+    : (block.type as any) === 'courses2' ? 'courses'
     : block.type === 'about' ? 'about'
     : block.type === 'results' ? 'results'
     : block.type === 'footer' ? 'contacts'
