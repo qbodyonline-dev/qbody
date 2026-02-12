@@ -99,6 +99,7 @@ export default function SlugPage() {
   const [blocks, setBlocks] = useState<PageBlock[]>([])
   const [loading, setLoading] = useState(true)
   const [notFoundPage, setNotFoundPage] = useState(false)
+  const [pageBgColor, setPageBgColor] = useState<string | undefined>(undefined)
 
   useEffect(() => {
     const loadData = async () => {
@@ -109,6 +110,7 @@ export default function SlugPage() {
           const pages = await pagesRes.json()
           const page = (Array.isArray(pages) ? pages : []).find((p: any) => p.slug === slug)
           if (!page) { setNotFoundPage(true); setLoading(false); return }
+          if (page.settings?.bgColor) setPageBgColor(page.settings.bgColor)
         }
 
         // Load blocks
@@ -147,7 +149,7 @@ export default function SlugPage() {
   }
 
   return (
-    <main className="min-h-screen bg-zinc-950">
+    <main className="min-h-screen" style={{ backgroundColor: pageBgColor || '#09090b' }}>
       {blocks.map((block, i) => (
         <DynamicBlock key={block.id} block={block} lang={lang} index={i} />
       ))}

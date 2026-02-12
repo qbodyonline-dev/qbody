@@ -60,7 +60,7 @@ export async function GET(request: Request) {
     const supabase = getPublicSupabase()
     const { data, error } = await supabase
       .from('site_pages')
-      .select('id, slug, title, title_ru, is_homepage, sort_order')
+      .select('id, slug, title, title_ru, is_homepage, sort_order, settings')
       .eq('is_published', true)
       .order('sort_order', { ascending: true })
 
@@ -166,7 +166,7 @@ export async function PATCH(request: Request) {
   try {
     const supabase = getAdminSupabase()
     const body = await request.json()
-    const { id, title, titleRu, is_published, sort_order } = body
+    const { id, title, titleRu, is_published, sort_order, settings } = body
 
     if (!id) {
       return NextResponse.json({ error: 'Page ID is required' }, { status: 400 })
@@ -177,6 +177,7 @@ export async function PATCH(request: Request) {
     if (titleRu !== undefined) updates.title_ru = String(titleRu).trim().slice(0, 200)
     if (is_published !== undefined) updates.is_published = Boolean(is_published)
     if (sort_order !== undefined) updates.sort_order = Number(sort_order)
+    if (settings !== undefined && typeof settings === 'object') updates.settings = settings
 
     const { data, error } = await supabase
       .from('site_pages')

@@ -38,9 +38,13 @@ import { ContactSectionEditor, renderContact2HTML, defaultContactSectionData } f
 import type { ContactSectionData } from './contact'
 
 /* ═══════════ PAGE TYPE ═══════════ */
+interface PageSettings {
+  bgColor?: string
+}
+
 interface SitePage {
   id: string; slug: string; title: string; title_ru: string
-  is_published: boolean; is_homepage: boolean
+  is_published: boolean; is_homepage: boolean; settings?: PageSettings
 }
 
 /* ═══════════ MAIN EDITOR ═══════════ */
@@ -66,6 +70,7 @@ function PageEditorInner() {
   const [blocks, setBlocks] = useState<PageBlock[]>(initBlocks)
   const [active, setActive] = useState('hero')
   const [loading, setLoading] = useState(true)
+  const [pageSettings, setPageSettings] = useState<PageSettings>({})
 
   // Load pages list (admin mode — see all pages including drafts)
   const fetchPages = useCallback(async () => {
@@ -84,12 +89,22 @@ function PageEditorInner() {
 
   useEffect(() => { fetchPages() }, [fetchPages])
 
+  // Load page settings when pages list arrives and we have a slug from URL
+  useEffect(() => {
+    if (pageSlug && pages.length > 0) {
+      const p = pages.find(x => x.slug === pageSlug)
+      if (p?.settings) setPageSettings(p.settings)
+    }
+  }, [pages, pageSlug])
+
   // Select page from URL or default
   const selectPage = useCallback((slug: string) => {
     setPageSlug(slug)
     setLoading(true)
+    const p = pages.find(x => x.slug === slug)
+    setPageSettings(p?.settings || {})
     router.replace(`/dashboard/page-editor?page=${slug}`, { scroll: false })
-  }, [router])
+  }, [router, pages])
 
   const goBackToPages = useCallback(() => {
     setPageSlug(null)
@@ -154,6 +169,21 @@ function PageEditorInner() {
       }
     } catch (err) {
       console.error('Save error:', err)
+    }
+  }
+
+  // Save page-level settings (bgColor etc.)
+  const savePageSettings = async (newSettings: PageSettings) => {
+    setPageSettings(newSettings)
+    const currentPage = pages.find(p => p.slug === pageSlug)
+    if (!currentPage) return
+    try {
+      await fetchWithAuth('/api/pages', {
+        method: 'PATCH',
+        body: JSON.stringify({ id: currentPage.id, settings: newSettings })
+      })
+    } catch (err) {
+      console.error('Save page settings error:', err)
     }
   }
 
@@ -442,7 +472,7 @@ function PageEditorInner() {
 
       {preview ? (
         <Card><CardContent className="p-0"><div className={`mx-auto transition-all ${dw} ${device !== 'desktop' ? 'border-x border-zinc-200' : ''}`}>
-          <div className="bg-zinc-950 overflow-hidden" dangerouslySetInnerHTML={{ __html: ph }} />
+          <div className="overflow-hidden" style={{ backgroundColor: pageSettings.bgColor || '#09090b' }} dangerouslySetInnerHTML={{ __html: ph }} />
         </div></CardContent></Card>
       ) : (
         <div className="grid lg:grid-cols-[280px_1fr] gap-4">
@@ -455,6 +485,23 @@ function PageEditorInner() {
                   <ArrowLeft className="w-3 h-3" />
                   {lang === 'ru' ? 'Все страницы' : 'All pages'}
                 </button>
+                {/* Page background color */}
+                <div className="flex items-center gap-2 mb-2.5 px-1 py-1.5 rounded-lg bg-zinc-50 dark:bg-zinc-800/50">
+                  <Paintbrush className="w-3 h-3 text-zinc-400 flex-shrink-0" />
+                  <span className="text-[10px] text-zinc-500 font-medium flex-1">{lang === 'ru' ? 'Фон страницы' : 'Page BG'}</span>
+                  <div className="flex items-center gap-1">
+                    <input type="color" value={pageSettings.bgColor || '#09090b'}
+                      onChange={e => savePageSettings({ ...pageSettings, bgColor: e.target.value })}
+                      className="w-5 h-5 rounded border-0 cursor-pointer bg-transparent flex-shrink-0" />
+                    <span className="text-[9px] text-zinc-400 font-mono w-[52px]">{pageSettings.bgColor || '#09090b'}</span>
+                    {pageSettings.bgColor && (
+                      <button onClick={() => savePageSettings({ ...pageSettings, bgColor: undefined })}
+                        className="p-0.5 rounded hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-400" title="Reset">
+                        <X className="w-2.5 h-2.5" />
+                      </button>
+                    )}
+                  </div>
+                </div>
                 <div className="flex items-center justify-between mb-2">
                   <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">{lang === 'ru' ? 'Блоки' : 'Blocks'} ({blocks.length})</p>
                   <button onClick={() => { setInsertIdx(-1); setAddModal(true) }} className="p-1 rounded-lg hover:bg-teal-50 dark:hover:bg-teal-900/20 text-teal-500" title="Add"><Plus className="w-4 h-4" /></button>

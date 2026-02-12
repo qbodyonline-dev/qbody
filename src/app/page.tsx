@@ -532,15 +532,17 @@ export default function HomePage() {
   const lang = (locale || 'ru') as 'en' | 'ru'
   const [blocks, setBlocks] = useState<PageBlock[]>([])
   const [settings, setSettings] = useState<{ branding?: { heroImageUrl?: string; logoUrl?: string; primaryColor?: string } }>({})
+  const [pageBgColor, setPageBgColor] = useState<string | undefined>(undefined)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     const loadData = async () => {
       try {
-        // Load page blocks and settings in parallel
-        const [blocksRes, settingsRes] = await Promise.all([
+        // Load page blocks, settings, and page meta in parallel
+        const [blocksRes, settingsRes, pagesRes] = await Promise.all([
           fetch('/api/page-blocks?page=home', { cache: 'no-store' }),
-          fetch('/api/settings', { cache: 'no-store' })
+          fetch('/api/settings', { cache: 'no-store' }),
+          fetch('/api/pages', { cache: 'no-store' })
         ])
         
         if (blocksRes.ok) {
@@ -553,6 +555,12 @@ export default function HomePage() {
         if (settingsRes.ok) {
           const settingsData = await settingsRes.json()
           setSettings(settingsData)
+        }
+
+        if (pagesRes.ok) {
+          const pagesData = await pagesRes.json()
+          const homePage = (Array.isArray(pagesData) ? pagesData : []).find((p: any) => p.is_homepage || p.slug === 'home')
+          if (homePage?.settings?.bgColor) setPageBgColor(homePage.settings.bgColor)
         }
       } catch (err) {
         console.error('Failed to load page data:', err)
@@ -709,7 +717,7 @@ export default function HomePage() {
       {/* Header reads data from Page Editor DB */}
       <Header headerData={headerBlock?.data} lang={lang} />
 
-      <main className="min-h-screen bg-zinc-950 page-enter">
+      <main className="min-h-screen page-enter" style={{ backgroundColor: pageBgColor || '#09090b' }}>
         {/* Render all content blocks dynamically from the database */}
         {processedBlocks.map((block, i) => (
           <DynamicBlock key={block.id} block={block} lang={lang} index={i} />
