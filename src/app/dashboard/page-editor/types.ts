@@ -119,8 +119,8 @@ export interface HeaderData {
   sticky: boolean
   topBar: HeaderTopBar
   // Text styles
-  logoStyle?: import('../shared').TextStyle
-  navStyle?: import('../shared').TextStyle
+  logoStyle?: import('./shared').TextStyle
+  navStyle?: import('./shared').TextStyle
 }
 
 export interface HeroData {
@@ -306,10 +306,10 @@ export interface HeroTemplateData {
   features: string[]
   featuresRu: string[]
   // Text styles
-  titleStyle?: import('../shared').TextStyle
-  subtitleStyle?: import('../shared').TextStyle
-  descriptionStyle?: import('../shared').TextStyle
-  badgeStyle?: import('../shared').TextStyle
+  titleStyle?: import('./shared').TextStyle
+  subtitleStyle?: import('./shared').TextStyle
+  descriptionStyle?: import('./shared').TextStyle
+  badgeStyle?: import('./shared').TextStyle
 }
 
 /* Block type → icon mapping */
