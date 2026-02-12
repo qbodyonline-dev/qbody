@@ -8,6 +8,7 @@ import { toast } from 'sonner'
 import { fetchWithAuthUpload } from '@/lib/api'
 import type { CourseItem2, CourseSectionData, CourseLayout, CourseTitleVariant, CourseBgType } from './types'
 import { COURSE_GRADIENTS, defaultCourseItems2 } from './defaults'
+import { TextStyleEditor } from '../shared'
 import { CourseItemEditor2 } from './item-editor'
 
 /* ═══════════ COURSES SECTION EDITOR ═══════════ */
@@ -228,6 +229,18 @@ export function CoursesSectionEditor({ items, section, onChangeItems, onChangeSe
                 <Input value={section.textColor} onChange={e => onChangeSection({ ...section, textColor: e.target.value })} className="text-xs h-7 flex-1" />
               </div>
             </div>
+          </div>
+        </S>
+
+        {/* ─── Typography ─── */}
+        <S id="typo" title={lang === 'ru' ? '✒️ Типография' : '✒️ Typography'}>
+          <div className="space-y-1.5">
+            <TextStyleEditor label="Title" value={section.titleStyle} onChange={v => onChangeSection({ ...section, titleStyle: v })} defaultColor={section.textColor} />
+            <TextStyleEditor label="Subtitle" value={section.subtitleStyle} onChange={v => onChangeSection({ ...section, subtitleStyle: v })} defaultColor={section.accentColor} />
+            <TextStyleEditor label="Badge" value={section.badgeStyle} onChange={v => onChangeSection({ ...section, badgeStyle: v })} defaultColor={section.accentColor} />
+            <TextStyleEditor label="Card Title" value={section.courseTitleStyle} onChange={v => onChangeSection({ ...section, courseTitleStyle: v })} defaultColor={section.textColor} />
+            <TextStyleEditor label="Card Desc" value={section.courseDescStyle} onChange={v => onChangeSection({ ...section, courseDescStyle: v })} defaultColor={section.textColor} />
+            <TextStyleEditor label="Price" value={section.priceStyle} onChange={v => onChangeSection({ ...section, priceStyle: v })} defaultColor={section.textColor} />
           </div>
         </S>
 

@@ -287,11 +287,25 @@ export function renderHeroTemplateHTML(data: HeroTemplateData, lang: 'en' | 'ru'
   const video = data.bgType === 'video' && data.bgVideo
     ? `<video autoplay muted loop playsinline style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0;"><source src="${data.bgVideo}" type="video/mp4"></video>` : ''
 
+  // TextStyle overrides
+  const ts = data.titleStyle || {}
+  const tSz = ts.size ? `${ts.size}px` : 'clamp(28px,5vw,56px)'
+  const tCl = ts.color || txtColor
+  const ss = data.subtitleStyle || {}
+  const sSz = ss.size ? `${ss.size}px` : 'clamp(24px,4vw,48px)'
+  const sCl = ss.color || accent
+  const ds = data.descriptionStyle || {}
+  const dSz = ds.size ? `${ds.size}px` : 'clamp(15px,2vw,18px)'
+  const dCl = ds.color || 'rgba(255,255,255,0.7)'
+  const bs = data.badgeStyle || {}
+  const bSz = bs.size ? `${bs.size}px` : '14px'
+  const bCl = bs.color || accent
+
   const textBlock = `
-    ${badge ? `<p style="color:${accent};font-weight:600;font-size:14px;letter-spacing:0.05em;margin-bottom:16px;">⭐ ${badge}</p>` : ''}
-    ${title ? `<h1 style="font-size:clamp(28px,5vw,56px);font-weight:800;color:${txtColor};letter-spacing:-0.02em;line-height:1.1;margin-bottom:8px;">${title}</h1>` : ''}
-    ${subtitle ? `<h2 style="font-size:clamp(24px,4vw,48px);font-weight:800;color:${accent};letter-spacing:-0.02em;line-height:1.1;margin-bottom:24px;">${subtitle}</h2>` : ''}
-    ${desc ? `<p style="font-size:clamp(15px,2vw,18px);color:rgba(255,255,255,0.7);max-width:600px;line-height:1.7;margin-bottom:32px;${v === 'centered' ? 'margin-left:auto;margin-right:auto;' : ''}">${desc}</p>` : ''}
+    ${badge ? `<p style="color:${bCl};font-weight:600;font-size:${bSz};letter-spacing:0.05em;margin-bottom:16px;${bs.align ? 'text-align:' + bs.align + ';' : ''}">⭐ ${badge}</p>` : ''}
+    ${title ? `<h1 style="font-size:${tSz};font-weight:800;color:${tCl};letter-spacing:-0.02em;line-height:1.1;margin-bottom:8px;${ts.align ? 'text-align:' + ts.align + ';' : ''}">${title}</h1>` : ''}
+    ${subtitle ? `<h2 style="font-size:${sSz};font-weight:800;color:${sCl};letter-spacing:-0.02em;line-height:1.1;margin-bottom:24px;${ss.align ? 'text-align:' + ss.align + ';' : ''}">${subtitle}</h2>` : ''}
+    ${desc ? `<p style="font-size:${dSz};color:${dCl};max-width:600px;line-height:1.7;margin-bottom:32px;${v === 'centered' ? 'margin-left:auto;margin-right:auto;' : ''}${ds.align ? 'text-align:' + ds.align + ';' : ''}">${desc}</p>` : ''}
     ${buttonsHtml ? `<div style="display:flex;gap:12px;flex-wrap:wrap;${v === 'centered' ? 'justify-content:center;' : ''}">${buttonsHtml}</div>` : ''}
     ${featHtml}`
 

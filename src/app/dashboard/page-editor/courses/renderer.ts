@@ -17,22 +17,34 @@ function sectionHeader(s: CourseSectionData, lang: 'en' | 'ru', id: string): str
   const txt = s.textColor || '#fafafa'
   const v = s.titleVariant || 'badge'
 
-  let html = '<div style="margin-bottom:clamp(32px,5vw,56px);">'
+  // TextStyle overrides
+  const ts = s.titleStyle || {}
+  const tSz = ts.size ? `${ts.size}px` : 'clamp(28px,5vw,44px)'
+  const tCl = ts.color || txt
+  const tAl = ts.align || ''
+  const ss = s.subtitleStyle || {}
+  const sSz = ss.size ? `${ss.size}px` : 'clamp(16px,2.5vw,20px)'
+  const sCl = ss.color || accent
+  const bs = s.badgeStyle || {}
+  const bSz = bs.size ? `${bs.size}px` : '12px'
+  const bCl = bs.color || accent
+
+  let html = `<div style="margin-bottom:clamp(32px,5vw,56px);${tAl ? 'text-align:' + tAl + ';' : ''}">`
 
   if (v === 'badge' && badge) {
-    html += `<p style="color:${accent};font-weight:700;font-size:12px;letter-spacing:0.2em;text-transform:uppercase;margin-bottom:16px;">${badge}</p>`
+    html += `<p style="color:${bCl};font-weight:700;font-size:${bSz};letter-spacing:0.2em;text-transform:uppercase;margin-bottom:16px;${bs.align ? 'text-align:' + bs.align + ';' : ''}">${badge}</p>`
   }
   if (v === 'accent-line') {
     html += `<div style="width:48px;height:4px;background:${accent};border-radius:2px;margin-bottom:16px;"></div>`
   }
 
   if (v === 'gradient-text') {
-    html += `<h2 class="${id}-title" style="font-size:clamp(28px,5vw,44px);font-weight:800;background:linear-gradient(135deg,${txt},${accent});-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:12px;letter-spacing:-0.03em;line-height:1.1;">${title}</h2>`
+    html += `<h2 class="${id}-title" style="font-size:${tSz};font-weight:800;background:linear-gradient(135deg,${tCl},${accent});-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:12px;letter-spacing:-0.03em;line-height:1.1;">${title}</h2>`
   } else {
-    html += `<h2 class="${id}-title" style="font-size:clamp(28px,5vw,44px);font-weight:800;color:${txt};margin-bottom:12px;letter-spacing:-0.03em;line-height:1.1;">${title}</h2>`
+    html += `<h2 class="${id}-title" style="font-size:${tSz};font-weight:800;color:${tCl};margin-bottom:12px;letter-spacing:-0.03em;line-height:1.1;">${title}</h2>`
   }
 
-  if (sub) html += `<p style="font-size:clamp(16px,2.5vw,20px);font-weight:600;color:${accent};margin-bottom:8px;">${sub}</p>`
+  if (sub) html += `<p style="font-size:${sSz};font-weight:600;color:${sCl};margin-bottom:8px;${ss.align ? 'text-align:' + ss.align + ';' : ''}">${sub}</p>`
   if (desc) html += `<p style="color:${txt}99;font-size:clamp(14px,2vw,17px);font-style:italic;max-width:560px;">${desc}</p>`
 
   html += '</div>'
@@ -54,13 +66,24 @@ function courseCard(item: CourseItem2, s: CourseSectionData, lang: 'en' | 'ru', 
   const btn2Text = lang === 'ru' ? btn2.textRu : btn2.text
   const cur = item.currency || '$'
 
+  // TextStyle for card elements
+  const cts = s.courseTitleStyle || {}
+  const ctSz = cts.size ? `${cts.size}px` : '22px'
+  const ctCl = cts.color || txt
+  const cds = s.courseDescStyle || {}
+  const cdSz = cds.size ? `${cds.size}px` : '14px'
+  const cdCl = cds.color || `${txt}80`
+  const ps = s.priceStyle || {}
+  const pSz = ps.size ? `${ps.size}px` : '28px'
+  const pCl = ps.color || txt
+
   const featuresHtml = features.map(f =>
     `<div style="display:flex;align-items:center;gap:8px;padding:4px 0;"><svg style="width:14px;height:14px;color:${accent};flex-shrink:0;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg><span style="font-size:14px;color:${txt}bb;">${f}</span></div>`
   ).join('')
 
   const priceHtml = item.oldPrice
-    ? `<span style="font-size:28px;font-weight:800;color:${txt};">${cur}${item.price}</span><span style="font-size:14px;color:${txt}50;text-decoration:line-through;margin-left:6px;">${cur}${item.oldPrice}</span>`
-    : `<span style="font-size:28px;font-weight:800;color:${txt};">${cur}${item.price}</span>`
+    ? `<span style="font-size:${pSz};font-weight:800;color:${pCl};">${cur}${item.price}</span><span style="font-size:14px;color:${txt}50;text-decoration:line-through;margin-left:6px;">${cur}${item.oldPrice}</span>`
+    : `<span style="font-size:${pSz};font-weight:800;color:${pCl};">${cur}${item.price}</span>`
 
   const badgeHtml = (item.badge || item.badgeRu)
     ? `<span style="position:absolute;top:16px;right:16px;background:${accent};color:#fff;padding:4px 12px;border-radius:20px;font-size:11px;font-weight:600;">${lang === 'ru' ? (item.badgeRu || item.badge) : item.badge}</span>`
@@ -97,8 +120,8 @@ function courseCard(item: CourseItem2, s: CourseSectionData, lang: 'en' | 'ru', 
       ${sideVisual}
       <div style="padding:24px 28px;flex:1;display:flex;flex-direction:column;">
         ${metaHtml}
-        <h3 style="font-size:22px;font-weight:700;color:${txt};margin-bottom:8px;line-height:1.2;">${t}</h3>
-        <p style="font-size:14px;color:${txt}80;margin-bottom:16px;line-height:1.5;">${d}</p>
+        <h3 style="font-size:${ctSz};font-weight:700;color:${ctCl};margin-bottom:8px;line-height:1.2;">${t}</h3>
+        <p style="font-size:${cdSz};color:${cdCl};margin-bottom:16px;line-height:1.5;">${d}</p>
         <div style="margin-bottom:16px;">${featuresHtml}</div>
         <div style="margin-top:auto;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
           <div>${priceHtml}</div>
@@ -113,8 +136,8 @@ function courseCard(item: CourseItem2, s: CourseSectionData, lang: 'en' | 'ru', 
     ${topVisual}
     <div style="padding:24px 24px 28px;flex:1;display:flex;flex-direction:column;">
       ${metaHtml}
-      <h3 style="font-size:22px;font-weight:700;color:${txt};margin-bottom:8px;line-height:1.2;">${t}</h3>
-      <p style="font-size:14px;color:${txt}80;margin-bottom:16px;line-height:1.5;">${d}</p>
+      <h3 style="font-size:${ctSz};font-weight:700;color:${ctCl};margin-bottom:8px;line-height:1.2;">${t}</h3>
+      <p style="font-size:${cdSz};color:${cdCl};margin-bottom:16px;line-height:1.5;">${d}</p>
       <div style="margin-bottom:20px;flex-grow:1;">${featuresHtml}</div>
       <div style="border-top:1px solid ${border};padding-top:16px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
         <div>${priceHtml}</div>

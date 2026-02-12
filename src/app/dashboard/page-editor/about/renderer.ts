@@ -24,6 +24,16 @@ function renderBlock(b: AboutContentBlock, s: AboutSectionData, lang: 'en' | 'ru
   const accent = s.accentColor || '#2dd4bf'
   const cardBg = s.cardBg || '#171717'
 
+  // TextStyle for block titles and text
+  const bts = s.blockTitleStyle || {}
+  const btSz = bts.size ? `font-size:${bts.size}px;` : 'font-size:20px;'
+  const btCl = bts.color // resolved per-block below
+  const btAl = bts.align ? `text-align:${bts.align};` : ''
+  const bxs = s.blockTextStyle || {}
+  const bxSz = bxs.size ? `font-size:${bxs.size}px;` : ''
+  const bxCl = bxs.color
+  const bxAl = bxs.align ? `text-align:${bxs.align};` : ''
+
   const bgMap: Record<string, string> = {
     dark: `background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);`,
     light: `background:${cardBg};border:1px solid rgba(255,255,255,0.06);`,
@@ -39,13 +49,16 @@ function renderBlock(b: AboutContentBlock, s: AboutSectionData, lang: 'en' | 'ru
     ? `<span style="display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;border-radius:12px;background:${isAccent ? 'rgba(0,0,0,0.15)' : `rgba(45,212,191,0.15)`};color:${isAccent ? '#0a0a0a' : accent};font-weight:700;font-size:14px;flex-shrink:0;">${b.icon}</span>`
     : `<span style="font-size:20px;">${b.icon}</span>`
 
-  const titleHtml = t ? `<h4 style="font-size:20px;font-weight:800;letter-spacing:-0.02em;margin-bottom:20px;display:flex;align-items:center;gap:12px;color:${tc};">${iconHtml} ${t}</h4>` : ''
+  const titleColor = btCl || tc
+  const titleHtml = t ? `<h4 style="${btSz}font-weight:800;letter-spacing:-0.02em;margin-bottom:20px;display:flex;align-items:center;gap:12px;color:${titleColor};${btAl}">${iconHtml} ${t}</h4>` : ''
 
   let body = ''
 
   if (b.type === 'text') {
     const text = lang === 'ru' ? b.textRu : b.text
-    body = `<p style="font-size:16px;line-height:1.7;color:${tc}${isAccent ? '' : 'cc'};">${text}</p>`
+    const txSz = bxSz || 'font-size:16px;'
+    const txCl = bxCl || (tc + (isAccent ? '' : 'cc'))
+    body = `<p style="${txSz}line-height:1.7;color:${txCl};${bxAl}">${text}</p>`
   } else if (b.type === 'list') {
     const items = lang === 'ru' ? b.itemsRu : b.items
     body = `<div style="display:flex;flex-direction:column;gap:10px;">${items.map(it =>
@@ -97,20 +110,33 @@ function nameHTML(s: AboutSectionData, lang: 'en' | 'ru', variant: string): stri
   const parts = s.name.split(' ')
   const nameH = parts.length >= 2 ? `${parts[0]}<br/>${parts.slice(1).join(' ')}` : s.name
 
+  const ls = s.labelStyle || {}
+  const lSz = ls.size ? `font-size:${ls.size}px;` : 'font-size:11px;'
+  const lCl = ls.color || accent
+
   let labelHtml = ''
-  if (variant === 'badge' && label) labelHtml = `<span style="font-size:11px;font-weight:700;color:${accent};text-transform:uppercase;letter-spacing:0.2em;">${label}</span>`
+  if (variant === 'badge' && label) labelHtml = `<span style="${lSz}font-weight:700;color:${lCl};text-transform:uppercase;letter-spacing:0.2em;">${label}</span>`
   if (variant === 'accent-line') labelHtml = `<div style="width:48px;height:4px;background:${accent};border-radius:2px;margin-bottom:4px;"></div>`
 
   const tagsH = tags.length ? `<div class="ab-tags" style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;">${tags.map(tg => `<span style="padding:4px 12px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:8px;font-size:10px;font-weight:700;letter-spacing:0.12em;color:${txt}80;">${tg}</span>`).join('')}</div>` : ''
 
-  const nameStyle = variant === 'gradient-text'
-    ? `font-size:clamp(28px,4vw,36px);font-weight:800;letter-spacing:-0.04em;line-height:1.1;background:linear-gradient(135deg,${txt},${accent});-webkit-background-clip:text;-webkit-text-fill-color:transparent;`
-    : `font-size:clamp(28px,4vw,36px);font-weight:800;letter-spacing:-0.04em;line-height:1.1;color:${txt};`
+  const ns = s.nameStyle || {}
+  const nSz = ns.size ? `font-size:${ns.size}px;` : 'font-size:clamp(28px,4vw,36px);'
+  const nCl = ns.color || txt
+  const nAl = ns.align ? `text-align:${ns.align};` : ''
+  const nameStyleCSS = variant === 'gradient-text'
+    ? `${nSz}font-weight:800;letter-spacing:-0.04em;line-height:1.1;background:linear-gradient(135deg,${nCl},${accent});-webkit-background-clip:text;-webkit-text-fill-color:transparent;${nAl}`
+    : `${nSz}font-weight:800;letter-spacing:-0.04em;line-height:1.1;color:${nCl};${nAl}`
+
+  const ts = s.taglineStyle || {}
+  const tSz = ts.size ? `font-size:${ts.size}px;` : 'font-size:15px;'
+  const tCl = ts.color || accent
+  const tAl = ts.align ? `text-align:${ts.align};` : ''
 
   return `<div class="ab-name-block" style="margin-top:24px;">
     ${labelHtml}
-    <h2 style="${nameStyle}margin-top:8px;">${nameH}</h2>
-    ${tagline ? `<p style="font-size:15px;color:${accent};font-weight:500;margin-top:6px;">${tagline}</p>` : ''}
+    <h2 style="${nameStyleCSS}margin-top:8px;">${nameH}</h2>
+    ${tagline ? `<p style="${tSz}color:${tCl};font-weight:500;margin-top:6px;${tAl}">${tagline}</p>` : ''}
     ${tagsH}
   </div>`
 }

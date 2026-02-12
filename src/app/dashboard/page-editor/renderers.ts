@@ -227,9 +227,17 @@ export function renderHeaderHTML(data: HeaderData, lang: 'en' | 'ru'): string {
   const txtCol = data.textColor || '#ffffff'
   const navCol = `${txtCol}cc` // slightly transparent
 
+  // TextStyle overrides
+  const ls = data.logoStyle || {}
+  const lSz = ls.size ? `${ls.size}px` : '16px'
+  const lCl = ls.color || txtCol
+  const ns = data.navStyle || {}
+  const nSz = ns.size ? `${ns.size}px` : '14px'
+  const nCl = ns.color || navCol
+
   const navLinksHtml = data.navLinks.map(link => {
     const label = lang === 'ru' ? link.labelRu : link.label
-    return `<a href="${link.href}" class="${id}-nav" style="color:${navCol};text-decoration:none;font-size:14px;font-weight:500;padding:8px 4px;transition:color 0.2s;">${label}</a>`
+    return `<a href="${link.href}" class="${id}-nav" style="color:${nCl};text-decoration:none;font-size:${nSz};font-weight:500;padding:8px 4px;transition:color 0.2s;">${label}</a>`
   }).join('')
 
   const loginText = lang === 'ru' ? data.loginTextRu : data.loginText
@@ -242,7 +250,7 @@ export function renderHeaderHTML(data: HeaderData, lang: 'en' | 'ru'): string {
 
   const logoBlock = `<div class="${id}-logo" style="display:flex;align-items:center;gap:10px;flex-shrink:0;">
     ${logoHtml}
-    <div><span style="font-weight:600;font-size:16px;color:${txtCol};display:block;line-height:1.2;">${data.logoText}</span>${sub ? `<span style="font-size:12px;color:${accent};display:block;line-height:1.2;">${sub}</span>` : ''}</div>
+    <div><span style="font-weight:600;font-size:${lSz};color:${lCl};display:block;line-height:1.2;">${data.logoText}</span>${sub ? `<span style="font-size:12px;color:${accent};display:block;line-height:1.2;">${sub}</span>` : ''}</div>
   </div>`
 
   const btnsHtml = `<div class="${id}-btns" style="display:flex;gap:8px;align-items:center;">

@@ -1,4 +1,5 @@
 /* ═══════════ CONTACT PRO TYPES ═══════════ */
+import type { TextStyle } from '../shared'
 
 export type ContactLayout = 'classic' | 'split' | 'minimal' | 'infocards'
 export type ContactBgType = 'solid' | 'gradient' | 'image'
@@ -68,4 +69,10 @@ export interface ContactSectionData {
   cardBg: string
   inputBg: string
   innerMaxWidth: number
+  // Text styles
+  titleStyle?: TextStyle
+  subtitleStyle?: TextStyle
+  badgeStyle?: TextStyle
+  labelStyle?: TextStyle
+  btnStyle?: TextStyle
 }

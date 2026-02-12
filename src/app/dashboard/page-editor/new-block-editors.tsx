@@ -15,6 +15,8 @@ import type {
 } from './types'
 import { defaultSliderSlide } from './new-block-renderers'
 import { fetchWithAuthUpload } from '@/lib/api'
+import { TextStyleEditor } from './shared'
+import type { TextStyle } from './shared'
 
 /* ═══════════ SHARED UPLOAD HELPER ═══════════ */
 async function uploadFile(file: File, folder: string): Promise<string> {
@@ -591,6 +593,15 @@ export function HeroTemplateEditor({ data, onChange, lang }: HeroTemplateEditorP
             <label className="text-xs text-zinc-500 block mb-1">{ru ? 'Мин. высота' : 'Min Height'}</label>
             <Input value={data.minHeight} onChange={e => upd({ minHeight: e.target.value })} className="text-xs h-7" placeholder="100vh" />
           </div>
+        </div>
+
+        {/* Typography */}
+        <div className="p-3 bg-zinc-50 dark:bg-zinc-800 rounded-lg space-y-1.5">
+          <label className="text-xs font-medium text-zinc-500">{ru ? '✒️ Типография' : '✒️ Typography'}</label>
+          <TextStyleEditor label="Title" value={data.titleStyle} onChange={v => upd({ titleStyle: v })} defaultColor={data.textColor || '#ffffff'} />
+          <TextStyleEditor label="Subtitle" value={data.subtitleStyle} onChange={v => upd({ subtitleStyle: v })} defaultColor={data.accentColor || '#2dd4bf'} />
+          <TextStyleEditor label="Desc" value={data.descriptionStyle} onChange={v => upd({ descriptionStyle: v })} defaultColor={data.textColor || '#ffffff'} />
+          <TextStyleEditor label="Badge" value={data.badgeStyle} onChange={v => upd({ badgeStyle: v })} defaultColor={data.accentColor || '#2dd4bf'} />
         </div>
 
         {/* Animation */}

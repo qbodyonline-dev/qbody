@@ -27,19 +27,28 @@ function sectionHeader(s: ContactSectionData, lang: 'en' | 'ru', align: string =
   const accent = s.accentColor || '#2dd4bf'
   const txt = s.textColor || '#fafafa'
   const v = s.titleVariant
+  const bts = s.badgeStyle || {}, tts = s.titleStyle || {}, sts = s.subtitleStyle || {}
+  const bSz = bts.size ? `font-size:${bts.size}px;` : 'font-size:13px;'
+  const bCl = bts.color ? `color:${bts.color};` : `color:${accent};`
+  const bAl = bts.align || align
 
   let badgeH = ''
-  if (badge && v === 'badge') badgeH = `<div style="display:inline-block;padding:6px 16px;border-radius:50px;background:${accent}22;color:${accent};font-size:13px;font-weight:700;margin-bottom:12px;">${badge}</div>`
+  if (badge && v === 'badge') badgeH = `<div style="text-align:${bAl};"><div style="display:inline-block;padding:6px 16px;border-radius:50px;background:${accent}22;${bSz}font-weight:700;margin-bottom:12px;${bCl}">${badge}</div></div>`
   if (v === 'accent-line') badgeH = `<div style="width:48px;height:4px;background:${accent};border-radius:2px;margin-bottom:12px;${align === 'center' ? 'margin-left:auto;margin-right:auto;' : ''}"></div>`
 
-  const ts = v === 'gradient-text'
-    ? `background:linear-gradient(135deg,${txt},${accent});-webkit-background-clip:text;-webkit-text-fill-color:transparent;`
-    : `color:${txt};`
+  const tA = tts.align || align, sA = sts.align || align
+  const tC = tts.color || txt, sC = sts.color || txt
+  const tSz = tts.size ? `font-size:${tts.size}px;` : 'font-size:clamp(26px,4vw,40px);'
+  const sSz = sts.size ? `font-size:${sts.size}px;` : 'font-size:clamp(14px,2vw,16px);'
+
+  const titleCss = v === 'gradient-text'
+    ? `background:linear-gradient(135deg,${tC},${accent});-webkit-background-clip:text;-webkit-text-fill-color:transparent;`
+    : `color:${tC};`
 
   return `<div style="text-align:${align};margin-bottom:clamp(24px,4vw,40px);">
     ${badgeH}
-    ${title ? `<h2 style="font-size:clamp(26px,4vw,40px);font-weight:800;letter-spacing:-0.03em;line-height:1.15;${ts}">${title}</h2>` : ''}
-    ${sub ? `<p style="font-size:clamp(14px,2vw,16px);color:${txt};opacity:0.6;margin-top:10px;max-width:500px;${align === 'center' ? 'margin-left:auto;margin-right:auto;' : ''}">${sub}</p>` : ''}
+    ${title ? `<h2 style="${tSz}font-weight:800;letter-spacing:-0.03em;line-height:1.15;${titleCss}text-align:${tA};">${title}</h2>` : ''}
+    ${sub ? `<p style="${sSz}color:${sC};opacity:0.6;margin-top:10px;max-width:500px;text-align:${sA};${sA === 'center' ? 'margin-left:auto;margin-right:auto;' : ''}">${sub}</p>` : ''}
   </div>`
 }
 
@@ -63,8 +72,13 @@ function fieldHTML(f: ContactField, s: ContactSectionData, lang: 'en' | 'ru'): s
     input = `<input type="${f.type === 'phone' ? 'tel' : f.type}" placeholder="${ph}" style="${base}" ${f.required ? 'required' : ''} />`
   }
 
+  const lts = s.labelStyle || {}
+  const lSz = lts.size ? `font-size:${lts.size}px;` : 'font-size:13px;'
+  const lCl = lts.color ? `color:${lts.color};` : `color:${txt};`
+  const lAl = lts.align ? `text-align:${lts.align};` : ''
+
   return `<div style="${f.type === 'textarea' ? '' : ''}">
-    <label style="display:block;font-size:13px;font-weight:600;color:${txt};margin-bottom:6px;">${lbl}${req}</label>
+    <label style="display:block;${lSz}font-weight:600;${lCl}margin-bottom:6px;${lAl}">${lbl}${req}</label>
     ${input}
   </div>`
 }
@@ -76,7 +90,7 @@ function formHTML(s: ContactSectionData, lang: 'en' | 'ru', id: string): string 
 
   return `<form class="ct-form" onsubmit="event.preventDefault();var b=this.querySelector('.ct-btn');var m=this.closest('[id]').querySelector('.ct-success');b.disabled=true;b.textContent='...';setTimeout(function(){b.disabled=false;b.textContent='${btnT}';if(m){m.style.display='block';setTimeout(function(){m.style.display='none'},4000)}},800)" style="display:flex;flex-direction:column;gap:16px;">
     ${fields}
-    <button type="submit" class="ct-btn" style="width:100%;padding:16px;border:none;border-radius:14px;background:${accent};color:#fff;font-size:15px;font-weight:700;cursor:pointer;transition:opacity 0.2s;font-family:inherit;">${btnT}</button>
+    <button type="submit" class="ct-btn" style="width:100%;padding:16px;border:none;border-radius:14px;background:${accent};color:${(s.btnStyle||{}).color||'#fff'};font-size:${(s.btnStyle||{}).size||15}px;font-weight:700;cursor:pointer;transition:opacity 0.2s;font-family:inherit;${(s.btnStyle||{}).align?'text-align:'+(s.btnStyle||{}).align+';':''}">${btnT}</button>
     <div class="ct-success" style="display:none;padding:12px 16px;border-radius:12px;background:${accent}22;color:${accent};font-size:14px;font-weight:500;text-align:center;">${lang === 'ru' ? s.successMsgRu : s.successMsg}</div>
   </form>`
 }

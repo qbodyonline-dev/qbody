@@ -1,4 +1,5 @@
 /* ═══════════ CTA PRO TYPES ═══════════ */
+import type { TextStyle } from '../shared'
 
 export type CtaLayout = 'banner' | 'split' | 'minimal' | 'fullwidth'
 export type CtaBgType = 'solid' | 'gradient' | 'image'
@@ -50,6 +51,11 @@ export interface CtaSectionData {
   // Colors
   textColor: string
   accentColor: string
+  // Text styles
+  titleStyle?: TextStyle
+  subtitleStyle?: TextStyle
+  descriptionStyle?: TextStyle
+  badgeStyle?: TextStyle
   // Spacing
   borderRadius: number         // px
   paddingY: number             // px

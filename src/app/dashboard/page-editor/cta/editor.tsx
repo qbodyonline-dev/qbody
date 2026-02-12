@@ -7,6 +7,7 @@ import { toast } from 'sonner'
 import { fetchWithAuthUpload } from '@/lib/api'
 import { CTA_GRADIENTS } from './defaults'
 import type { CtaSectionData, CtaLayout, CtaAnimation, CtaBgType, CtaBtnStyle, CtaButton, CtaFeature } from './types'
+import { TextStyleEditor } from '../shared'
 
 const LAYOUTS: { value: CtaLayout; label: string; desc: string }[] = [
   { value: 'banner', label: '🎯 Banner', desc: 'Centered' },
@@ -173,18 +174,22 @@ export function CtaSectionEditor({ section: s, onChangeSection, lang }: Props) {
           <Input value={s.badge} onChange={e => upd('badge', e.target.value)} placeholder="Badge EN" className="text-xs h-7" />
           <Input value={s.badgeRu} onChange={e => upd('badgeRu', e.target.value)} placeholder="Badge RU" className="text-xs h-7" />
         </div>
+        <TextStyleEditor label="Badge" value={s.badgeStyle} onChange={v => upd('badgeStyle', v)} defaultColor={s.textColor} />
         <div className="grid grid-cols-2 gap-2">
           <Input value={s.title} onChange={e => upd('title', e.target.value)} placeholder="Title EN" className="text-xs h-7" />
           <Input value={s.titleRu} onChange={e => upd('titleRu', e.target.value)} placeholder="Title RU" className="text-xs h-7" />
         </div>
+        <TextStyleEditor label="Title" value={s.titleStyle} onChange={v => upd('titleStyle', v)} defaultColor={s.textColor} />
         <div className="grid grid-cols-2 gap-2">
           <Input value={s.subtitle} onChange={e => upd('subtitle', e.target.value)} placeholder="Subtitle EN" className="text-xs h-7" />
           <Input value={s.subtitleRu} onChange={e => upd('subtitleRu', e.target.value)} placeholder="Subtitle RU" className="text-xs h-7" />
         </div>
+        <TextStyleEditor label="Subtitle" value={s.subtitleStyle} onChange={v => upd('subtitleStyle', v)} defaultColor={s.textColor} />
         <div className="grid grid-cols-2 gap-2">
           <textarea value={s.description} onChange={e => upd('description', e.target.value)} placeholder="Description EN" className="w-full p-2 text-xs border border-zinc-200 dark:border-zinc-700 dark:bg-zinc-800 rounded-lg h-12 resize-none" />
           <textarea value={s.descriptionRu} onChange={e => upd('descriptionRu', e.target.value)} placeholder="Description RU" className="w-full p-2 text-xs border border-zinc-200 dark:border-zinc-700 dark:bg-zinc-800 rounded-lg h-12 resize-none" />
         </div>
+        <TextStyleEditor label="Desc" value={s.descriptionStyle} onChange={v => upd('descriptionStyle', v)} defaultColor={s.textColor} />
       </Acc>
 
       {/* Buttons */}

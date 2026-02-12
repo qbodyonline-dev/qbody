@@ -1,5 +1,7 @@
 /* ═══════════ COURSES BLOCK TYPES ═══════════ */
 
+import type { TextStyle } from '../shared'
+
 export type CourseLayout = 'grid' | 'list' | 'slider'
 export type CourseTitleVariant = 'simple' | 'badge' | 'accent-line' | 'gradient-text'
 export type CourseBgType = 'solid' | 'gradient' | 'image'
@@ -63,4 +65,11 @@ export interface CourseSectionData {
   // Slider settings
   autoplay: boolean
   slidesPerView: number
+  // Text styles
+  titleStyle?: TextStyle
+  subtitleStyle?: TextStyle
+  badgeStyle?: TextStyle
+  courseTitleStyle?: TextStyle
+  courseDescStyle?: TextStyle
+  priceStyle?: TextStyle
 }

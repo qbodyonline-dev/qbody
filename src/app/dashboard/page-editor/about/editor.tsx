@@ -7,6 +7,7 @@ import { toast } from 'sonner'
 import { fetchWithAuthUpload } from '@/lib/api'
 import { AboutBlockEditor } from './item-editor'
 import type { AboutSectionData, AboutContentBlock, AboutLayout, AboutAnimation, AboutTitleVariant, AboutBgType } from './types'
+import { TextStyleEditor } from '../shared'
 
 /* ═══════════ SECTION EDITOR ═══════════ */
 interface Props {
@@ -264,6 +265,15 @@ export function AboutSectionEditor({ section: s, onChangeSection, lang }: Props)
             </div>
           ))}
         </div>
+      </Acc>
+
+      {/* Typography */}
+      <Acc k="typo" label="🔤 Typography">
+        <TextStyleEditor label="Name" value={s.nameStyle} onChange={v => upd('nameStyle', v)} defaultColor={s.textColor} />
+        <TextStyleEditor label="Tagline" value={s.taglineStyle} onChange={v => upd('taglineStyle', v)} defaultColor={s.accentColor} />
+        <TextStyleEditor label="Label" value={s.labelStyle} onChange={v => upd('labelStyle', v)} defaultColor={s.accentColor} />
+        <TextStyleEditor label="Block Title" value={s.blockTitleStyle} onChange={v => upd('blockTitleStyle', v)} defaultColor={s.textColor} />
+        <TextStyleEditor label="Block Text" value={s.blockTextStyle} onChange={v => upd('blockTextStyle', v)} defaultColor={s.textColor} />
       </Acc>
 
       {/* Content Blocks */}

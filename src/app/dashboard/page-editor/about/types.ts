@@ -1,4 +1,5 @@
 /* ═══════════ ABOUT2 BLOCK TYPES ═══════════ */
+import type { TextStyle } from '../shared'
 
 export type AboutLayout = 'classic' | 'centered' | 'split'
 export type AboutTitleVariant = 'simple' | 'badge' | 'accent-line' | 'gradient-text'
@@ -54,4 +55,10 @@ export interface AboutSectionData {
   cardBg: string
   // Content blocks
   blocks: AboutContentBlock[]
+  // Text styles
+  nameStyle?: TextStyle
+  taglineStyle?: TextStyle
+  labelStyle?: TextStyle
+  blockTitleStyle?: TextStyle
+  blockTextStyle?: TextStyle
 }

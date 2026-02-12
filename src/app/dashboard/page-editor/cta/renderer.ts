@@ -49,7 +49,11 @@ function animCSS(id: string, anim: string): string {
 function badgeHTML(s: CtaSectionData, lang: 'en' | 'ru'): string {
   const t = lang === 'ru' ? s.badgeRu : s.badge
   if (!t) return ''
-  return `<div style="display:inline-block;padding:6px 16px;border-radius:50px;background:rgba(255,255,255,0.15);backdrop-filter:blur(8px);font-size:13px;font-weight:600;margin-bottom:16px;">${t}</div>`
+  const ts = s.badgeStyle || {}
+  const sz = ts.size ? `font-size:${ts.size}px;` : 'font-size:13px;'
+  const cl = ts.color ? `color:${ts.color};` : ''
+  const al = ts.align ? `text-align:${ts.align};` : ''
+  return `<div style="${al}"><div style="display:inline-block;padding:6px 16px;border-radius:50px;background:rgba(255,255,255,0.15);backdrop-filter:blur(8px);${sz}font-weight:600;margin-bottom:16px;${cl}">${t}</div></div>`
 }
 
 function titleBlock(s: CtaSectionData, lang: 'en' | 'ru', align: string = 'center'): string {
@@ -57,11 +61,19 @@ function titleBlock(s: CtaSectionData, lang: 'en' | 'ru', align: string = 'cente
   const sub = lang === 'ru' ? s.subtitleRu : s.subtitle
   const desc = lang === 'ru' ? s.descriptionRu : s.description
   const txt = s.textColor || '#fff'
+  const tts = s.titleStyle || {}
+  const sts = s.subtitleStyle || {}
+  const dts = s.descriptionStyle || {}
+  const tA = tts.align || align, sA = sts.align || align, dA = dts.align || align
+  const tC = tts.color || txt, sC = sts.color || txt, dC = dts.color || txt
+  const tSz = tts.size ? `font-size:${tts.size}px;` : 'font-size:clamp(26px,4vw,42px);'
+  const sSz = sts.size ? `font-size:${sts.size}px;` : 'font-size:clamp(15px,2vw,18px);'
+  const dSz = dts.size ? `font-size:${dts.size}px;` : 'font-size:14px;'
   return `
     ${badgeHTML(s, lang)}
-    ${title ? `<h2 style="font-size:clamp(26px,4vw,42px);font-weight:800;letter-spacing:-0.03em;line-height:1.15;color:${txt};margin-bottom:12px;text-align:${align};">${title}</h2>` : ''}
-    ${sub ? `<p style="font-size:clamp(15px,2vw,18px);line-height:1.6;color:${txt};opacity:0.85;max-width:600px;${align === 'center' ? 'margin:0 auto 24px;' : 'margin-bottom:24px;'}text-align:${align};">${sub}</p>` : ''}
-    ${desc ? `<p style="font-size:14px;line-height:1.6;color:${txt};opacity:0.7;max-width:500px;${align === 'center' ? 'margin:0 auto 20px;' : 'margin-bottom:20px;'}text-align:${align};">${desc}</p>` : ''}`
+    ${title ? `<h2 style="${tSz}font-weight:800;letter-spacing:-0.03em;line-height:1.15;color:${tC};margin-bottom:12px;text-align:${tA};">${title}</h2>` : ''}
+    ${sub ? `<p style="${sSz}line-height:1.6;color:${sC};opacity:0.85;max-width:600px;${sA === 'center' ? 'margin:0 auto 24px;' : 'margin-bottom:24px;'}text-align:${sA};">${sub}</p>` : ''}
+    ${desc ? `<p style="${dSz}line-height:1.6;color:${dC};opacity:0.7;max-width:500px;${dA === 'center' ? 'margin:0 auto 20px;' : 'margin-bottom:20px;'}text-align:${dA};">${desc}</p>` : ''}`
 }
 
 function buttonsHTML(s: CtaSectionData, lang: 'en' | 'ru', justify: string = 'center'): string {
@@ -98,12 +110,20 @@ function renderSplit(s: CtaSectionData, lang: 'en' | 'ru', id: string): string {
 /* ─── MINIMAL ─── */
 function renderMinimal(s: CtaSectionData, lang: 'en' | 'ru', id: string): string {
   const accent = s.accentColor || '#2dd4bf'
+  const txt = s.textColor || '#fff'
+  const tts = s.titleStyle || {}
+  const sts = s.subtitleStyle || {}
+  const tC = tts.color || txt, sC = sts.color || txt
+  const tSz = tts.size ? `font-size:${tts.size}px;` : 'font-size:clamp(20px,3vw,28px);'
+  const sSz = sts.size ? `font-size:${sts.size}px;` : 'font-size:15px;'
+  const tA = tts.align ? `text-align:${tts.align};` : ''
+  const sA = sts.align ? `text-align:${sts.align};` : ''
   return `<div class="cta-anim" style="max-width:${Math.min(s.innerMaxWidth, 800)}px;margin:0 auto;padding:${s.paddingY}px 24px;">
     <div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:24px;padding:clamp(28px,4vw,48px);border-radius:${s.borderRadius}px;border:2px solid ${accent}44;background:rgba(255,255,255,0.03);">
       <div style="flex:1;min-width:240px;">
         ${badgeHTML(s, lang)}
-        <h2 style="font-size:clamp(20px,3vw,28px);font-weight:800;letter-spacing:-0.02em;color:${s.textColor || '#fff'};margin-bottom:8px;">${lang === 'ru' ? s.titleRu : s.title}</h2>
-        ${s.subtitle || s.subtitleRu ? `<p style="font-size:15px;color:${s.textColor || '#fff'};opacity:0.7;">${lang === 'ru' ? s.subtitleRu : s.subtitle}</p>` : ''}
+        <h2 style="${tSz}font-weight:800;letter-spacing:-0.02em;color:${tC};margin-bottom:8px;${tA}">${lang === 'ru' ? s.titleRu : s.title}</h2>
+        ${s.subtitle || s.subtitleRu ? `<p style="${sSz}color:${sC};opacity:0.7;${sA}">${lang === 'ru' ? s.subtitleRu : s.subtitle}</p>` : ''}
       </div>
       <div style="display:flex;gap:12px;flex-wrap:wrap;">
         ${btnHTML(s.btn1, lang, s)}

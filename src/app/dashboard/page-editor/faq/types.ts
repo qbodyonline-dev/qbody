@@ -1,4 +1,5 @@
 /* ═══════════ FAQ PRO TYPES ═══════════ */
+import type { TextStyle } from '../shared'
 
 export type FaqLayout = 'accordion' | 'cards' | 'twocol' | 'sidebyside'
 export type FaqBgType = 'solid' | 'gradient' | 'image'
@@ -42,4 +43,10 @@ export interface FaqSectionData {
   defaultOpen: number     // -1 = all closed, 0+ = index of open item
   columns: number         // for twocol: 1-3
   innerMaxWidth: number
+  // Text styles
+  titleStyle?: TextStyle
+  subtitleStyle?: TextStyle
+  badgeStyle?: TextStyle
+  questionStyle?: TextStyle
+  answerStyle?: TextStyle
 }

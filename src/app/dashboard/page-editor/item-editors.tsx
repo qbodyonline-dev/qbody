@@ -11,6 +11,8 @@ import { toast } from 'sonner'
 import type { CourseItem, ProgramItem, ResultItem, HeaderData, HeroData, AboutData, NavLink, HeaderVariant, HeaderLogoPosition, HeaderNavPosition, HeaderTopBar } from './types'
 import { COURSE_GRADIENTS, PROGRAM_GRADIENTS, EMOJI_ICONS, HERO_GRADIENTS, LOGO_GRADIENTS } from './renderers'
 import { fetchWithAuthUpload } from '@/lib/api'
+import { TextStyleEditor } from './shared'
+import type { TextStyle } from './shared'
 
 /* ═══════════ SHARED COMPONENTS ═══════════ */
 
@@ -962,6 +964,14 @@ export function HeaderEditor({ data, onChange, lang }: HeaderEditorProps) {
             <input type="checkbox" checked={data.sticky !== false} onChange={e => onChange({ ...data, sticky: e.target.checked })} className="rounded accent-teal-500" />
             <span className="text-[11px] text-zinc-600 dark:text-zinc-400">{lang === 'ru' ? 'Прилипающий (sticky)' : 'Sticky header'}</span>
           </label>
+        </S>
+
+        {/* ─── Typography ─── */}
+        <S id="typo" title={lang === 'ru' ? '✒️ Типография' : '✒️ Typography'}>
+          <div className="space-y-1.5">
+            <TextStyleEditor label="Logo" value={data.logoStyle} onChange={v => onChange({ ...data, logoStyle: v })} defaultColor={data.textColor || '#ffffff'} />
+            <TextStyleEditor label="Nav" value={data.navStyle} onChange={v => onChange({ ...data, navStyle: v })} defaultColor={data.textColor || '#ffffff'} />
+          </div>
         </S>
 
         {/* ─── Top Bar ─── */}

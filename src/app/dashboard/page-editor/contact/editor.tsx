@@ -7,6 +7,7 @@ import { toast } from 'sonner'
 import { fetchWithAuthUpload } from '@/lib/api'
 import { ContactFieldEditor, ContactInfoEditor, ContactSocialEditor } from './item-editor'
 import type { ContactSectionData, ContactField, ContactLayout, ContactAnimation, ContactTitleVariant, ContactBgType } from './types'
+import { TextStyleEditor } from '../shared'
 
 const LAYOUTS: { value: ContactLayout; label: string; desc: string }[] = [
   { value: 'classic', label: '▤ Classic', desc: 'Centered form' },
@@ -109,13 +110,20 @@ export function ContactSectionEditor({ section: s, onChangeSection, lang }: Prop
           <Input value={s.badge} onChange={e => upd('badge', e.target.value)} placeholder="Badge EN" className="text-xs h-7" />
           <Input value={s.badgeRu} onChange={e => upd('badgeRu', e.target.value)} placeholder="Badge RU" className="text-xs h-7" />
         </div>
+        <TextStyleEditor label="Badge" value={s.badgeStyle} onChange={v => upd('badgeStyle', v)} defaultColor={s.accentColor} />
         <div className="grid grid-cols-2 gap-2">
           <Input value={s.title} onChange={e => upd('title', e.target.value)} placeholder="Title EN" className="text-xs h-7" />
           <Input value={s.titleRu} onChange={e => upd('titleRu', e.target.value)} placeholder="Title RU" className="text-xs h-7" />
         </div>
+        <TextStyleEditor label="Title" value={s.titleStyle} onChange={v => upd('titleStyle', v)} defaultColor={s.textColor} />
         <div className="grid grid-cols-2 gap-2">
           <Input value={s.subtitle} onChange={e => upd('subtitle', e.target.value)} placeholder="Subtitle EN" className="text-xs h-7" />
           <Input value={s.subtitleRu} onChange={e => upd('subtitleRu', e.target.value)} placeholder="Subtitle RU" className="text-xs h-7" />
+        </div>
+        <TextStyleEditor label="Subtitle" value={s.subtitleStyle} onChange={v => upd('subtitleStyle', v)} defaultColor={s.textColor} />
+        <div className="pt-2 border-t border-zinc-200 dark:border-zinc-700 space-y-2">
+          <TextStyleEditor label="Labels" value={s.labelStyle} onChange={v => upd('labelStyle', v)} defaultColor={s.textColor} />
+          <TextStyleEditor label="Button" value={s.btnStyle} onChange={v => upd('btnStyle', v)} defaultColor="#ffffff" />
         </div>
       </Acc>
 
