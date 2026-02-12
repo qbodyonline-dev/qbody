@@ -1,6 +1,6 @@
 import {
   Square, Zap, LayoutGrid, Columns2, Play, MessageSquare,
-  Heart, Hash, Mail, Camera, Code2, SlidersHorizontal, Sparkles, PanelTop, GraduationCap
+  Heart, Hash, Mail, Camera, Code2, SlidersHorizontal, Sparkles, PanelTop, GraduationCap, UserCircle
 } from 'lucide-react'
 import type { PageBlock, SectionStyle, CourseItem, ProgramItem, ResultItem, HeaderData, HeroData, AboutData } from './types'
 import { renderCoursesHTML, renderProgramsHTML, renderResultsHTML, renderHeaderHTML, renderHeroHTML, renderAboutHTML } from './renderers'
@@ -54,6 +54,7 @@ export const TEMPLATES: BlockTemplate[] = [
   { id: 'contact', l: 'Contact Form', lr: 'Контакты', icon: Mail, en: `<div style="padding:60px 20px;max-width:600px;margin:0 auto;text-align:center;"><h2 style="font-size:32px;font-weight:800;color:#18181b;margin-bottom:8px;">Get in touch</h2><p style="color:#52525b;margin-bottom:32px;">Have questions? Send us a message.</p><div style="text-align:left;display:flex;flex-direction:column;gap:12px;"><div style="padding:14px 16px;border:1px solid #e4e4e7;border-radius:12px;color:#999;">Your name</div><div style="padding:14px 16px;border:1px solid #e4e4e7;border-radius:12px;color:#999;">Email</div><div style="padding:14px 16px;border:1px solid #e4e4e7;border-radius:12px;color:#999;min-height:100px;">Message</div><a href="#" style="display:block;padding:14px;border-radius:14px;background:#14b8a6;color:white;font-weight:600;text-decoration:none;text-align:center;">Send message</a></div></div>`, ru: `<div style="padding:60px 20px;max-width:600px;margin:0 auto;text-align:center;"><h2 style="font-size:32px;font-weight:800;color:#18181b;margin-bottom:8px;">Связаться</h2><p style="color:#52525b;margin-bottom:32px;">Напишите нам.</p><div style="text-align:left;display:flex;flex-direction:column;gap:12px;"><div style="padding:14px 16px;border:1px solid #e4e4e7;border-radius:12px;color:#999;">Имя</div><div style="padding:14px 16px;border:1px solid #e4e4e7;border-radius:12px;color:#999;">Email</div><div style="padding:14px 16px;border:1px solid #e4e4e7;border-radius:12px;color:#999;min-height:100px;">Сообщение</div><a href="#" style="display:block;padding:14px;border-radius:14px;background:#14b8a6;color:white;font-weight:600;text-decoration:none;text-align:center;">Отправить</a></div></div>` },
   { id: 'headerblock', l: 'Header', lr: 'Шапка', icon: PanelTop, en: '__STRUCTURED__header', ru: '__STRUCTURED__header' },
   { id: 'courses2block', l: 'Courses Pro', lr: 'Курсы Pro', icon: GraduationCap, en: '__STRUCTURED__courses2', ru: '__STRUCTURED__courses2' },
+  { id: 'about2block', l: 'About Pro', lr: 'About Pro', icon: UserCircle, en: '__STRUCTURED__about2', ru: '__STRUCTURED__about2' },
   { id: 'htmlblock', l: 'HTML Block', lr: 'HTML Блок', icon: Code2, en: '__STRUCTURED__htmlblock', ru: '__STRUCTURED__htmlblock' },
   { id: 'slider', l: 'Slider', lr: 'Слайдер', icon: SlidersHorizontal, en: '__STRUCTURED__slider', ru: '__STRUCTURED__slider' },
   { id: 'heroblock', l: 'Hero Block', lr: 'Hero Блок', icon: Sparkles, en: '__STRUCTURED__herotemplate', ru: '__STRUCTURED__herotemplate' },

@@ -26,6 +26,8 @@ import { renderHtmlBlockHTML, renderSliderHTML, renderHeroTemplateHTML, defaultH
 import type { HtmlBlockData, SliderData, HeroTemplateData } from './types'
 import { CoursesSectionEditor, renderCourses2HTML, defaultCourseItems2, defaultCourseSectionData } from './courses'
 import type { CourseItem2, CourseSectionData } from './courses'
+import { AboutSectionEditor, renderAbout2HTML, defaultAboutSectionData } from './about'
+import type { AboutSectionData } from './about'
 
 /* ═══════════ MAIN EDITOR ═══════════ */
 export default function PageEditorPage() {
@@ -188,6 +190,9 @@ export default function PageEditorPage() {
         const sec = { ...defaultCourseSectionData }
         const items = defaultCourseItems2.map(i => ({ ...i }))
         nb = { id: nid, type: 'courses2', label: tpl.l, labelRu: tpl.lr, visible: true, contentEn: renderCourses2HTML(items, sec, 'en'), contentRu: renderCourses2HTML(items, sec, 'ru'), style: {}, data: { section: sec, items } as any }
+      } else if (structType === 'about2') {
+        const sec = { ...defaultAboutSectionData, blocks: defaultAboutSectionData.blocks.map(b => ({ ...b })) }
+        nb = { id: nid, type: 'about2', label: tpl.l, labelRu: tpl.lr, visible: true, contentEn: renderAbout2HTML(sec, 'en'), contentRu: renderAbout2HTML(sec, 'ru'), style: {}, data: { section: sec } as any }
       } else {
         nb = { id: nid, type: 'custom', label: tpl.l, labelRu: tpl.lr, visible: true, contentEn: '', contentRu: '', style: {} }
       }
@@ -258,6 +263,7 @@ export default function PageEditorPage() {
     else if (b.type === 'slider' && b.data) c = renderSliderHTML(b.data as any as SliderData, lt)
     else if (b.type === 'herotemplate' && b.data) c = renderHeroTemplateHTML(b.data as any as HeroTemplateData, lt)
     else if (b.type === 'courses2' && b.data) { const dd = b.data as any; c = renderCourses2HTML(dd.items || [], dd.section || defaultCourseSectionData, lt) }
+    else if (b.type === 'about2' && b.data) { const dd = b.data as any; c = renderAbout2HTML(dd.section || defaultAboutSectionData, lt) }
     else c = lt === 'ru' ? b.contentRu : b.contentEn
     const s = styleToCSS(b.style)
     const a = styleAttrs(b.style)
@@ -595,6 +601,24 @@ export default function PageEditorPage() {
                       <Eye className="w-3 h-3 text-teal-500" /><span className="text-[10px] font-bold text-teal-600 uppercase tracking-widest">{lang === 'ru' ? 'Превью' : 'Live Preview'}</span>
                     </div>
                     <div className="bg-zinc-950 max-h-[400px] overflow-y-auto"><div dangerouslySetInnerHTML={{ __html: renderCourses2HTML(((ab.data as any)?.items as CourseItem2[]) || defaultCourseItems2, ((ab.data as any)?.section as CourseSectionData) || defaultCourseSectionData, lt) }} className="pointer-events-none" /></div>
+                  </CardContent></Card>
+                </>
+              ) : ab.type === 'about2' ? (
+                <>
+                  <AboutSectionEditor
+                    section={((ab.data as any)?.section as AboutSectionData) || defaultAboutSectionData}
+                    onChangeSection={(sec) => {
+                      const contentEn = renderAbout2HTML(sec, 'en')
+                      const contentRu = renderAbout2HTML(sec, 'ru')
+                      upd(ab.id, { data: { section: sec } as any, contentEn, contentRu })
+                    }}
+                    lang={lt}
+                  />
+                  <Card className="overflow-hidden"><CardContent className="p-0">
+                    <div className="flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-teal-50 to-zinc-50 dark:from-teal-900/20 dark:to-zinc-800 border-b border-zinc-200 dark:border-zinc-700">
+                      <Eye className="w-3 h-3 text-teal-500" /><span className="text-[10px] font-bold text-teal-600 uppercase tracking-widest">{lang === 'ru' ? 'Превью' : 'Live Preview'}</span>
+                    </div>
+                    <div className="bg-zinc-950 max-h-[400px] overflow-y-auto"><div dangerouslySetInnerHTML={{ __html: renderAbout2HTML(((ab.data as any)?.section as AboutSectionData) || defaultAboutSectionData, lt) }} className="pointer-events-none" /></div>
                   </CardContent></Card>
                 </>
               ) : (
