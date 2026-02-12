@@ -1,5 +1,5 @@
 'use client'
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -45,6 +45,14 @@ interface SitePage {
 
 /* ═══════════ MAIN EDITOR ═══════════ */
 export default function PageEditorPage() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center min-h-[60vh]"><Loader2 className="w-8 h-8 animate-spin text-teal-500" /></div>}>
+      <PageEditorInner />
+    </Suspense>
+  )
+}
+
+function PageEditorInner() {
   const { locale } = useTranslation()
   const lang = locale as 'en' | 'ru'
   const searchParams = useSearchParams()
