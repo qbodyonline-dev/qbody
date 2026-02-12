@@ -4,7 +4,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Plus, Upload, Loader2, Image as ImageIcon, X } from 'lucide-react'
 import { toast } from 'sonner'
-import { fetchWithAuthUpload } from '@/lib/fetch-with-auth'
+import { fetchWithAuthUpload } from '@/lib/api'
 import { AboutBlockEditor } from './item-editor'
 import type { AboutSectionData, AboutContentBlock, AboutLayout, AboutAnimation, AboutTitleVariant, AboutBgType } from './types'
 
