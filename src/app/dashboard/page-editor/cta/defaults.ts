@@ -1,0 +1,45 @@
+import type { CtaSectionData } from './types'
+
+export const defaultCtaSectionData: CtaSectionData = {
+  layout: 'banner',
+  animation: 'fade-up',
+  title: 'Ready to Transform Your Body?',
+  titleRu: 'Готовы преобразить своё тело?',
+  subtitle: 'Join 1000+ women who already started their journey',
+  subtitleRu: 'Присоединяйтесь к 1000+ женщинам, начавшим свой путь',
+  description: '',
+  descriptionRu: '',
+  badge: '🔥 Limited Offer',
+  badgeRu: '🔥 Ограниченное предложение',
+  btn1: { text: 'Get Started →', textRu: 'Начать →', link: '/auth/register', style: 'solid-white' },
+  btn2: { text: 'Learn More', textRu: 'Подробнее', link: '#courses', style: 'outline-white' },
+  showBtn2: true,
+  features: [
+    { icon: '✅', text: '7-day free trial', textRu: '7 дней бесплатно' },
+    { icon: '💳', text: 'Cancel anytime', textRu: 'Отмена в любое время' },
+    { icon: '🏆', text: 'Expert coaching', textRu: 'Экспертное сопровождение' },
+  ],
+  showFeatures: true,
+  image: '',
+  imagePosition: 'right',
+  bgType: 'gradient',
+  bgColor: '#0d9488',
+  bgGradient: 'linear-gradient(135deg,#14b8a6,#0d9488)',
+  overlayOpacity: 0.6,
+  textColor: '#ffffff',
+  accentColor: '#2dd4bf',
+  borderRadius: 24,
+  paddingY: 64,
+  innerMaxWidth: 1100,
+}
+
+export const CTA_GRADIENTS = [
+  'linear-gradient(135deg,#14b8a6,#0d9488)',
+  'linear-gradient(135deg,#8b5cf6,#7c3aed)',
+  'linear-gradient(135deg,#ec4899,#f43f5e)',
+  'linear-gradient(135deg,#3b82f6,#1d4ed8)',
+  'linear-gradient(135deg,#f97316,#ea580c)',
+  'linear-gradient(135deg,#0a0a0a,#27272a)',
+  'linear-gradient(135deg,#1e293b,#0f172a)',
+  'linear-gradient(135deg,#059669,#047857)',
+]
