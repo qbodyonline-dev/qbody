@@ -80,18 +80,22 @@ function Header({ headerData, lang }: { headerData?: any; lang: 'en' | 'ru' }) {
     return () => window.removeEventListener('scroll', handleScroll)
   }, [])
 
-  // Lock body scroll when mobile menu open
   React.useEffect(() => {
-    if (isMobileMenuOpen) {
-      document.body.style.overflow = 'hidden'
-    } else {
-      document.body.style.overflow = 'unset'
-    }
+    document.body.style.overflow = isMobileMenuOpen ? 'hidden' : 'unset'
     return () => { document.body.style.overflow = 'unset' }
   }, [isMobileMenuOpen])
 
-  // Use DB data if available, otherwise defaults
   const d = headerData
+  const variant = d?.variant || 'classic'
+  const accent = d?.accentColor || '#14b8a6'
+  const bgColor = d?.bgColor || '#000000'
+  const textColor = d?.textColor || '#ffffff'
+  const logoPos = d?.logoPosition || 'left'
+  const navPos = d?.navPosition || 'center'
+  const isSticky = d?.sticky !== false
+  const topBar = d?.topBar
+  const sub = ru ? (d?.logoSubtextRu || d?.logoSubtext || 'by Khavanskaia') : (d?.logoSubtext || 'by Khavanskaia')
+
   const navigation = d?.navLinks?.length
     ? d.navLinks.map((link: any) => ({ name: ru ? (link.labelRu || link.label) : link.label, href: link.href }))
     : [
@@ -110,182 +114,238 @@ function Header({ headerData, lang }: { headerData?: any; lang: 'en' | 'ru' }) {
   const logoText = d?.logoText || 'Qbody'
   const logoIcon = d?.logoIcon || 'Q'
 
-  return (
-    <>
-      {/* ── Header bar ── */}
-      <header role="banner" className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-        isScrolled || isMobileMenuOpen ? 'bg-black border-b border-zinc-800' : 'bg-black lg:bg-transparent'
-      }`}>
-        <nav className="container-custom">
-          <div className="flex items-center justify-between h-16 lg:h-20">
-            {/* Logo */}
-            <Link href="/" className="flex items-center gap-2.5 flex-shrink-0">
-              {d?.logoImage ? (
-                <img src={d.logoImage.includes('supabase.co') ? `/api/img?src=${encodeURIComponent(d.logoImage)}&w=80&q=75` : d.logoImage} alt={logoText} width="36" height="36" className="w-9 h-9 rounded-xl object-contain" />
-              ) : (
-                <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${d?.logoGradient || 'bg-gradient-to-br from-teal-400 to-teal-600'}`}>
-                  <span className="text-white font-bold text-base">{logoIcon}</span>
-                </div>
-              )}
-              {/* Mobile: brand name between logo and hamburger */}
-              <span className="lg:hidden text-sm font-semibold" style={{ color: '#14B8A6' }}>Qbody by Khavanskaia</span>
-              {/* Desktop: full logo */}
-              <div className="hidden lg:block">
-                <span className="text-white font-semibold text-lg">{logoText}</span>
-                <span className="text-teal-400 text-sm block -mt-1">by Khavanskaia</span>
-              </div>
-            </Link>
+  const navJustify = navPos === 'left' ? 'justify-start' : navPos === 'right' ? 'justify-end' : 'justify-center'
 
-            {/* Desktop nav */}
-            <div className="hidden lg:flex items-center gap-8">
-              {navigation.map((item: any) => (
-                <Link key={item.name} href={item.href} className="text-zinc-300 hover:text-white transition-colors text-sm font-medium">
-                  {item.name}
-                </Link>
-              ))}
-            </div>
+  /* ── Sub-components ── */
+  const LogoBlock = () => (
+    <Link href="/" className="flex items-center gap-2.5 flex-shrink-0">
+      {d?.logoImage ? (
+        <img src={d.logoImage.includes('supabase.co') ? `/api/img?src=${encodeURIComponent(d.logoImage)}&w=80&q=75` : d.logoImage} alt={logoText} width="36" height="36" className="w-9 h-9 rounded-xl object-contain" />
+      ) : (
+        <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: d?.logoGradient || `linear-gradient(135deg,${accent},${accent}dd)` }}>
+          <span className="text-white font-bold text-base">{logoIcon}</span>
+        </div>
+      )}
+      <span className="lg:hidden text-sm font-semibold" style={{ color: accent }}>{logoText}</span>
+      <div className="hidden lg:block">
+        <span className="font-semibold text-lg block leading-tight" style={{ color: textColor }}>{logoText}</span>
+        {sub && <span className="text-sm block -mt-0.5" style={{ color: accent }}>{sub}</span>}
+      </div>
+    </Link>
+  )
 
-            {/* Right side */}
+  const NavLinks = () => (
+    <div className={`hidden lg:flex items-center gap-6 xl:gap-8 ${navJustify}`}>
+      {navigation.map((item: any) => (
+        <Link key={item.name} href={item.href} className="text-sm font-medium transition-colors hover:opacity-100" style={{ color: `${textColor}cc` }}
+          onMouseEnter={e => (e.currentTarget.style.color = accent)} onMouseLeave={e => (e.currentTarget.style.color = `${textColor}cc`)}>
+          {item.name}
+        </Link>
+      ))}
+    </div>
+  )
+
+  const AuthButtons = () => (
+    <div className="flex items-center gap-3">
+      <LanguageSwitcher variant="dropdown" className="hidden sm:block" />
+      {!authLoading && user ? (
+        <Link href="/dashboard" className="hidden lg:block">
+          <Button variant="gradient"><LayoutDashboard className="w-4 h-4 mr-2" />{t('nav.dashboard') || 'Dashboard'}</Button>
+        </Link>
+      ) : (
+        <>
+          <Link href={loginLink} className="hidden lg:block">
+            <Button variant="ghost" className="hover:opacity-80" style={{ color: `${textColor}cc`, borderColor: `${textColor}20` }}>
+              <User className="w-4 h-4 mr-2" />{loginText}
+            </Button>
+          </Link>
+          <Link href={ctaLink} className="hidden lg:block">
+            <button className="px-5 py-2.5 rounded-xl text-sm font-semibold text-white transition-opacity hover:opacity-90" style={{ background: accent }}>{ctaText}</button>
+          </Link>
+        </>
+      )}
+      <button className="lg:hidden p-2 relative z-[60]" style={{ color: textColor }} onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} aria-label="Toggle menu">
+        {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+      </button>
+    </div>
+  )
+
+  /* ── Variant layouts ── */
+  const renderDesktop = () => {
+    if (variant === 'centered') {
+      return (
+        <div className="container-custom">
+          <div className="flex flex-col items-center gap-1 py-3 lg:py-4">
+            <LogoBlock />
             <div className="flex items-center gap-4">
-              <LanguageSwitcher variant="dropdown" className="hidden sm:block" />
-              {!authLoading && user ? (
-                <Link href="/dashboard" className="hidden lg:block">
-                  <Button variant="gradient">
-                    <LayoutDashboard className="w-4 h-4 mr-2" />
-                    {t('nav.dashboard') || 'Dashboard'}
-                  </Button>
-                </Link>
-              ) : (
-                <>
-                  <Link href={loginLink} className="hidden lg:block">
-                    <Button variant="ghost" className="text-zinc-300 hover:text-white">
-                      <User className="w-4 h-4 mr-2" />
-                      {loginText}
-                    </Button>
-                  </Link>
-                  <Link href={ctaLink} className="hidden lg:block">
-                    <Button variant="gradient">{ctaText}</Button>
-                  </Link>
-                </>
-              )}
-              {/* Hamburger */}
-              <button
-                className="lg:hidden text-white p-2 relative z-[60]"
-                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                aria-label="Toggle menu"
-              >
-                {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-              </button>
+              <NavLinks />
+              <div className="hidden lg:flex items-center gap-2 ml-4">
+                <LanguageSwitcher variant="dropdown" />
+                {!authLoading && user ? (
+                  <Link href="/dashboard"><Button variant="gradient" size="sm"><LayoutDashboard className="w-3.5 h-3.5 mr-1.5" />{t('nav.dashboard') || 'Dashboard'}</Button></Link>
+                ) : (
+                  <Link href={ctaLink}><button className="px-4 py-2 rounded-xl text-sm font-semibold text-white" style={{ background: accent }}>{ctaText}</button></Link>
+                )}
+              </div>
             </div>
           </div>
-        </nav>
-      </header>
-
-      {/* ── Fullscreen Mobile Menu ── */}
-      {/* Overlay */}
-      <div
-        className={`fixed inset-0 bg-black/60 z-[55] lg:hidden transition-opacity duration-300 ${
-          isMobileMenuOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
-        }`}
-        onClick={() => setIsMobileMenuOpen(false)}
-      />
-
-      {/* Slide-in panel from right */}
-      <div
-        className={`fixed top-0 right-0 bottom-0 w-full max-w-sm z-[56] lg:hidden
-          bg-black flex flex-col
-          transition-transform duration-300 ease-in-out
-          ${isMobileMenuOpen ? 'translate-x-0' : 'translate-x-full'}
-        `}
-      >
-        {/* Menu header */}
-        <div className="flex items-center justify-between h-16 px-6 border-b border-zinc-800 flex-shrink-0">
-          <span className="text-sm font-semibold" style={{ color: '#14B8A6' }}>Qbody by Khavanskaia</span>
-          <button onClick={() => setIsMobileMenuOpen(false)} className="text-white p-2">
-            <X className="w-6 h-6" />
-          </button>
+          {/* Mobile hamburger for centered */}
+          <div className="lg:hidden absolute top-3 right-4">
+            <button className="p-2 relative z-[60]" style={{ color: textColor }} onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} aria-label="Toggle menu">
+              {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+            </button>
+          </div>
         </div>
+      )
+    }
 
-        {/* Nav links */}
-        <nav className="flex-1 overflow-y-auto px-6 py-6">
-          <div className="space-y-1">
-            {navigation.map((item: any, i: number) => (
-              <Link
-                key={item.name}
-                href={item.href}
-                onClick={() => setIsMobileMenuOpen(false)}
-                className="block text-lg font-medium text-zinc-200 hover:text-white px-4 py-3.5 rounded-xl
-                  hover:bg-zinc-800/50 transition-all"
-                style={{
-                  transitionDelay: isMobileMenuOpen ? `${(i + 1) * 60}ms` : '0ms',
-                  transform: isMobileMenuOpen ? 'translateX(0)' : 'translateX(40px)',
-                  opacity: isMobileMenuOpen ? 1 : 0,
-                  transition: 'transform 0.3s ease, opacity 0.3s ease, background-color 0.15s ease',
-                }}
-              >
+    if (variant === 'minimal') {
+      return (
+        <div className="container-custom">
+          <div className="flex items-center justify-between h-16 lg:h-[68px]">
+            <LogoBlock />
+            <div className="hidden lg:flex items-center gap-6 xl:gap-8">
+              <NavLinks />
+              <LanguageSwitcher variant="dropdown" />
+              {!authLoading && user ? (
+                <Link href="/dashboard"><Button variant="gradient" size="sm"><LayoutDashboard className="w-3.5 h-3.5 mr-1.5" />{t('nav.dashboard') || 'Dashboard'}</Button></Link>
+              ) : (
+                <Link href={ctaLink}><button className="px-5 py-2.5 rounded-xl text-sm font-semibold text-white" style={{ background: accent }}>{ctaText}</button></Link>
+              )}
+            </div>
+            <button className="lg:hidden p-2 relative z-[60]" style={{ color: textColor }} onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} aria-label="Toggle menu">
+              {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+            </button>
+          </div>
+        </div>
+      )
+    }
+
+    if (variant === 'split') {
+      return (
+        <>
+          <div className="h-[3px]" style={{ background: accent }} />
+          <div className="container-custom">
+            <div className="flex items-center justify-between h-16 lg:h-[68px]">
+              <LogoBlock />
+              <NavLinks />
+              <AuthButtons />
+            </div>
+          </div>
+        </>
+      )
+    }
+
+    // Classic
+    if (logoPos === 'center') {
+      return (
+        <div className="container-custom">
+          <div className="flex items-center justify-between h-16 lg:h-[68px] relative">
+            <div className="flex-1" />
+            <div className="absolute left-1/2 -translate-x-1/2"><LogoBlock /></div>
+            <div className="flex-1 flex justify-end"><AuthButtons /></div>
+          </div>
+          <div className={`hidden lg:flex pb-2 ${navJustify}`}>
+            {navigation.map((item: any) => (
+              <Link key={item.name} href={item.href} className="text-sm font-medium px-3 py-1 transition-colors" style={{ color: `${textColor}cc` }}
+                onMouseEnter={e => (e.currentTarget.style.color = accent)} onMouseLeave={e => (e.currentTarget.style.color = `${textColor}cc`)}>
                 {item.name}
               </Link>
             ))}
           </div>
+        </div>
+      )
+    }
 
-          {/* Divider */}
-          <div
-            className="my-6 border-t border-zinc-800"
-            style={{
-              transitionDelay: isMobileMenuOpen ? `${(navigation.length + 1) * 60}ms` : '0ms',
-              opacity: isMobileMenuOpen ? 1 : 0,
-              transition: 'opacity 0.3s ease',
-            }}
-          />
+    return (
+      <div className="container-custom">
+        <div className="flex items-center justify-between h-16 lg:h-20">
+          <LogoBlock />
+          <div className={`flex-1 hidden lg:flex items-center gap-8 mx-6 ${navJustify}`}>
+            {navigation.map((item: any) => (
+              <Link key={item.name} href={item.href} className="text-sm font-medium transition-colors" style={{ color: `${textColor}cc` }}
+                onMouseEnter={e => (e.currentTarget.style.color = accent)} onMouseLeave={e => (e.currentTarget.style.color = `${textColor}cc`)}>
+                {item.name}
+              </Link>
+            ))}
+          </div>
+          <AuthButtons />
+        </div>
+      </div>
+    )
+  }
 
-          {/* Auth buttons */}
-          <div
-            className="space-y-3"
-            style={{
-              transitionDelay: isMobileMenuOpen ? `${(navigation.length + 2) * 60}ms` : '0ms',
-              transform: isMobileMenuOpen ? 'translateX(0)' : 'translateX(40px)',
-              opacity: isMobileMenuOpen ? 1 : 0,
-              transition: 'transform 0.3s ease, opacity 0.3s ease',
-            }}
-          >
+  return (
+    <>
+      {/* Top bar */}
+      {topBar?.enabled && (
+        <div className="text-center text-sm py-2 px-4" style={{ background: topBar.bgColor || accent }}>
+          <a href={topBar.link || '#'} className="font-medium hover:underline" style={{ color: topBar.textColor || '#fff' }}>
+            {ru ? topBar.textRu : topBar.text}
+          </a>
+        </div>
+      )}
+
+      {/* Header bar */}
+      <header role="banner" className={`${isSticky ? 'sticky top-0' : 'relative'} left-0 right-0 z-50 transition-all duration-300`}
+        style={{ background: isScrolled || isMobileMenuOpen ? bgColor : `${bgColor}${Math.round((d?.bgOpacity ?? 1) * 255).toString(16).padStart(2,'0')}`, borderBottom: `1px solid ${textColor}12` }}>
+        {renderDesktop()}
+      </header>
+
+      {/* ── Mobile Menu Overlay ── */}
+      <div className={`fixed inset-0 bg-black/60 z-[55] lg:hidden transition-opacity duration-300 ${isMobileMenuOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+        onClick={() => setIsMobileMenuOpen(false)} />
+
+      {/* Slide-in panel */}
+      <div className={`fixed top-0 right-0 bottom-0 w-full max-w-sm z-[56] lg:hidden flex flex-col transition-transform duration-300 ease-in-out ${isMobileMenuOpen ? 'translate-x-0' : 'translate-x-full'}`}
+        style={{ background: bgColor }}>
+        <div className="flex items-center justify-between h-16 px-6 flex-shrink-0" style={{ borderBottom: `1px solid ${textColor}15` }}>
+          <span className="text-sm font-semibold" style={{ color: accent }}>{logoText}{sub ? ` ${sub}` : ''}</span>
+          <button onClick={() => setIsMobileMenuOpen(false)} className="p-2" style={{ color: textColor }}><X className="w-6 h-6" /></button>
+        </div>
+        <nav className="flex-1 overflow-y-auto px-6 py-6">
+          <div className="space-y-1">
+            {navigation.map((item: any, i: number) => (
+              <Link key={item.name} href={item.href} onClick={() => setIsMobileMenuOpen(false)}
+                className="block text-lg font-medium px-4 py-3.5 rounded-xl transition-all"
+                style={{
+                  color: `${textColor}dd`,
+                  transitionDelay: isMobileMenuOpen ? `${(i + 1) * 60}ms` : '0ms',
+                  transform: isMobileMenuOpen ? 'translateX(0)' : 'translateX(40px)',
+                  opacity: isMobileMenuOpen ? 1 : 0,
+                  transition: 'transform 0.3s ease, opacity 0.3s ease, background-color 0.15s ease',
+                }}>
+                {item.name}
+              </Link>
+            ))}
+          </div>
+          <div className="my-6" style={{ borderTop: `1px solid ${textColor}15`, transitionDelay: isMobileMenuOpen ? `${(navigation.length + 1) * 60}ms` : '0ms', opacity: isMobileMenuOpen ? 1 : 0, transition: 'opacity 0.3s ease' }} />
+          <div className="space-y-3" style={{ transitionDelay: isMobileMenuOpen ? `${(navigation.length + 2) * 60}ms` : '0ms', transform: isMobileMenuOpen ? 'translateX(0)' : 'translateX(40px)', opacity: isMobileMenuOpen ? 1 : 0, transition: 'transform 0.3s ease, opacity 0.3s ease' }}>
             {!authLoading && user ? (
               <Link href="/dashboard" onClick={() => setIsMobileMenuOpen(false)} className="block">
-                <button className="w-full flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl font-medium text-white"
-                  style={{ background: 'linear-gradient(135deg, #14B8A6, #0D9488)' }}>
-                  <LayoutDashboard className="w-5 h-5" />
-                  {t('nav.dashboard') || 'Dashboard'}
+                <button className="w-full flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl font-medium text-white" style={{ background: accent }}>
+                  <LayoutDashboard className="w-5 h-5" />{t('nav.dashboard') || 'Dashboard'}
                 </button>
               </Link>
             ) : (
               <>
                 <Link href={loginLink} onClick={() => setIsMobileMenuOpen(false)} className="block">
-                  <button className="w-full flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl font-medium
-                    text-white border border-zinc-700 hover:border-zinc-500 hover:bg-zinc-800/50 transition-colors">
-                    <User className="w-5 h-5" />
-                    {ru ? 'Войти' : 'Log In'}
+                  <button className="w-full flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl font-medium transition-colors" style={{ color: textColor, border: `1px solid ${textColor}25` }}>
+                    <User className="w-5 h-5" />{loginText}
                   </button>
                 </Link>
-                <Link href="/auth/register" onClick={() => setIsMobileMenuOpen(false)} className="block">
-                  <button className="w-full flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl font-medium text-white"
-                    style={{ background: 'linear-gradient(135deg, #14B8A6, #0D9488)' }}>
-                    {ru ? 'Регистрация' : 'Sign Up'}
+                <Link href={ctaLink} onClick={() => setIsMobileMenuOpen(false)} className="block">
+                  <button className="w-full flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl font-medium text-white" style={{ background: accent }}>
+                    {ctaText}
                   </button>
                 </Link>
               </>
             )}
+            <div className="flex justify-center pt-2"><LanguageSwitcher variant="dropdown" /></div>
           </div>
         </nav>
-
-        {/* Bottom branding */}
-        <div
-          className="px-6 py-4 border-t border-zinc-800 flex-shrink-0"
-          style={{
-            transitionDelay: isMobileMenuOpen ? `${(navigation.length + 3) * 60}ms` : '0ms',
-            opacity: isMobileMenuOpen ? 1 : 0,
-            transition: 'opacity 0.4s ease',
-          }}
-        >
-          <p className="text-xs text-zinc-600 text-center">© {new Date().getFullYear()} Qbody by Khavanskaia</p>
+        <div className="px-6 py-4 flex-shrink-0" style={{ borderTop: `1px solid ${textColor}15`, transitionDelay: isMobileMenuOpen ? `${(navigation.length + 3) * 60}ms` : '0ms', opacity: isMobileMenuOpen ? 1 : 0, transition: 'opacity 0.4s ease' }}>
+          <p className="text-xs text-center" style={{ color: `${textColor}40` }}>© {new Date().getFullYear()} {logoText}{sub ? ` ${sub}` : ''}</p>
         </div>
       </div>
     </>

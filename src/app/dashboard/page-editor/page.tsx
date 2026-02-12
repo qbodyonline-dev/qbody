@@ -170,7 +170,10 @@ export default function PageEditorPage() {
     // Structured block types
     if (tpl.en.startsWith('__STRUCTURED__')) {
       const structType = tpl.en.replace('__STRUCTURED__', '') as any
-      if (structType === 'htmlblock') {
+      if (structType === 'header') {
+        const d = { ...defaultHeaderData }
+        nb = { id: nid, type: 'header', label: tpl.l, labelRu: tpl.lr, visible: true, contentEn: renderHeaderHTML(d, 'en'), contentRu: renderHeaderHTML(d, 'ru'), style: {}, data: d }
+      } else if (structType === 'htmlblock') {
         const d = defaultHtmlBlockData()
         nb = { id: nid, type: 'htmlblock', label: tpl.l, labelRu: tpl.lr, visible: true, contentEn: renderHtmlBlockHTML(d, 'en'), contentRu: renderHtmlBlockHTML(d, 'ru'), style: {}, data: d as any }
       } else if (structType === 'slider') {

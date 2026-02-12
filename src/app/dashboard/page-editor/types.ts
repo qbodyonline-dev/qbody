@@ -82,18 +82,42 @@ export interface NavLink {
   href: string
 }
 
+export type HeaderVariant = 'classic' | 'centered' | 'minimal' | 'split'
+export type HeaderLogoPosition = 'left' | 'center'
+export type HeaderNavPosition = 'left' | 'center' | 'right'
+
+export interface HeaderTopBar {
+  enabled: boolean
+  text: string
+  textRu: string
+  link: string
+  bgColor: string
+  textColor: string
+}
+
 export interface HeaderData {
+  variant: HeaderVariant
   logoText: string
-  logoIcon: string  // emoji or letter
+  logoSubtext: string
+  logoSubtextRu: string
+  logoIcon: string
   logoGradient: string
-  logoImage?: string  // uploaded logo image URL
+  logoImage?: string
+  logoPosition: HeaderLogoPosition
   navLinks: NavLink[]
+  navPosition: HeaderNavPosition
   loginText: string
   loginTextRu: string
   loginLink: string
   ctaText: string
   ctaTextRu: string
   ctaLink: string
+  bgColor: string
+  bgOpacity: number
+  textColor: string
+  accentColor: string
+  sticky: boolean
+  topBar: HeaderTopBar
 }
 
 export interface HeroData {

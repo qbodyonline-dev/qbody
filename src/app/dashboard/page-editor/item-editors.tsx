@@ -8,7 +8,7 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 
-import type { CourseItem, ProgramItem, ResultItem, HeaderData, HeroData, AboutData, NavLink } from './types'
+import type { CourseItem, ProgramItem, ResultItem, HeaderData, HeroData, AboutData, NavLink, HeaderVariant, HeaderLogoPosition, HeaderNavPosition, HeaderTopBar } from './types'
 import { COURSE_GRADIENTS, PROGRAM_GRADIENTS, EMOJI_ICONS, HERO_GRADIENTS, LOGO_GRADIENTS } from './renderers'
 import { fetchWithAuthUpload } from '@/lib/api'
 
@@ -718,6 +718,13 @@ function NavLinkEditor({ link, onChange, onDelete, lang }: NavLinkEditorProps) {
 }
 
 /* ─────────── HEADER EDITOR ─────────── */
+const HEADER_VARIANTS: { value: HeaderVariant; label: string; labelRu: string; desc: string }[] = [
+  { value: 'classic', label: 'Classic', labelRu: 'Классика', desc: 'Logo left · Nav center · Buttons right' },
+  { value: 'centered', label: 'Centered', labelRu: 'Центр', desc: 'Logo centered · Nav below' },
+  { value: 'minimal', label: 'Minimal', labelRu: 'Минимал', desc: 'Logo left · Nav + CTA right' },
+  { value: 'split', label: 'Split', labelRu: 'Разделитель', desc: 'Accent line · Logo left · Buttons right' },
+]
+
 interface HeaderEditorProps {
   data: HeaderData
   onChange: (data: HeaderData) => void
@@ -728,6 +735,7 @@ export function HeaderEditor({ data, onChange, lang }: HeaderEditorProps) {
   const [showLogoPicker, setShowLogoPicker] = useState(false)
   const [logoUploading, setLogoUploading] = useState(false)
   const logoFileRef = useRef<HTMLInputElement>(null)
+  const [openSection, setOpenSection] = useState<string>('variant')
 
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -774,35 +782,58 @@ export function HeaderEditor({ data, onChange, lang }: HeaderEditorProps) {
     onChange({ ...data, navLinks: data.navLinks.filter(l => l.id !== id) })
   }
 
+  const toggle = (s: string) => setOpenSection(openSection === s ? '' : s)
+  const S = ({ id, title, children }: { id: string; title: string; children: React.ReactNode }) => (
+    <div className="border border-zinc-200 dark:border-zinc-700 rounded-xl overflow-hidden">
+      <button onClick={() => toggle(id)} className={`w-full flex items-center justify-between p-3 text-xs font-semibold transition-colors ${openSection === id ? 'bg-teal-50 dark:bg-teal-900/20 text-teal-700 dark:text-teal-300' : 'bg-zinc-50 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-700'}`}>
+        {title}
+        <ChevronDown className={`w-3.5 h-3.5 transition-transform ${openSection === id ? 'rotate-180' : ''}`} />
+      </button>
+      {openSection === id && <div className="p-3 space-y-3 border-t border-zinc-200 dark:border-zinc-700">{children}</div>}
+    </div>
+  )
+
   return (
     <Card>
-      <CardContent className="p-4 space-y-4">
+      <CardContent className="p-4 space-y-3">
         <h3 className="text-sm font-semibold text-zinc-700 dark:text-zinc-300 flex items-center gap-2">
           🧭 {lang === 'ru' ? 'Настройки шапки' : 'Header Settings'}
         </h3>
 
-        {/* Logo Section */}
-        <div className="p-3 bg-zinc-50 dark:bg-zinc-800 rounded-lg space-y-3">
-          <label className="text-xs font-medium text-zinc-500 block">{lang === 'ru' ? 'Логотип' : 'Logo'}</label>
-          <div className="flex gap-3 items-center">
+        {/* ─── Variant Picker ─── */}
+        <S id="variant" title={lang === 'ru' ? '🎨 Дизайн' : '🎨 Design Variant'}>
+          <div className="grid grid-cols-2 gap-2">
+            {HEADER_VARIANTS.map(v => (
+              <button key={v.value} onClick={() => onChange({ ...data, variant: v.value })}
+                className={`p-3 rounded-xl border-2 text-left transition-all ${data.variant === v.value ? 'border-teal-500 bg-teal-50 dark:bg-teal-900/20' : 'border-zinc-200 dark:border-zinc-700 hover:border-zinc-300'}`}>
+                <div className="text-xs font-bold text-zinc-800 dark:text-zinc-200">{lang === 'ru' ? v.labelRu : v.label}</div>
+                <div className="text-[10px] text-zinc-500 mt-0.5">{v.desc}</div>
+              </button>
+            ))}
+          </div>
+        </S>
+
+        {/* ─── Logo ─── */}
+        <S id="logo" title={lang === 'ru' ? '🖼️ Логотип' : '🖼️ Logo'}>
+          <div className="flex gap-3 items-start">
             <div className="relative">
               {data.logoImage ? (
-                <div className="w-12 h-12 rounded-xl overflow-hidden border-2 border-zinc-200 dark:border-zinc-600 relative group">
+                <div className="w-14 h-14 rounded-xl overflow-hidden border-2 border-zinc-200 dark:border-zinc-600 relative group">
                   <img src={data.logoImage} alt="Logo" className="w-full h-full object-contain" />
                   <button onClick={() => onChange({ ...data, logoImage: undefined })}
-                    className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center text-xs hover:bg-red-600 opacity-0 group-hover:opacity-100 transition-opacity">
+                    className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity">
                     <X className="w-3 h-3" />
                   </button>
                 </div>
               ) : (
                 <button onClick={() => setShowLogoPicker(!showLogoPicker)}
-                  className="w-12 h-12 rounded-xl flex items-center justify-center text-white font-bold text-lg border-2 border-zinc-200 dark:border-zinc-600 hover:scale-105 transition-transform"
+                  className="w-14 h-14 rounded-xl flex items-center justify-center text-white font-bold text-xl border-2 border-zinc-200 dark:border-zinc-600 hover:scale-105 transition-transform"
                   style={{ background: data.logoGradient }}>
                   {data.logoIcon}
                 </button>
               )}
               {showLogoPicker && !data.logoImage && (
-                <div className="absolute top-full left-0 mt-1 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl shadow-xl z-50 p-3 space-y-2">
+                <div className="absolute top-full left-0 mt-1 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl shadow-xl z-50 p-3 space-y-2 min-w-[200px]">
                   <label className="text-xs text-zinc-500 block">{lang === 'ru' ? 'Цвет' : 'Color'}</label>
                   <div className="grid grid-cols-3 gap-1.5">
                     {LOGO_GRADIENTS.map(g => (
@@ -812,62 +843,153 @@ export function HeaderEditor({ data, onChange, lang }: HeaderEditorProps) {
                     ))}
                   </div>
                   <label className="text-xs text-zinc-500 block mt-2">{lang === 'ru' ? 'Иконка' : 'Icon'}</label>
-                  <Input value={data.logoIcon} onChange={e => onChange({ ...data, logoIcon: e.target.value })} placeholder="A or 💪" className="text-xs h-8" maxLength={2} />
+                  <Input value={data.logoIcon} onChange={e => onChange({ ...data, logoIcon: e.target.value })} placeholder="Q or 💪" className="text-xs h-8" maxLength={2} />
                   <button onClick={() => setShowLogoPicker(false)} className="w-full p-1.5 text-xs bg-teal-500 text-white rounded-lg mt-2"><Check className="w-3 h-3 inline mr-1" />{lang === 'ru' ? 'Готово' : 'Done'}</button>
                 </div>
               )}
             </div>
             <div className="flex-1 space-y-2">
-              <Input value={data.logoText} onChange={e => onChange({ ...data, logoText: e.target.value })} placeholder={lang === 'ru' ? 'Название сайта' : 'Site name'} className="text-sm h-10" />
+              <Input value={data.logoText} onChange={e => onChange({ ...data, logoText: e.target.value })} placeholder={lang === 'ru' ? 'Название' : 'Brand name'} className="text-xs h-8" />
+              <div className="grid grid-cols-2 gap-2">
+                <Input value={data.logoSubtext || ''} onChange={e => onChange({ ...data, logoSubtext: e.target.value })} placeholder="Subtext EN" className="text-xs h-8" />
+                <Input value={data.logoSubtextRu || ''} onChange={e => onChange({ ...data, logoSubtextRu: e.target.value })} placeholder="Subtext RU" className="text-xs h-8" />
+              </div>
               <div className="flex gap-2">
-                <button
-                  onClick={() => logoFileRef.current?.click()}
-                  disabled={logoUploading}
-                  className="h-8 px-3 rounded-lg bg-teal-500 hover:bg-teal-600 text-white text-xs font-medium flex items-center gap-1.5 transition-colors disabled:opacity-50">
+                <button onClick={() => logoFileRef.current?.click()} disabled={logoUploading}
+                  className="h-7 px-3 rounded-lg bg-teal-500 hover:bg-teal-600 text-white text-[11px] font-medium flex items-center gap-1.5 transition-colors disabled:opacity-50">
                   {logoUploading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Upload className="w-3 h-3" />}
-                  {logoUploading ? '...' : (lang === 'ru' ? 'Загрузить лого' : 'Upload logo')}
+                  {lang === 'ru' ? 'Загрузить' : 'Upload'}
                 </button>
-                {data.logoImage && (
-                  <button onClick={() => onChange({ ...data, logoImage: undefined })}
-                    className="h-8 px-3 rounded-lg bg-zinc-200 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-300 text-xs font-medium flex items-center gap-1.5 hover:bg-zinc-300 dark:hover:bg-zinc-600 transition-colors">
-                    <X className="w-3 h-3" />
-                    {lang === 'ru' ? 'Удалить' : 'Remove'}
-                  </button>
-                )}
+                {data.logoImage && <button onClick={() => onChange({ ...data, logoImage: undefined })} className="h-7 px-2 rounded-lg bg-red-100 text-red-600 text-[11px]"><X className="w-3 h-3" /></button>}
               </div>
               <input ref={logoFileRef} type="file" accept="image/*" className="hidden" onChange={handleLogoUpload} />
             </div>
           </div>
-        </div>
+          {/* Logo position (only for classic variant) */}
+          {data.variant === 'classic' && (
+            <div>
+              <label className="text-[11px] text-zinc-500 block mb-1">{lang === 'ru' ? 'Позиция лого' : 'Logo Position'}</label>
+              <div className="flex gap-1.5">
+                {(['left', 'center'] as HeaderLogoPosition[]).map(p => (
+                  <button key={p} onClick={() => onChange({ ...data, logoPosition: p })}
+                    className={`px-3 py-1.5 rounded-lg text-[11px] font-medium ${data.logoPosition === p ? 'bg-teal-500 text-white' : 'bg-zinc-100 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-400'}`}>
+                    {p === 'left' ? '← Left' : '↔ Center'}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </S>
 
-        {/* Navigation Links */}
-        <div className="space-y-2">
+        {/* ─── Navigation ─── */}
+        <S id="nav" title={lang === 'ru' ? '📍 Навигация' : '📍 Navigation'}>
+          {/* Nav position (classic & split) */}
+          {(data.variant === 'classic' || data.variant === 'split') && (
+            <div>
+              <label className="text-[11px] text-zinc-500 block mb-1">{lang === 'ru' ? 'Позиция меню' : 'Menu Position'}</label>
+              <div className="flex gap-1.5">
+                {(['left', 'center', 'right'] as HeaderNavPosition[]).map(p => (
+                  <button key={p} onClick={() => onChange({ ...data, navPosition: p })}
+                    className={`px-3 py-1.5 rounded-lg text-[11px] font-medium ${data.navPosition === p ? 'bg-teal-500 text-white' : 'bg-zinc-100 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-400'}`}>
+                    {p === 'left' ? '← Left' : p === 'right' ? 'Right →' : '↔ Center'}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
           <div className="flex items-center justify-between">
-            <label className="text-xs font-medium text-zinc-500">{lang === 'ru' ? 'Навигация' : 'Navigation'}</label>
-            <button onClick={addNavLink} className="p-1 rounded-lg hover:bg-teal-50 text-teal-500"><Plus className="w-4 h-4" /></button>
+            <label className="text-[11px] text-zinc-500">{lang === 'ru' ? 'Ссылки' : 'Links'}</label>
+            <button onClick={addNavLink} className="p-1 rounded-lg hover:bg-teal-50 dark:hover:bg-teal-900/30 text-teal-500"><Plus className="w-3.5 h-3.5" /></button>
           </div>
-          <div className="space-y-1.5">
+          <div className="space-y-1.5 max-h-[200px] overflow-y-auto">
             {data.navLinks.map(link => (
               <NavLinkEditor key={link.id} link={link} onChange={l => updateNavLink(link.id, l)} onDelete={() => removeNavLink(link.id)} lang={lang} />
             ))}
           </div>
-        </div>
+          {data.navLinks.length === 0 && <p className="text-[11px] text-zinc-400 text-center py-2">{lang === 'ru' ? 'Нет ссылок' : 'No links yet'}</p>}
+        </S>
 
-        {/* Buttons */}
-        <div className="grid grid-cols-2 gap-3">
-          <div className="p-3 bg-zinc-50 dark:bg-zinc-800 rounded-lg space-y-2">
-            <label className="text-xs font-medium text-zinc-500 block">{lang === 'ru' ? 'Кнопка входа' : 'Login Button'}</label>
-            <Input value={data.loginText} onChange={e => onChange({ ...data, loginText: e.target.value })} placeholder="EN" className="text-xs h-8" />
-            <Input value={data.loginTextRu} onChange={e => onChange({ ...data, loginTextRu: e.target.value })} placeholder="RU" className="text-xs h-8" />
-            <Input value={data.loginLink} onChange={e => onChange({ ...data, loginLink: e.target.value })} placeholder="/auth/login" className="text-xs h-8" />
+        {/* ─── Buttons ─── */}
+        <S id="buttons" title={lang === 'ru' ? '🔘 Кнопки' : '🔘 Buttons'}>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <label className="text-[11px] font-medium text-zinc-500 block">{lang === 'ru' ? 'Вход' : 'Login'}</label>
+              <Input value={data.loginText} onChange={e => onChange({ ...data, loginText: e.target.value })} placeholder="EN" className="text-xs h-7" />
+              <Input value={data.loginTextRu} onChange={e => onChange({ ...data, loginTextRu: e.target.value })} placeholder="RU" className="text-xs h-7" />
+              <Input value={data.loginLink} onChange={e => onChange({ ...data, loginLink: e.target.value })} placeholder="/auth/login" className="text-xs h-7" />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-[11px] font-medium text-zinc-500 block">CTA</label>
+              <Input value={data.ctaText} onChange={e => onChange({ ...data, ctaText: e.target.value })} placeholder="EN" className="text-xs h-7" />
+              <Input value={data.ctaTextRu} onChange={e => onChange({ ...data, ctaTextRu: e.target.value })} placeholder="RU" className="text-xs h-7" />
+              <Input value={data.ctaLink} onChange={e => onChange({ ...data, ctaLink: e.target.value })} placeholder="/auth/register" className="text-xs h-7" />
+            </div>
           </div>
-          <div className="p-3 bg-zinc-50 dark:bg-zinc-800 rounded-lg space-y-2">
-            <label className="text-xs font-medium text-zinc-500 block">{lang === 'ru' ? 'Кнопка CTA' : 'CTA Button'}</label>
-            <Input value={data.ctaText} onChange={e => onChange({ ...data, ctaText: e.target.value })} placeholder="EN" className="text-xs h-8" />
-            <Input value={data.ctaTextRu} onChange={e => onChange({ ...data, ctaTextRu: e.target.value })} placeholder="RU" className="text-xs h-8" />
-            <Input value={data.ctaLink} onChange={e => onChange({ ...data, ctaLink: e.target.value })} placeholder="/auth/register" className="text-xs h-8" />
+        </S>
+
+        {/* ─── Colors & Style ─── */}
+        <S id="style" title={lang === 'ru' ? '🎨 Стиль' : '🎨 Style & Colors'}>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <label className="text-[11px] text-zinc-500">{lang === 'ru' ? 'Фон' : 'Background'}</label>
+              <div className="flex gap-2 items-center">
+                <input type="color" value={data.bgColor || '#000000'} onChange={e => onChange({ ...data, bgColor: e.target.value })} className="w-8 h-8 rounded-lg border-0 cursor-pointer" />
+                <Input value={data.bgColor || '#000000'} onChange={e => onChange({ ...data, bgColor: e.target.value })} className="text-xs h-7 flex-1" />
+              </div>
+            </div>
+            <div className="space-y-1">
+              <label className="text-[11px] text-zinc-500">{lang === 'ru' ? 'Акцент' : 'Accent'}</label>
+              <div className="flex gap-2 items-center">
+                <input type="color" value={data.accentColor || '#14b8a6'} onChange={e => onChange({ ...data, accentColor: e.target.value })} className="w-8 h-8 rounded-lg border-0 cursor-pointer" />
+                <Input value={data.accentColor || '#14b8a6'} onChange={e => onChange({ ...data, accentColor: e.target.value })} className="text-xs h-7 flex-1" />
+              </div>
+            </div>
+            <div className="space-y-1">
+              <label className="text-[11px] text-zinc-500">{lang === 'ru' ? 'Текст' : 'Text'}</label>
+              <div className="flex gap-2 items-center">
+                <input type="color" value={data.textColor || '#ffffff'} onChange={e => onChange({ ...data, textColor: e.target.value })} className="w-8 h-8 rounded-lg border-0 cursor-pointer" />
+                <Input value={data.textColor || '#ffffff'} onChange={e => onChange({ ...data, textColor: e.target.value })} className="text-xs h-7 flex-1" />
+              </div>
+            </div>
+            <div className="space-y-1">
+              <label className="text-[11px] text-zinc-500">{lang === 'ru' ? 'Прозрачность' : 'Opacity'}</label>
+              <input type="range" min="0" max="1" step="0.05" value={data.bgOpacity ?? 1}
+                onChange={e => onChange({ ...data, bgOpacity: parseFloat(e.target.value) })}
+                className="w-full accent-teal-500" />
+            </div>
           </div>
-        </div>
+          <label className="flex items-center gap-2 mt-2 cursor-pointer">
+            <input type="checkbox" checked={data.sticky !== false} onChange={e => onChange({ ...data, sticky: e.target.checked })} className="rounded accent-teal-500" />
+            <span className="text-[11px] text-zinc-600 dark:text-zinc-400">{lang === 'ru' ? 'Прилипающий (sticky)' : 'Sticky header'}</span>
+          </label>
+        </S>
+
+        {/* ─── Top Bar ─── */}
+        <S id="topbar" title={lang === 'ru' ? '📢 Верхняя полоса' : '📢 Top Bar (Promo)'}>
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input type="checkbox" checked={data.topBar?.enabled || false}
+              onChange={e => onChange({ ...data, topBar: { ...data.topBar, enabled: e.target.checked } as HeaderTopBar })}
+              className="rounded accent-teal-500" />
+            <span className="text-[11px] text-zinc-600 dark:text-zinc-400">{lang === 'ru' ? 'Показывать' : 'Show top bar'}</span>
+          </label>
+          {data.topBar?.enabled && (
+            <div className="space-y-2 mt-2">
+              <Input value={data.topBar?.text || ''} onChange={e => onChange({ ...data, topBar: { ...data.topBar, text: e.target.value } as HeaderTopBar })} placeholder="Promo text EN" className="text-xs h-7" />
+              <Input value={data.topBar?.textRu || ''} onChange={e => onChange({ ...data, topBar: { ...data.topBar, textRu: e.target.value } as HeaderTopBar })} placeholder="Promo text RU" className="text-xs h-7" />
+              <Input value={data.topBar?.link || ''} onChange={e => onChange({ ...data, topBar: { ...data.topBar, link: e.target.value } as HeaderTopBar })} placeholder="Link URL" className="text-xs h-7" />
+              <div className="flex gap-2">
+                <div className="flex-1 space-y-1">
+                  <label className="text-[10px] text-zinc-500">{lang === 'ru' ? 'Фон' : 'BG'}</label>
+                  <input type="color" value={data.topBar?.bgColor || '#14b8a6'} onChange={e => onChange({ ...data, topBar: { ...data.topBar, bgColor: e.target.value } as HeaderTopBar })} className="w-full h-7 rounded border-0 cursor-pointer" />
+                </div>
+                <div className="flex-1 space-y-1">
+                  <label className="text-[10px] text-zinc-500">{lang === 'ru' ? 'Текст' : 'Text'}</label>
+                  <input type="color" value={data.topBar?.textColor || '#ffffff'} onChange={e => onChange({ ...data, topBar: { ...data.topBar, textColor: e.target.value } as HeaderTopBar })} className="w-full h-7 rounded border-0 cursor-pointer" />
+                </div>
+              </div>
+            </div>
+          )}
+        </S>
       </CardContent>
     </Card>
   )

@@ -220,19 +220,100 @@ export function renderResultsHTML(items: ResultItem[], lang: 'en' | 'ru'): strin
 
 /* ─────────── HEADER RENDERER ─────────── */
 export function renderHeaderHTML(data: HeaderData, lang: 'en' | 'ru'): string {
+  const id = 'hdr' + Math.random().toString(36).slice(2, 8)
+  const v = data.variant || 'classic'
+  const accent = data.accentColor || '#14b8a6'
+  const bg = data.bgColor || '#000000'
+  const txtCol = data.textColor || '#ffffff'
+  const navCol = `${txtCol}cc` // slightly transparent
+
   const navLinksHtml = data.navLinks.map(link => {
     const label = lang === 'ru' ? link.labelRu : link.label
-    return `<a href="${link.href}" style="color:#d4d4d8;text-decoration:none;">${label}</a>`
+    return `<a href="${link.href}" class="${id}-nav" style="color:${navCol};text-decoration:none;font-size:14px;font-weight:500;padding:8px 4px;transition:color 0.2s;">${label}</a>`
   }).join('')
 
   const loginText = lang === 'ru' ? data.loginTextRu : data.loginText
   const ctaText = lang === 'ru' ? data.ctaTextRu : data.ctaText
+  const sub = lang === 'ru' ? (data.logoSubtextRu || data.logoSubtext) : data.logoSubtext
 
   const logoHtml = data.logoImage
-    ? `<img src="${data.logoImage}" alt="${data.logoText}" style="width:40px;height:40px;border-radius:12px;object-fit:contain;" />`
-    : `<div style="width:40px;height:40px;border-radius:12px;background:${data.logoGradient};display:flex;align-items:center;justify-content:center;color:white;font-weight:bold;font-size:18px;">${data.logoIcon}</div>`
+    ? `<img src="${data.logoImage}" alt="${data.logoText}" style="width:36px;height:36px;border-radius:10px;object-fit:contain;" />`
+    : `<div style="width:36px;height:36px;border-radius:10px;background:${data.logoGradient};display:flex;align-items:center;justify-content:center;color:white;font-weight:bold;font-size:16px;flex-shrink:0;">${data.logoIcon}</div>`
 
-  return `<div style="padding:16px 24px;display:flex;align-items:center;justify-content:space-between;background:#0a0a0a;border-bottom:1px solid rgba(255,255,255,0.08);"><div style="display:flex;align-items:center;gap:12px;">${logoHtml}<span style="font-weight:600;font-size:16px;color:#fafafa;">${data.logoText}</span></div><div style="display:flex;gap:24px;font-size:14px;">${navLinksHtml}</div><div style="display:flex;gap:8px;"><a href="${data.loginLink}" style="padding:8px 16px;border-radius:12px;border:1px solid rgba(255,255,255,0.15);font-size:14px;color:#e5e5e5;text-decoration:none;">${loginText}</a><a href="${data.ctaLink}" style="padding:8px 16px;border-radius:12px;background:#14b8a6;color:white;font-size:14px;text-decoration:none;">${ctaText}</a></div></div>`
+  const logoBlock = `<div class="${id}-logo" style="display:flex;align-items:center;gap:10px;flex-shrink:0;">
+    ${logoHtml}
+    <div><span style="font-weight:600;font-size:16px;color:${txtCol};display:block;line-height:1.2;">${data.logoText}</span>${sub ? `<span style="font-size:12px;color:${accent};display:block;line-height:1.2;">${sub}</span>` : ''}</div>
+  </div>`
+
+  const btnsHtml = `<div class="${id}-btns" style="display:flex;gap:8px;align-items:center;">
+    <a href="${data.loginLink}" style="padding:8px 18px;border-radius:10px;border:1px solid ${txtCol}30;font-size:13px;font-weight:500;color:${txtCol};text-decoration:none;transition:all 0.2s;">${loginText}</a>
+    <a href="${data.ctaLink}" style="padding:8px 18px;border-radius:10px;background:${accent};color:#fff;font-size:13px;font-weight:600;text-decoration:none;transition:all 0.2s;">${ctaText}</a>
+  </div>`
+
+  const navBlock = `<nav class="${id}-navwrap" style="display:flex;gap:clamp(12px,2vw,24px);align-items:center;">${navLinksHtml}</nav>`
+
+  // Top bar
+  const topBar = data.topBar?.enabled ? `<div style="background:${data.topBar.bgColor || accent};padding:8px 16px;text-align:center;font-size:13px;"><a href="${data.topBar.link || '#'}" style="color:${data.topBar.textColor || '#fff'};text-decoration:none;font-weight:500;">${lang === 'ru' ? data.topBar.textRu : data.topBar.text}</a></div>` : ''
+
+  // Responsive CSS
+  const css = `<style>
+.${id}-nav:hover{color:${accent} !important;}
+@media(max-width:768px){
+  .${id}-navwrap{display:none !important;}
+  .${id}-btns{display:none !important;}
+  .${id}-mob{display:flex !important;}
+}
+</style>`
+
+  const mobBtn = `<div class="${id}-mob" style="display:none;align-items:center;gap:4px;">
+    <span style="font-size:13px;color:${accent};font-weight:600;">Menu ≡</span>
+  </div>`
+
+  let headerInner = ''
+
+  if (v === 'centered') {
+    // Centered: logo centered top, nav centered below
+    headerInner = `<div style="display:flex;flex-direction:column;align-items:center;gap:8px;padding:16px 24px;">
+      ${logoBlock}
+      <div style="display:flex;align-items:center;gap:16px;">${navBlock}${btnsHtml}</div>
+    </div>`
+  } else if (v === 'minimal') {
+    // Minimal: logo left, nav+CTA right together
+    headerInner = `<div style="display:flex;align-items:center;justify-content:space-between;padding:14px 24px;">
+      ${logoBlock}
+      <div style="display:flex;align-items:center;gap:clamp(16px,3vw,32px);">${navBlock}<a href="${data.ctaLink}" class="${id}-btns" style="padding:8px 20px;border-radius:10px;background:${accent};color:#fff;font-size:13px;font-weight:600;text-decoration:none;">${ctaText}</a></div>
+      ${mobBtn}
+    </div>`
+  } else if (v === 'split') {
+    // Split: accent line + logo left, nav center, buttons right
+    headerInner = `<div style="border-top:3px solid ${accent};"><div style="display:flex;align-items:center;justify-content:space-between;padding:14px 24px;">
+      ${logoBlock}
+      ${navBlock}
+      <div style="display:flex;align-items:center;gap:8px;">${btnsHtml}${mobBtn}</div>
+    </div></div>`
+  } else {
+    // Classic: logo left/center, nav left/center/right, buttons right
+    const lp = data.logoPosition || 'left'
+    const np = data.navPosition || 'center'
+    const justify = np === 'left' ? 'flex-start' : np === 'right' ? 'flex-end' : 'center'
+
+    if (lp === 'center') {
+      // Logo center — nav below or flanked
+      headerInner = `<div style="padding:14px 24px;"><div style="display:flex;align-items:center;justify-content:space-between;">
+        <div style="flex:1;"></div>
+        ${logoBlock}
+        <div style="flex:1;display:flex;justify-content:flex-end;">${btnsHtml}${mobBtn}</div>
+      </div><div style="display:flex;justify-content:${justify};padding-top:6px;">${navBlock}</div></div>`
+    } else {
+      headerInner = `<div style="display:flex;align-items:center;justify-content:space-between;padding:14px 24px;">
+        ${logoBlock}
+        <div style="flex:1;display:flex;justify-content:${justify};">${navBlock}</div>
+        <div style="display:flex;align-items:center;gap:8px;">${btnsHtml}${mobBtn}</div>
+      </div>`
+    }
+  }
+
+  return `${css}${topBar}<div style="background:${bg};border-bottom:1px solid ${txtCol}12;max-width:100%;">${headerInner}</div>`
 }
 
 /* ─────────── HERO RENDERER ─────────── */
