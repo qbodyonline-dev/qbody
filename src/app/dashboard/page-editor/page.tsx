@@ -8,7 +8,7 @@ import {
   Save, Eye, EyeOff, Monitor, Smartphone, Undo2, Redo2,
   ChevronDown, ChevronUp, GripVertical, Trash2, Copy,
   Layout, X, Tablet, Download, Upload, Paintbrush,
-  Maximize2, Minimize2, Plus, Loader2, Code2, LayoutList
+  Maximize2, Minimize2, Plus, Loader2, LayoutList
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { fetchWithAuth } from '@/lib/api'
@@ -109,7 +109,7 @@ export default function PageEditorPage() {
   const [showStyle, setShowStyle] = useState(false)
   const [history, setHistory] = useState<PageBlock[][]>([initBlocks])
   const [histIdx, setHistIdx] = useState(0)
-  const [editMode, setEditMode] = useState<'structured' | 'html'>('structured') // For blocks with items
+  // editMode removed — structured blocks always use Items editor, custom blocks use RichEditor
 
   const ab = blocks.find(b => b.id === active) || null
   
@@ -363,23 +363,13 @@ export default function PageEditorPage() {
                   {ab.visible ? (lang === 'ru' ? 'Виден' : 'On') : (lang === 'ru' ? 'Скрыт' : 'Off')}
                 </Badge>
                 <Badge variant="outline" className="text-[10px]">{ab.type}</Badge>
-                {/* Mode toggle for structured blocks */}
-                {(ab.type === 'courses' || ab.type === 'programs' || ab.type === 'results' || ab.type === 'header' || ab.type === 'hero' || ab.type === 'about' || ab.type === 'htmlblock' || ab.type === 'slider' || ab.type === 'herotemplate') && (
-                  <div className="flex bg-zinc-100 dark:bg-zinc-800 rounded-lg p-0.5">
-                    <button onClick={() => setEditMode('structured')} className={`flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium transition-all ${editMode === 'structured' ? 'bg-white dark:bg-zinc-700 shadow text-teal-600' : 'text-zinc-500'}`}>
-                      <LayoutList className="w-3 h-3" />{lang === 'ru' ? 'Элементы' : 'Items'}
-                    </button>
-                    <button onClick={() => setEditMode('html')} className={`flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium transition-all ${editMode === 'html' ? 'bg-white dark:bg-zinc-700 shadow text-amber-600' : 'text-zinc-500'}`}>
-                      <Code2 className="w-3 h-3" />HTML
-                    </button>
-                  </div>
-                )}
+
                 <button onClick={() => setShowStyle(!showStyle)} className={`p-1.5 rounded-lg transition-colors ${showStyle ? 'bg-teal-100 text-teal-600 dark:bg-teal-900' : 'hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-500'}`} title={lang === 'ru' ? 'Настройки' : 'Settings'}>
                   <Paintbrush className="w-4 h-4" /></button>
               </CardContent></Card>
 
               {/* Structured Editor for courses/programs/results */}
-              {ab.type === 'courses' && editMode === 'structured' ? (
+              {ab.type === 'courses' ? (
                 <>
                   <CoursesBlockEditor
                     items={(ab.items as CourseItem[]) || defaultCourseItems}
@@ -403,7 +393,7 @@ export default function PageEditorPage() {
                     </CardContent>
                   </Card>
                 </>
-              ) : ab.type === 'programs' && editMode === 'structured' ? (
+              ) : ab.type === 'programs' ? (
                 <>
                   <ProgramsBlockEditor
                     items={(ab.items as ProgramItem[]) || defaultProgramItems}
@@ -427,7 +417,7 @@ export default function PageEditorPage() {
                     </CardContent>
                   </Card>
                 </>
-              ) : ab.type === 'results' && editMode === 'structured' ? (
+              ) : ab.type === 'results' ? (
                 <>
                   <ResultsBlockEditor
                     items={(ab.items as ResultItem[]) || defaultResultItems}
@@ -451,7 +441,7 @@ export default function PageEditorPage() {
                     </CardContent>
                   </Card>
                 </>
-              ) : ab.type === 'header' && editMode === 'structured' ? (
+              ) : ab.type === 'header' ? (
                 <>
                   <HeaderEditor
                     data={(ab.data as HeaderData) || defaultHeaderData}
@@ -475,7 +465,7 @@ export default function PageEditorPage() {
                     </CardContent>
                   </Card>
                 </>
-              ) : ab.type === 'hero' && editMode === 'structured' ? (
+              ) : ab.type === 'hero' ? (
                 <>
                   <HeroEditor
                     data={(ab.data as HeroData) || defaultHeroData}
@@ -499,7 +489,7 @@ export default function PageEditorPage() {
                     </CardContent>
                   </Card>
                 </>
-              ) : ab.type === 'about' && editMode === 'structured' ? (
+              ) : ab.type === 'about' ? (
                 <>
                   <AboutEditor
                     data={(ab.data as AboutData) || defaultAboutData}
@@ -517,7 +507,7 @@ export default function PageEditorPage() {
                     <div className="bg-zinc-950 max-h-[600px] overflow-y-auto"><div dangerouslySetInnerHTML={{ __html: renderAboutHTML((ab.data as AboutData) || defaultAboutData, lt) }} className="pointer-events-none" /></div>
                   </CardContent></Card>
                 </>
-              ) : ab.type === 'htmlblock' && editMode === 'structured' ? (
+              ) : ab.type === 'htmlblock' ? (
                 <>
                   <HtmlBlockEditor
                     data={(ab.data as any as HtmlBlockData) || defaultHtmlBlockData()}
@@ -535,7 +525,7 @@ export default function PageEditorPage() {
                     <div className="bg-zinc-950 max-h-[500px] overflow-y-auto"><div dangerouslySetInnerHTML={{ __html: renderHtmlBlockHTML((ab.data as any as HtmlBlockData) || defaultHtmlBlockData(), lt) }} className="pointer-events-none" /></div>
                   </CardContent></Card>
                 </>
-              ) : ab.type === 'slider' && editMode === 'structured' ? (
+              ) : ab.type === 'slider' ? (
                 <>
                   <SliderEditor
                     data={(ab.data as any as SliderData) || defaultSliderData()}
@@ -553,7 +543,7 @@ export default function PageEditorPage() {
                     <div className="bg-zinc-950 max-h-[500px] overflow-y-auto"><div dangerouslySetInnerHTML={{ __html: renderSliderHTML((ab.data as any as SliderData) || defaultSliderData(), lt) }} /></div>
                   </CardContent></Card>
                 </>
-              ) : ab.type === 'herotemplate' && editMode === 'structured' ? (
+              ) : ab.type === 'herotemplate' ? (
                 <>
                   <HeroTemplateEditor
                     data={(ab.data as any as HeroTemplateData) || defaultHeroTemplateData()}
