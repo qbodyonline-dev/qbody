@@ -41,6 +41,7 @@ export async function GET(request: NextRequest) {
         email: profile.email,
         phone: profile.phone,
         avatar_url: profile.avatar_url,
+        role: profile.role,
         locale: profile.locale,
         member_since: profile.created_at,
       },
