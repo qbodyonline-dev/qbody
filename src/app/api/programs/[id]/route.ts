@@ -66,12 +66,13 @@ export async function PUT(
   try {
     const supabase = createServerClient()
     const body = await request.json()
-    const { name, name_ru, description, description_ru, duration_weeks, goal, difficulty, is_active, days } = body
+    const { name, name_ru, slug, description, description_ru, duration_weeks, goal, difficulty, is_active, days } = body
 
     // Update program fields
     const updates: Record<string, any> = {}
     if (name !== undefined) updates.name = name
     if (name_ru !== undefined) updates.name_ru = name_ru || null
+    if (slug !== undefined) updates.slug = slug || null
     if (description !== undefined) updates.description = description || null
     if (description_ru !== undefined) updates.description_ru = description_ru || null
     if (duration_weeks !== undefined) updates.duration_weeks = duration_weeks

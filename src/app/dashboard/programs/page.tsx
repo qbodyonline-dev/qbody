@@ -52,6 +52,7 @@ export default function ProgramsPage() {
   // Form
   const [fName, setFName] = useState('')
   const [fNameRu, setFNameRu] = useState('')
+  const [fSlug, setFSlug] = useState('')
   const [fDesc, setFDesc] = useState('')
   const [fDescRu, setFDescRu] = useState('')
   const [fWeeks, setFWeeks] = useState(8)
@@ -64,6 +65,10 @@ export default function ProgramsPage() {
   const [clientsList, setClientsList] = useState<any[]>([])
   const [assignClientId, setAssignClientId] = useState('')
   const [assignStartDate, setAssignStartDate] = useState(new Date().toISOString().split('T')[0])
+
+  /* ─── Slug helper ─── */
+  const generateSlug = (name: string) => name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 80)
+  const programUrl = fSlug ? `${typeof window !== 'undefined' ? window.location.origin : ''}/programs/${fSlug}` : ''
 
   /* ─── Labels ─── */
   const goalLabels: Record<string, string> = ru
@@ -166,7 +171,7 @@ export default function ProgramsPage() {
 
   /* ─── MODAL ─── */
   const resetForm = () => {
-    setFName(''); setFNameRu(''); setFDesc(''); setFDescRu('')
+    setFName(''); setFNameRu(''); setFSlug(''); setFDesc(''); setFDescRu('')
     setFWeeks(8); setFGoal('general'); setFDiff('intermediate')
     setFSchedule(Array.from({ length: 8 }, () => emptyWeek()))
     setEditingId(null); setExpandedWeek(null)
@@ -176,7 +181,7 @@ export default function ProgramsPage() {
 
   const openEdit = (p: Program) => {
     setEditingId(p.id)
-    setFName(p.name); setFNameRu(p.name_ru || ''); setFDesc(p.description || ''); setFDescRu(p.description_ru || '')
+    setFName(p.name); setFNameRu(p.name_ru || ''); setFSlug((p as any).slug || generateSlug(p.name)); setFDesc(p.description || ''); setFDescRu(p.description_ru || '')
     setFWeeks(p.duration_weeks); setFGoal(p.goal); setFDiff(p.difficulty)
     setFSchedule(buildScheduleFromDays(p.program_days, p.duration_weeks))
     setExpandedWeek(null)
@@ -197,9 +202,11 @@ export default function ProgramsPage() {
     if (!fName.trim()) { toast.error(ru ? 'Введите название' : 'Name required'); return }
     setSaving(true)
 
+    const slug = fSlug.trim() || generateSlug(fName)
     const payload = {
       name: fName.trim(),
       name_ru: fNameRu.trim() || null,
+      slug,
       description: fDesc.trim() || null,
       description_ru: fDescRu.trim() || null,
       duration_weeks: fWeeks,
@@ -342,6 +349,38 @@ export default function ProgramsPage() {
           <div className="grid sm:grid-cols-2 gap-4">
             <Input label={`${ru ? 'Описание' : 'Description'} (EN)`} value={fDesc} onChange={e => setFDesc(e.target.value)} />
             <Input label={`${ru ? 'Описание' : 'Description'} (RU)`} value={fDescRu} onChange={e => setFDescRu(e.target.value)} />
+          </div>
+
+          {/* Slug / Link */}
+          <div className="bg-zinc-50 dark:bg-zinc-800/50 rounded-xl p-4 space-y-2">
+            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">{ru ? 'Ссылка на программу' : 'Program Link'}</label>
+            <div className="flex gap-2">
+              <Input
+                value={fSlug}
+                onChange={e => setFSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
+                placeholder={generateSlug(fName) || 'my-program'}
+                className="flex-1"
+              />
+              <Button type="button" variant="outline" size="sm"
+                onClick={() => { if (!fSlug && fName) setFSlug(generateSlug(fName)) }}
+                title={ru ? 'Сгенерировать' : 'Generate'}>
+                {ru ? 'Сген.' : 'Gen.'}
+              </Button>
+            </div>
+            {(fSlug || fName) && (
+              <div className="flex items-center gap-2 mt-1">
+                <code className="text-xs bg-white dark:bg-zinc-900 px-2 py-1 rounded border border-zinc-200 dark:border-zinc-700 flex-1 truncate">
+                  {typeof window !== 'undefined' ? window.location.origin : ''}/programs/{fSlug || generateSlug(fName)}
+                </code>
+                <button type="button" onClick={() => {
+                  const url = `${window.location.origin}/programs/${fSlug || generateSlug(fName)}`
+                  navigator.clipboard.writeText(url)
+                  toast.success(ru ? 'Ссылка скопирована' : 'Link copied')
+                }} className="text-teal-500 hover:text-teal-600">
+                  <Copy className="w-4 h-4" />
+                </button>
+              </div>
+            )}
           </div>
           <div className="grid grid-cols-3 gap-4">
             <div>

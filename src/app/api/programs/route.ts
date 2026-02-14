@@ -72,11 +72,14 @@ export async function POST(request: NextRequest) {
   try {
     const supabase = createServerClient()
     const body = await request.json()
-    const { name, name_ru, description, description_ru, duration_weeks, goal, difficulty, days } = body
+    const { name, name_ru, slug, description, description_ru, duration_weeks, goal, difficulty, days } = body
 
     if (!name) {
       return NextResponse.json({ error: 'Name is required' }, { status: 400 })
     }
+
+    // Auto-generate slug if not provided
+    const programSlug = slug || name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 80)
 
     // Create program
     const { data: program, error: pError } = await supabase
@@ -84,6 +87,7 @@ export async function POST(request: NextRequest) {
       .insert({
         name,
         name_ru: name_ru || null,
+        slug: programSlug,
         description: description || null,
         description_ru: description_ru || null,
         duration_weeks: duration_weeks || 8,
