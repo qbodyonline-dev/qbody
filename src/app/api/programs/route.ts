@@ -72,7 +72,7 @@ export async function POST(request: NextRequest) {
   try {
     const supabase = createServerClient()
     const body = await request.json()
-    const { name, name_ru, slug, description, description_ru, full_description, full_description_ru, duration_weeks, goal, difficulty, days } = body
+    const { name, name_ru, slug, description, description_ru, full_description, full_description_ru, hero_image_url, duration_weeks, goal, difficulty, days } = body
 
     if (!name) {
       return NextResponse.json({ error: 'Name is required' }, { status: 400 })
@@ -92,6 +92,7 @@ export async function POST(request: NextRequest) {
         description_ru: description_ru || null,
         full_description: full_description || null,
         full_description_ru: full_description_ru || null,
+        hero_image_url: hero_image_url || null,
         duration_weeks: duration_weeks || 8,
         goal: goal || 'general',
         difficulty: difficulty || 'intermediate',

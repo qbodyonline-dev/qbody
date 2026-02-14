@@ -3,7 +3,7 @@ import React, { useState, useRef, useCallback } from 'react'
 import {
   Type, Heading, Image as ImageIcon, Video, List, ListOrdered,
   Columns2, Quote, Minus, Plus, Trash2, GripVertical,
-  ChevronUp, ChevronDown, Upload, Link, Bold, Italic
+  ChevronUp, ChevronDown, Upload, Link, Bold, Italic, PanelLeft
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { toast } from 'sonner'
@@ -17,6 +17,7 @@ export type Block =
   | { type: 'list'; style: 'ordered' | 'unordered'; items: string[] }
   | { type: 'columns'; left: Block[]; right: Block[] }
   | { type: 'quote'; content: string; author?: string }
+  | { type: 'image_text'; url: string; alt: string; content: string; layout: 'image-left' | 'image-right' }
   | { type: 'spacer' }
 
 type BlockEditorProps = {
@@ -30,6 +31,7 @@ const BLOCK_TYPES = [
   { type: 'text', icon: Type, label: 'Текст', labelEn: 'Text' },
   { type: 'heading', icon: Heading, label: 'Заголовок', labelEn: 'Heading' },
   { type: 'image', icon: ImageIcon, label: 'Изображение', labelEn: 'Image' },
+  { type: 'image_text', icon: PanelLeft, label: 'Фото + текст', labelEn: 'Image + Text' },
   { type: 'video', icon: Video, label: 'Видео', labelEn: 'Video' },
   { type: 'list', icon: List, label: 'Список', labelEn: 'List' },
   { type: 'columns', icon: Columns2, label: '2 колонки', labelEn: '2 Columns' },
@@ -51,6 +53,7 @@ export default function BlockEditor({ value, onChange, locale = 'ru', uploadImag
       case 'video': newBlock = { type: 'video', url: '', provider: 'youtube' }; break
       case 'list': newBlock = { type: 'list', style: 'unordered', items: [''] }; break
       case 'columns': newBlock = { type: 'columns', left: [{ type: 'text', content: '' }], right: [{ type: 'text', content: '' }] }; break
+      case 'image_text': newBlock = { type: 'image_text', url: '', alt: '', content: '', layout: 'image-left' }; break
       case 'quote': newBlock = { type: 'quote', content: '' }; break
       case 'spacer': newBlock = { type: 'spacer' }; break
       default: return
@@ -149,7 +152,7 @@ function AddBlockButton({ index, ru, onAdd, showAdder, setShowAdder }: {
       </button>
 
       {isOpen && (
-        <div className="absolute top-full left-1/2 -translate-x-1/2 z-20 mt-1 bg-white dark:bg-zinc-900 rounded-xl shadow-xl border border-zinc-200 dark:border-zinc-700 p-2 grid grid-cols-4 gap-1 w-[280px]">
+        <div className="absolute top-full left-1/2 -translate-x-1/2 z-20 mt-1 bg-white dark:bg-zinc-900 rounded-xl shadow-xl border border-zinc-200 dark:border-zinc-700 p-2 grid grid-cols-3 gap-1 w-[260px]">
           {BLOCK_TYPES.map(bt => {
             const Icon = bt.icon
             return (
@@ -219,6 +222,9 @@ function BlockContent({ block, onChange, ru, uploadImage }: {
 
     case 'columns':
       return <ColumnsBlock block={block} onChange={onChange} ru={ru} uploadImage={uploadImage} />
+
+    case 'image_text':
+      return <ImageTextBlock block={block} onChange={onChange} ru={ru} uploadImage={uploadImage} />
 
     case 'quote':
       return (
@@ -392,6 +398,77 @@ function ListBlock({ block, onChange, ru }: {
         className="text-xs text-teal-500 hover:text-teal-600 flex items-center gap-1">
         <Plus className="w-3 h-3" />{ru ? 'Добавить пункт' : 'Add item'}
       </button>
+    </div>
+  )
+}
+
+/* ═══════════ IMAGE + TEXT BLOCK ═══════════ */
+function ImageTextBlock({ block, onChange, ru, uploadImage }: {
+  block: Extract<Block, { type: 'image_text' }>; onChange: (b: Block) => void; ru: boolean
+  uploadImage?: (file: File) => Promise<string>
+}) {
+  const fileRef = useRef<HTMLInputElement>(null)
+  const [uploading, setUploading] = useState(false)
+
+  const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file || !uploadImage) return
+    setUploading(true)
+    try {
+      const url = await uploadImage(file)
+      onChange({ ...block, url })
+      toast.success(ru ? 'Изображение загружено' : 'Image uploaded')
+    } catch { toast.error(ru ? 'Ошибка загрузки' : 'Upload failed') }
+    finally { setUploading(false) }
+  }
+
+  const imageSection = (
+    <div className="flex-1 min-w-0">
+      {block.url ? (
+        <div className="relative">
+          <img src={block.url} alt={block.alt} className="w-full h-40 object-cover rounded-lg" />
+          <button type="button" onClick={() => onChange({ ...block, url: '' })}
+            className="absolute top-1 right-1 p-1 bg-red-500 text-white rounded-full hover:bg-red-600">
+            <Trash2 className="w-3 h-3" />
+          </button>
+        </div>
+      ) : (
+        <div className="border-2 border-dashed border-zinc-300 dark:border-zinc-600 rounded-lg h-40 flex flex-col items-center justify-center cursor-pointer hover:border-teal-400 transition-colors"
+          onClick={() => fileRef.current?.click()}>
+          <ImageIcon className="w-6 h-6 text-zinc-400 mb-1" />
+          <span className="text-xs text-zinc-500">{uploading ? '...' : (ru ? 'Загрузить' : 'Upload')}</span>
+        </div>
+      )}
+      <input ref={fileRef} type="file" accept="image/*" onChange={handleFile} className="hidden" />
+      <input value={block.alt} onChange={e => onChange({ ...block, alt: e.target.value })}
+        placeholder={ru ? 'Alt текст...' : 'Alt text...'}
+        className="w-full text-xs bg-transparent border-0 focus:outline-none text-zinc-500 placeholder-zinc-400 mt-1" />
+    </div>
+  )
+
+  const textSection = (
+    <div className="flex-1 min-w-0">
+      <textarea value={block.content} onChange={e => onChange({ ...block, content: e.target.value })}
+        placeholder={ru ? 'Введите текст...' : 'Enter text...'}
+        className="w-full h-40 text-sm resize-none bg-transparent border border-zinc-200 dark:border-zinc-700 rounded-lg p-2 focus:outline-none focus:ring-1 focus:ring-teal-500 text-zinc-800 dark:text-zinc-200 placeholder-zinc-400" />
+    </div>
+  )
+
+  return (
+    <div className="space-y-2">
+      <div className="flex gap-1 mb-2">
+        <button type="button" onClick={() => onChange({ ...block, layout: 'image-left' })}
+          className={`px-2 py-0.5 text-xs rounded font-medium transition-colors ${block.layout === 'image-left' ? 'bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400' : 'text-zinc-500 hover:bg-zinc-100'}`}>
+          {ru ? 'Фото слева' : 'Image left'}
+        </button>
+        <button type="button" onClick={() => onChange({ ...block, layout: 'image-right' })}
+          className={`px-2 py-0.5 text-xs rounded font-medium transition-colors ${block.layout === 'image-right' ? 'bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400' : 'text-zinc-500 hover:bg-zinc-100'}`}>
+          {ru ? 'Фото справа' : 'Image right'}
+        </button>
+      </div>
+      <div className="flex gap-3">
+        {block.layout === 'image-left' ? <>{imageSection}{textSection}</> : <>{textSection}{imageSection}</>}
+      </div>
     </div>
   )
 }

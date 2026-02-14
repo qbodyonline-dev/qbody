@@ -59,6 +59,8 @@ export default function ProgramsPage() {
   const [fFullDesc, setFFullDesc] = useState<Block[]>([])
   const [fFullDescRu, setFFullDescRu] = useState<Block[]>([])
   const [descTab, setDescTab] = useState<'en' | 'ru'>('ru')
+  const [fHeroImage, setFHeroImage] = useState('')
+  const [heroUploading, setHeroUploading] = useState(false)
   const [fWeeks, setFWeeks] = useState(8)
   const [fGoal, setFGoal] = useState('general')
   const [fDiff, setFDiff] = useState('intermediate')
@@ -70,8 +72,21 @@ export default function ProgramsPage() {
   const [assignClientId, setAssignClientId] = useState('')
   const [assignStartDate, setAssignStartDate] = useState(new Date().toISOString().split('T')[0])
 
+  /* ─── Hero image upload ─── */
+  const handleHeroUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setHeroUploading(true)
+    try {
+      const url = await uploadImageFile(file)
+      setFHeroImage(url)
+      toast.success(ru ? 'Фото загружено' : 'Image uploaded')
+    } catch { toast.error(ru ? 'Ошибка загрузки' : 'Upload failed') }
+    finally { setHeroUploading(false) }
+  }
+
   /* ─── Image upload for block editor ─── */
-  const uploadImage = async (file: File): Promise<string> => {
+  const uploadImageFile = async (file: File): Promise<string> => {
     const formData = new FormData()
     formData.append('file', file)
     const res = await fetchWithAuthUpload('/api/upload', { method: 'POST', body: formData })
@@ -186,7 +201,7 @@ export default function ProgramsPage() {
   /* ─── MODAL ─── */
   const resetForm = () => {
     setFName(''); setFNameRu(''); setFSlug(''); setFDesc(''); setFDescRu('')
-    setFFullDesc([]); setFFullDescRu([]); setDescTab('ru')
+    setFFullDesc([]); setFFullDescRu([]); setDescTab('ru'); setFHeroImage('')
     setFWeeks(8); setFGoal('general'); setFDiff('intermediate')
     setFSchedule(Array.from({ length: 8 }, () => emptyWeek()))
     setEditingId(null); setExpandedWeek(null)
@@ -198,6 +213,7 @@ export default function ProgramsPage() {
     setEditingId(p.id)
     setFName(p.name); setFNameRu(p.name_ru || ''); setFSlug((p as any).slug || generateSlug(p.name)); setFDesc(p.description || ''); setFDescRu(p.description_ru || '')
     setFFullDesc((p as any).full_description || []); setFFullDescRu((p as any).full_description_ru || []); setDescTab('ru')
+    setFHeroImage((p as any).hero_image_url || '')
     setFWeeks(p.duration_weeks); setFGoal(p.goal); setFDiff(p.difficulty)
     setFSchedule(buildScheduleFromDays(p.program_days, p.duration_weeks))
     setExpandedWeek(null)
@@ -227,6 +243,7 @@ export default function ProgramsPage() {
       description_ru: fDescRu.trim() || null,
       full_description: fFullDesc.length > 0 ? fFullDesc : null,
       full_description_ru: fFullDescRu.length > 0 ? fFullDescRu : null,
+      hero_image_url: fHeroImage || null,
       duration_weeks: fWeeks,
       goal: fGoal,
       difficulty: fDiff,
@@ -406,6 +423,33 @@ export default function ProgramsPage() {
               </div>
             )}
           </div>
+          {/* ─── Hero Image ─── */}
+          <div className="bg-zinc-50 dark:bg-zinc-800/50 rounded-xl p-4 space-y-2">
+            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">{ru ? 'Фото программы (hero)' : 'Program Photo (hero)'}</label>
+            {fHeroImage ? (
+              <div className="relative">
+                <img src={fHeroImage} alt="Hero" className="w-full h-40 object-cover rounded-lg" />
+                <button type="button" onClick={() => setFHeroImage('')}
+                  className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-full hover:bg-red-600 shadow-lg">
+                  <Trash2 className="w-3 h-3" />
+                </button>
+              </div>
+            ) : (
+              <label className="flex flex-col items-center justify-center h-32 border-2 border-dashed border-zinc-300 dark:border-zinc-600 rounded-lg cursor-pointer hover:border-teal-400 transition-colors">
+                {heroUploading ? (
+                  <Loader2 className="w-6 h-6 animate-spin text-teal-500" />
+                ) : (
+                  <>
+                    <Plus className="w-6 h-6 text-zinc-400 mb-1" />
+                    <span className="text-xs text-zinc-500">{ru ? 'Загрузить фото' : 'Upload photo'}</span>
+                  </>
+                )}
+                <input type="file" accept="image/*" onChange={handleHeroUpload} className="hidden" />
+              </label>
+            )}
+            <p className="text-[11px] text-zinc-400">{ru ? 'Отображается в шапке страницы программы. Рекоменд. 1920×600px' : 'Displayed in the program page header. Recommended 1920×600px'}</p>
+          </div>
+
           {/* ─── Full Description (Block Editor) ─── */}
           <div className="border-t border-zinc-100 dark:border-zinc-800 pt-4">
             <div className="flex items-center justify-between mb-3">
@@ -418,9 +462,9 @@ export default function ProgramsPage() {
               </div>
             </div>
             {descTab === 'ru' ? (
-              <BlockEditor value={fFullDescRu} onChange={setFFullDescRu} locale="ru" uploadImage={uploadImage} />
+              <BlockEditor value={fFullDescRu} onChange={setFFullDescRu} locale="ru" uploadImage={uploadImageFile} />
             ) : (
-              <BlockEditor value={fFullDesc} onChange={setFFullDesc} locale="en" uploadImage={uploadImage} />
+              <BlockEditor value={fFullDesc} onChange={setFFullDesc} locale="en" uploadImage={uploadImageFile} />
             )}
           </div>
 
