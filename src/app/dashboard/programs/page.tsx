@@ -12,6 +12,7 @@ import {
   ChevronDown, ChevronUp, Copy, UserPlus, X, Power, Check, ExternalLink
 } from 'lucide-react'
 import BlockEditor, { type Block } from '@/components/ui/block-editor'
+import { compressImage } from '@/lib/compress-image'
 import { toast } from 'sonner'
 
 /* ═══════════ TYPES ═══════════ */
@@ -85,10 +86,11 @@ export default function ProgramsPage() {
     finally { setHeroUploading(false) }
   }
 
-  /* ─── Image upload for block editor ─── */
+  /* ─── Image upload (with client-side compression) ─── */
   const uploadImageFile = async (file: File): Promise<string> => {
+    const compressed = await compressImage(file)
     const formData = new FormData()
-    formData.append('file', file)
+    formData.append('file', compressed)
     const res = await fetchWithAuthUpload('/api/upload', { method: 'POST', body: formData })
     if (!res.ok) {
       const err = await res.json().catch(() => ({ error: `HTTP ${res.status}` }))
