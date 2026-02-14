@@ -81,7 +81,7 @@ export default function ProgramsPage() {
       const url = await uploadImageFile(file)
       setFHeroImage(url)
       toast.success(ru ? 'Фото загружено' : 'Image uploaded')
-    } catch { toast.error(ru ? 'Ошибка загрузки' : 'Upload failed') }
+    } catch (e: any) { toast.error(e?.message || (ru ? 'Ошибка загрузки' : 'Upload failed')) }
     finally { setHeroUploading(false) }
   }
 
@@ -90,7 +90,10 @@ export default function ProgramsPage() {
     const formData = new FormData()
     formData.append('file', file)
     const res = await fetchWithAuthUpload('/api/upload', { method: 'POST', body: formData })
-    if (!res.ok) throw new Error('Upload failed')
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ error: `HTTP ${res.status}` }))
+      throw new Error(err.error || 'Upload failed')
+    }
     const data = await res.json()
     return data.url
   }

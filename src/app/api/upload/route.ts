@@ -38,20 +38,28 @@ export async function POST(request: NextRequest) {
 
     const buffer = Buffer.from(await file.arrayBuffer())
 
+    // Ensure bucket exists
+    const BUCKET = 'content-images'
+    const { data: buckets } = await supabase.storage.listBuckets()
+    if (!buckets?.find((b: any) => b.id === BUCKET)) {
+      const { error: createError } = await supabase.storage.createBucket(BUCKET, { public: true })
+      if (createError) console.error('Create bucket error:', createError)
+    }
+
     const { error: uploadError } = await supabase.storage
-      .from('content-images')
+      .from(BUCKET)
       .upload(fileName, buffer, {
         contentType: file.type,
-        upsert: false,
+        upsert: true,
       })
 
     if (uploadError) {
       console.error('Upload error:', uploadError)
-      return NextResponse.json({ error: 'Upload failed' }, { status: 500 })
+      return NextResponse.json({ error: `Upload failed: ${uploadError.message}` }, { status: 500 })
     }
 
     const { data: urlData } = supabase.storage
-      .from('content-images')
+      .from(BUCKET)
       .getPublicUrl(fileName)
 
     return NextResponse.json({ url: urlData.publicUrl })

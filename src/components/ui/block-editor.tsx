@@ -269,7 +269,7 @@ function ImageBlock({ block, onChange, ru, uploadImage }: {
       const url = await uploadImage(file)
       onChange({ ...block, url })
       toast.success(ru ? 'Изображение загружено' : 'Image uploaded')
-    } catch { toast.error(ru ? 'Ошибка загрузки' : 'Upload failed') }
+    } catch (e: any) { toast.error(e?.message || (ru ? 'Ошибка загрузки' : 'Upload failed')) }
     finally { setUploading(false) }
   }
 
@@ -418,7 +418,7 @@ function ImageTextBlock({ block, onChange, ru, uploadImage }: {
       const url = await uploadImage(file)
       onChange({ ...block, url })
       toast.success(ru ? 'Изображение загружено' : 'Image uploaded')
-    } catch { toast.error(ru ? 'Ошибка загрузки' : 'Upload failed') }
+    } catch (e: any) { toast.error(e?.message || (ru ? 'Ошибка загрузки' : 'Upload failed')) }
     finally { setUploading(false) }
   }
 
