@@ -38,7 +38,7 @@ function RenderBlock({ block }: { block: Block }) {
       if (!block.url) return null
       return (
         <figure>
-          <img src={block.url} alt={block.alt || ''} className="w-full rounded-xl shadow-sm" loading="lazy" />
+          <img src={block.url} alt={block.alt || ''} className="w-full rounded-xl shadow-sm" />
           {block.caption && (
             <figcaption className="text-sm text-zinc-500 text-center mt-2">{block.caption}</figcaption>
           )}
@@ -102,7 +102,7 @@ function RenderBlock({ block }: { block: Block }) {
       if (block.url && !block.content) {
         return (
           <figure>
-            <img src={block.url} alt={block.alt || ''} className="w-full rounded-xl shadow-sm" loading="lazy" />
+            <img src={block.url} alt={block.alt || ''} className="w-full rounded-xl shadow-sm" />
           </figure>
         )
       }
@@ -112,7 +112,7 @@ function RenderBlock({ block }: { block: Block }) {
       }
       const img = (
         <div className="md:w-2/5 flex-shrink-0">
-          <img src={block.url} alt={block.alt || ''} className="w-full h-auto rounded-xl shadow-sm object-cover" loading="lazy" />
+          <img src={block.url} alt={block.alt || ''} className="w-full h-auto rounded-xl shadow-sm object-cover" />
         </div>
       )
       const txt = (
