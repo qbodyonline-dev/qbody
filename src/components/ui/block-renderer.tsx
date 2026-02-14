@@ -98,16 +98,28 @@ function RenderBlock({ block }: { block: Block }) {
     case 'image_text': {
       if (!block.url && !block.content) return null
       const isLeft = block.layout === 'image-left'
-      const img = block.url ? (
+      // If only image, render full width
+      if (block.url && !block.content) {
+        return (
+          <figure>
+            <img src={block.url} alt={block.alt || ''} className="w-full rounded-xl shadow-sm" loading="lazy" />
+          </figure>
+        )
+      }
+      // If only text, render as paragraph
+      if (!block.url && block.content) {
+        return <div className="text-zinc-700 dark:text-zinc-300 leading-relaxed whitespace-pre-wrap">{block.content}</div>
+      }
+      const img = (
         <div className="md:w-2/5 flex-shrink-0">
           <img src={block.url} alt={block.alt || ''} className="w-full h-auto rounded-xl shadow-sm object-cover" loading="lazy" />
         </div>
-      ) : null
-      const txt = block.content ? (
+      )
+      const txt = (
         <div className="flex-1 text-zinc-700 dark:text-zinc-300 leading-relaxed whitespace-pre-wrap flex items-center">
           <div>{block.content}</div>
         </div>
-      ) : null
+      )
       return (
         <div className="flex flex-col md:flex-row gap-6 items-start">
           {isLeft ? <>{img}{txt}</> : <>{txt}{img}</>}
