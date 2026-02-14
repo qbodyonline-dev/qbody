@@ -36,6 +36,7 @@ export async function GET(
       .from('training_programs')
       .select(`
         id, name, name_ru, description, description_ru,
+        full_description, full_description_ru,
         duration_weeks, goal, difficulty, slug, is_active, price, original_price,
         features, features_ru, includes, includes_ru,
         hero_image_url, created_at,

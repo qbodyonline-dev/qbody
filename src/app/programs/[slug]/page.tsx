@@ -12,6 +12,7 @@ import {
   ArrowLeft, Dumbbell, Clock, Calendar, CheckCircle2, Shield,
   Flame, Target, TrendingUp, Loader2, ChevronDown, ChevronUp
 } from 'lucide-react'
+import { BlockRenderer } from '@/components/ui/block-renderer'
 import { toast } from 'sonner'
 
 const goalConfig: Record<string, { label: string; labelRu: string; color: string }> = {
@@ -170,6 +171,19 @@ export default function ProgramPage() {
         <div className="max-w-7xl mx-auto px-4">
           <div className="grid lg:grid-cols-3 gap-8">
             <div className="lg:col-span-2 space-y-8">
+
+              {/* Full Description */}
+              {(() => {
+                const fullDesc = ru ? (program.full_description_ru || program.full_description) : (program.full_description)
+                return fullDesc && fullDesc.length > 0 ? (
+                  <Card>
+                    <CardContent className="p-6">
+                      <h2 className="text-xl font-bold mb-4">{ru ? 'О программе' : 'About the Program'}</h2>
+                      <BlockRenderer blocks={fullDesc} />
+                    </CardContent>
+                  </Card>
+                ) : null
+              })()}
 
               {/* Features */}
               {features.length > 0 && (

@@ -6,11 +6,12 @@ import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Modal } from '@/components/ui/modal'
 import { useTranslation } from '@/lib/i18n'
-import { fetchWithAuth } from '@/lib/api'
+import { fetchWithAuth, fetchWithAuthUpload } from '@/lib/api'
 import {
   Plus, Edit, Trash2, Calendar, Users, Dumbbell, Loader2,
-  ChevronDown, ChevronUp, Copy, UserPlus, X, Power, Check
+  ChevronDown, ChevronUp, Copy, UserPlus, X, Power, Check, ExternalLink
 } from 'lucide-react'
+import BlockEditor, { type Block } from '@/components/ui/block-editor'
 import { toast } from 'sonner'
 
 /* ═══════════ TYPES ═══════════ */
@@ -55,6 +56,9 @@ export default function ProgramsPage() {
   const [fSlug, setFSlug] = useState('')
   const [fDesc, setFDesc] = useState('')
   const [fDescRu, setFDescRu] = useState('')
+  const [fFullDesc, setFFullDesc] = useState<Block[]>([])
+  const [fFullDescRu, setFFullDescRu] = useState<Block[]>([])
+  const [descTab, setDescTab] = useState<'en' | 'ru'>('ru')
   const [fWeeks, setFWeeks] = useState(8)
   const [fGoal, setFGoal] = useState('general')
   const [fDiff, setFDiff] = useState('intermediate')
@@ -65,6 +69,16 @@ export default function ProgramsPage() {
   const [clientsList, setClientsList] = useState<any[]>([])
   const [assignClientId, setAssignClientId] = useState('')
   const [assignStartDate, setAssignStartDate] = useState(new Date().toISOString().split('T')[0])
+
+  /* ─── Image upload for block editor ─── */
+  const uploadImage = async (file: File): Promise<string> => {
+    const formData = new FormData()
+    formData.append('file', file)
+    const res = await fetchWithAuthUpload('/api/upload', { method: 'POST', body: formData })
+    if (!res.ok) throw new Error('Upload failed')
+    const data = await res.json()
+    return data.url
+  }
 
   /* ─── Slug helper ─── */
   const generateSlug = (name: string) => name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 80)
@@ -172,6 +186,7 @@ export default function ProgramsPage() {
   /* ─── MODAL ─── */
   const resetForm = () => {
     setFName(''); setFNameRu(''); setFSlug(''); setFDesc(''); setFDescRu('')
+    setFFullDesc([]); setFFullDescRu([]); setDescTab('ru')
     setFWeeks(8); setFGoal('general'); setFDiff('intermediate')
     setFSchedule(Array.from({ length: 8 }, () => emptyWeek()))
     setEditingId(null); setExpandedWeek(null)
@@ -182,6 +197,7 @@ export default function ProgramsPage() {
   const openEdit = (p: Program) => {
     setEditingId(p.id)
     setFName(p.name); setFNameRu(p.name_ru || ''); setFSlug((p as any).slug || generateSlug(p.name)); setFDesc(p.description || ''); setFDescRu(p.description_ru || '')
+    setFFullDesc((p as any).full_description || []); setFFullDescRu((p as any).full_description_ru || []); setDescTab('ru')
     setFWeeks(p.duration_weeks); setFGoal(p.goal); setFDiff(p.difficulty)
     setFSchedule(buildScheduleFromDays(p.program_days, p.duration_weeks))
     setExpandedWeek(null)
@@ -209,6 +225,8 @@ export default function ProgramsPage() {
       slug,
       description: fDesc.trim() || null,
       description_ru: fDescRu.trim() || null,
+      full_description: fFullDesc.length > 0 ? fFullDesc : null,
+      full_description_ru: fFullDescRu.length > 0 ? fFullDescRu : null,
       duration_weeks: fWeeks,
       goal: fGoal,
       difficulty: fDiff,
@@ -324,6 +342,12 @@ export default function ProgramsPage() {
                   <Button variant="outline" size="sm" className="flex-1" onClick={() => openEdit(p)}>
                     <Edit className="w-4 h-4 mr-1" />{ru ? 'Редакт.' : 'Edit'}
                   </Button>
+                  {(p as any).slug && (
+                    <Button variant="ghost" size="sm" title={ru ? 'Просмотреть на сайте' : 'View on site'}
+                      onClick={() => window.open(`/programs/${(p as any).slug}`, '_blank')}>
+                      <ExternalLink className="w-4 h-4 text-blue-500" />
+                    </Button>
+                  )}
                   <Button variant="ghost" size="sm" title={ru ? 'Назначить клиенту' : 'Assign to client'} onClick={() => openAssign(p.id)}>
                     <UserPlus className="w-4 h-4 text-teal-500" />
                   </Button>
@@ -347,8 +371,8 @@ export default function ProgramsPage() {
             <Input label={`${ru ? 'Название' : 'Name'} (RU)`} value={fNameRu} onChange={e => setFNameRu(e.target.value)} />
           </div>
           <div className="grid sm:grid-cols-2 gap-4">
-            <Input label={`${ru ? 'Описание' : 'Description'} (EN)`} value={fDesc} onChange={e => setFDesc(e.target.value)} />
-            <Input label={`${ru ? 'Описание' : 'Description'} (RU)`} value={fDescRu} onChange={e => setFDescRu(e.target.value)} />
+            <Input label={`${ru ? 'Краткое описание' : 'Short Description'} (EN)`} value={fDesc} onChange={e => setFDesc(e.target.value)} />
+            <Input label={`${ru ? 'Краткое описание' : 'Short Description'} (RU)`} value={fDescRu} onChange={e => setFDescRu(e.target.value)} />
           </div>
 
           {/* Slug / Link */}
@@ -382,6 +406,24 @@ export default function ProgramsPage() {
               </div>
             )}
           </div>
+          {/* ─── Full Description (Block Editor) ─── */}
+          <div className="border-t border-zinc-100 dark:border-zinc-800 pt-4">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-semibold text-sm">{ru ? 'Полное описание' : 'Full Description'}</h3>
+              <div className="flex gap-1">
+                <button type="button" onClick={() => setDescTab('ru')}
+                  className={`px-3 py-1 text-xs rounded-lg font-medium transition-colors ${descTab === 'ru' ? 'bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400' : 'text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800'}`}>RU</button>
+                <button type="button" onClick={() => setDescTab('en')}
+                  className={`px-3 py-1 text-xs rounded-lg font-medium transition-colors ${descTab === 'en' ? 'bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400' : 'text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800'}`}>EN</button>
+              </div>
+            </div>
+            {descTab === 'ru' ? (
+              <BlockEditor value={fFullDescRu} onChange={setFFullDescRu} locale="ru" uploadImage={uploadImage} />
+            ) : (
+              <BlockEditor value={fFullDesc} onChange={setFFullDesc} locale="en" uploadImage={uploadImage} />
+            )}
+          </div>
+
           <div className="grid grid-cols-3 gap-4">
             <div>
               <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">{ru ? 'Недель' : 'Weeks'}</label>
