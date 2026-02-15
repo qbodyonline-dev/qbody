@@ -3,40 +3,75 @@ import { createServerClient } from '@/lib/supabase-server'
 import { authenticateRequest, requireAdmin } from '@/lib/api-auth'
 
 /**
- * Convert Tiptap/ProseMirror JSON to plain text.
+ * Convert Block[] (custom page-builder format) to plain text.
  */
-function tiptapToText(value: any): string | null {
+function blocksToText(value: any): string | null {
   if (!value) return null
   if (typeof value === 'string') {
-    // Try parsing JSON string
     try {
       const parsed = JSON.parse(value)
-      if (typeof parsed === 'object') return tiptapToText(parsed)
+      if (Array.isArray(parsed)) return blocksToText(parsed)
     } catch {}
     return value
   }
-  try {
-    const nodes = Array.isArray(value) ? value : value.content || []
-    const text = extractText(nodes).trim()
-    return text || null
-  } catch (e) {
-    console.error('tiptapToText error:', e, 'value type:', typeof value)
-    return null
-  }
+  if (!Array.isArray(value)) return null
+  const parts = value.map((block: any) => {
+    switch (block.type) {
+      case 'text': return block.content || ''
+      case 'heading': return block.content || ''
+      case 'list': return (block.items || []).filter(Boolean).map((i: string) => '• ' + i).join('\n')
+      case 'image_text': return block.content || ''
+      case 'quote': return block.content || ''
+      default: return ''
+    }
+  }).filter(Boolean)
+  return parts.join('\n\n').trim() || null
 }
 
-function extractText(nodes: any[]): string {
-  if (!Array.isArray(nodes)) return ''
-  return nodes.map((node: any) => {
-    if (node.type === 'text') return node.text || ''
-    if (node.type === 'hardBreak') return '\n'
-    if (node.type === 'heading' && node.content) return extractText(node.content) + '\n'
-    if (node.type === 'bulletList' || node.type === 'orderedList') {
-      return (node.content || []).map((li: any) => '• ' + extractText(li.content || [])).join('\n') + '\n'
+/**
+ * Convert Block[] to HTML for mobile rendering.
+ */
+function blocksToHtml(value: any): string | null {
+  if (!value) return null
+  if (typeof value === 'string') {
+    try {
+      const parsed = JSON.parse(value)
+      if (Array.isArray(parsed)) return blocksToHtml(parsed)
+    } catch {}
+    return `<p>${value}</p>`
+  }
+  if (!Array.isArray(value) || value.length === 0) return null
+  const parts = value.map((block: any) => {
+    switch (block.type) {
+      case 'text':
+        return block.content ? `<p>${block.content}</p>` : ''
+      case 'heading': {
+        const tag = `h${block.level || 2}`
+        return block.content ? `<${tag}>${block.content}</${tag}>` : ''
+      }
+      case 'image':
+        return block.url ? `<img src="${block.url}" alt="${block.alt || ''}" style="width:100%;border-radius:12px;" />` : ''
+      case 'list': {
+        const items = (block.items || []).filter(Boolean)
+        if (items.length === 0) return ''
+        const tag = block.style === 'ordered' ? 'ol' : 'ul'
+        return `<${tag}>${items.map((i: string) => `<li>${i}</li>`).join('')}</${tag}>`
+      }
+      case 'image_text': {
+        let html = ''
+        if (block.url) html += `<img src="${block.url}" alt="${block.alt || ''}" style="width:100%;border-radius:12px;margin-bottom:8px;" />`
+        if (block.content) html += `<p>${block.content}</p>`
+        return html
+      }
+      case 'quote':
+        return block.content ? `<blockquote style="border-left:3px solid #14b8a6;padding-left:12px;font-style:italic;color:#666;">${block.content}${block.author ? `<br/><small>— ${block.author}</small>` : ''}</blockquote>` : ''
+      case 'video':
+        return '' // skip video for mobile
+      default:
+        return ''
     }
-    if (node.content) return extractText(node.content) + (node.type === 'paragraph' ? '\n' : '')
-    return ''
-  }).join('')
+  }).filter(Boolean)
+  return parts.join('') || null
 }
 
 // GET — single program with days + clients
@@ -94,13 +129,12 @@ export async function GET(
         .eq('program_id', params.id)
         .maybeSingle()
 
-      console.log('Program full_description type:', typeof data.full_description, 'value:', JSON.stringify(data.full_description)?.substring(0, 200))
-      console.log('Program full_description_ru type:', typeof data.full_description_ru, 'value:', JSON.stringify(data.full_description_ru)?.substring(0, 200))
-
       return NextResponse.json({
         ...data,
-        full_description: tiptapToText(data.full_description),
-        full_description_ru: tiptapToText(data.full_description_ru),
+        full_description: blocksToText(data.full_description),
+        full_description_ru: blocksToText(data.full_description_ru),
+        full_description_html: blocksToHtml(data.full_description),
+        full_description_ru_html: blocksToHtml(data.full_description_ru),
         total_workouts: totalWorkouts,
         enrollment: enrollment || null,
       })

@@ -10,27 +10,29 @@ import { authenticateRequest } from '@/lib/api-auth'
 export const dynamic = 'force-dynamic'
 
 /**
- * Convert Tiptap/ProseMirror JSON to plain text.
+ * Convert Block[] (custom page-builder format) to plain text.
  */
-function tiptapToText(value: any): string | null {
+function blocksToText(value: any): string | null {
   if (!value) return null
-  if (typeof value === 'string') return value
-  try {
-    const nodes = Array.isArray(value) ? value : value.content || []
-    return extractText(nodes).trim() || null
-  } catch {
-    return null
+  if (typeof value === 'string') {
+    try {
+      const parsed = JSON.parse(value)
+      if (Array.isArray(parsed)) return blocksToText(parsed)
+    } catch {}
+    return value
   }
-}
-
-function extractText(nodes: any[]): string {
-  if (!Array.isArray(nodes)) return ''
-  return nodes.map((node: any) => {
-    if (node.type === 'text') return node.text || ''
-    if (node.content) return extractText(node.content) + (node.type === 'paragraph' ? '\n' : '')
-    if (node.type === 'hardBreak') return '\n'
-    return ''
-  }).join('')
+  if (!Array.isArray(value)) return null
+  const parts = value.map((block: any) => {
+    switch (block.type) {
+      case 'text': return block.content || ''
+      case 'heading': return block.content || ''
+      case 'list': return (block.items || []).filter(Boolean).map((i: string) => '• ' + i).join('\n')
+      case 'image_text': return block.content || ''
+      case 'quote': return block.content || ''
+      default: return ''
+    }
+  }).filter(Boolean)
+  return parts.join('\n\n').trim() || null
 }
 
 export async function GET(request: NextRequest) {
@@ -68,8 +70,8 @@ export async function GET(request: NextRequest) {
     // Mark which program is active + convert rich text to plain text
     const result = (programs || []).map((p: any) => ({
       ...p,
-      full_description: tiptapToText(p.full_description),
-      full_description_ru: tiptapToText(p.full_description_ru),
+      full_description: blocksToText(p.full_description),
+      full_description_ru: blocksToText(p.full_description_ru),
       is_active: p.id === activeProgramId,
     }))
 
