@@ -653,7 +653,7 @@ const translations: Record<Locale, Translations> = {
         pricing: 'Pricing',
         social: 'Social',
         forms: 'Forms',
-        translations: 'Translations',
+        translations: 'Languages',
       },
       general: {
         title: 'General Settings',
@@ -760,8 +760,8 @@ const translations: Record<Locale, Translations> = {
         },
       },
       translations: {
-        title: 'Translations',
-        subtitle: 'Manage content translations',
+        title: 'Language Settings',
+        subtitle: 'Configure primary and secondary languages for your site and app',
         selectLanguage: 'Select language',
         key: 'Key',
         original: 'Original',
@@ -1667,7 +1667,7 @@ const translations: Record<Locale, Translations> = {
         pricing: 'Тарифы',
         social: 'Соц. сети',
         forms: 'Формы',
-        translations: 'Переводы',
+        translations: 'Языки',
       },
       general: {
         title: 'Основные настройки',
@@ -1774,8 +1774,8 @@ const translations: Record<Locale, Translations> = {
         },
       },
       translations: {
-        title: 'Переводы',
-        subtitle: 'Управление переводами контента',
+        title: 'Настройки языков',
+        subtitle: 'Настройка основного и дополнительного языков для сайта и приложения',
         selectLanguage: 'Выберите язык',
         key: 'Ключ',
         original: 'Оригинал',

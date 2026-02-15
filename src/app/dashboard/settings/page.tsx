@@ -7,6 +7,7 @@ import { useTranslation } from '@/lib/i18n'
 import { Save, Globe, Palette, FileText, Instagram, Upload, Eye, Image, Edit, Languages, Search, AlertCircle, CheckCircle2, X, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { fetchWithAuth, fetchWithAuthUpload } from '@/lib/api'
+import LanguageSettingsTab from './LanguageSettingsTab'
 
 const tabs = [
   { id: 'general', icon: Globe },
@@ -656,39 +657,7 @@ export default function SettingsPage() {
           )}
 
           {activeTab === 'translations' && (
-            <Card>
-              <CardHeader><CardTitle>{t('settings.translations.title')}</CardTitle><CardDescription>{t('settings.translations.subtitle')}</CardDescription></CardHeader>
-              <CardContent>
-                <div className="mb-6">
-                  <label className="block text-sm font-medium text-zinc-700 mb-2">{t('settings.translations.selectLanguage')}</label>
-                  <select className="w-full h-12 px-4 rounded-xl border border-zinc-200">
-                    <option value="ru">Русский</option>
-                    <option value="es">Español (coming soon)</option>
-                  </select>
-                </div>
-                <div className="space-y-4">
-                  <div className="grid grid-cols-3 gap-4 text-sm font-medium text-zinc-500 pb-2 border-b">
-                    <div>{t('settings.translations.key')}</div>
-                    <div>{t('settings.translations.original')}</div>
-                    <div>{t('settings.translations.translation')}</div>
-                  </div>
-                  {[
-                    { key: 'hero.title', en: 'Transform your body', ru: 'Трансформируй своё тело' },
-                    { key: 'hero.cta', en: 'Get Started', ru: 'Начать' },
-                    { key: 'nav.programs', en: 'Programs', ru: 'Программы' },
-                  ].map((item) => (
-                    <div key={item.key} className="grid grid-cols-3 gap-4 items-center">
-                      <code className="text-xs bg-zinc-100 px-2 py-1 rounded">{item.key}</code>
-                      <span className="text-sm text-zinc-600">{item.en}</span>
-                      <Input defaultValue={item.ru} className="h-10" />
-                    </div>
-                  ))}
-                </div>
-                <div className="flex justify-end mt-6 pt-4 border-t">
-                  <Button variant="gradient">{t('settings.translations.saveAll')}</Button>
-                </div>
-              </CardContent>
-            </Card>
+            <LanguageSettingsTab locale={locale} />
           )}
         </div>
       </div>
