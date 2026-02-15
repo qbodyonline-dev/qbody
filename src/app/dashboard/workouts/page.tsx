@@ -12,6 +12,7 @@ import {
   Loader2, Copy, ChevronDown, ChevronUp, Flame, Snowflake, Zap, X
 } from 'lucide-react'
 import { toast } from 'sonner'
+import { useLanguageConfig } from '@/lib/useLanguageConfig'
 
 /* ═══════════ TYPES ═══════════ */
 type ExerciseRef = {
@@ -83,6 +84,7 @@ const SECTION_ICONS: Record<string, React.ReactNode> = {
 export default function WorkoutsPage() {
   const { t, locale } = useTranslation()
   const ru = locale === 'ru'
+  const lang = useLanguageConfig()
 
   const [workouts, setWorkouts] = useState<Workout[]>([])
   const [total, setTotal] = useState(0)
@@ -441,13 +443,13 @@ export default function WorkoutsPage() {
         title={editingId ? (ru ? 'Редактировать тренировку' : 'Edit Workout') : (ru ? 'Новая тренировка' : 'New Workout')} size="lg">
         <form onSubmit={handleSubmit} className="space-y-4 max-h-[75vh] overflow-y-auto pr-1">
           {/* Basic info */}
-          <div className="grid sm:grid-cols-2 gap-4">
-            <Input label={`${ru ? 'Название' : 'Name'} (EN) *`} value={formName} onChange={e => setFormName(e.target.value)} required />
-            <Input label={`${ru ? 'Название' : 'Name'} (RU)`} value={formNameRu} onChange={e => setFormNameRu(e.target.value)} />
+          <div className={`grid ${lang.isBilingual ? 'sm:grid-cols-2' : ''} gap-4`}>
+            <Input label={`${lang.pl(ru ? 'Название' : 'Name')} *`} value={formName} onChange={e => setFormName(e.target.value)} required />
+            {lang.isBilingual && <Input label={lang.sl(ru ? 'Название' : 'Name')} value={formNameRu} onChange={e => setFormNameRu(e.target.value)} />}
           </div>
-          <div className="grid sm:grid-cols-2 gap-4">
-            <Input label={`${ru ? 'Описание' : 'Description'} (EN)`} value={formDesc} onChange={e => setFormDesc(e.target.value)} />
-            <Input label={`${ru ? 'Описание' : 'Description'} (RU)`} value={formDescRu} onChange={e => setFormDescRu(e.target.value)} />
+          <div className={`grid ${lang.isBilingual ? 'sm:grid-cols-2' : ''} gap-4`}>
+            <Input label={lang.pl(ru ? 'Описание' : 'Description')} value={formDesc} onChange={e => setFormDesc(e.target.value)} />
+            {lang.isBilingual && <Input label={lang.sl(ru ? 'Описание' : 'Description')} value={formDescRu} onChange={e => setFormDescRu(e.target.value)} />}
           </div>
           <div className="grid grid-cols-3 gap-4">
             <div>

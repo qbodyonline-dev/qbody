@@ -10,6 +10,7 @@ import { useTranslation } from '@/lib/i18n'
 import { Plus, Edit, Eye, EyeOff, BookOpen, DollarSign, Clock, Trash2, Loader2, Layers, FileText, Globe } from 'lucide-react'
 import { toast } from 'sonner'
 import { fetchWithAuth } from '@/lib/api'
+import { useLanguageConfig } from '@/lib/useLanguageConfig'
 
 type Course = {
   id: string
@@ -31,6 +32,7 @@ type Course = {
 export default function CoursesAdminPage() {
   const { locale } = useTranslation()
   const ru = locale === 'ru'
+  const lang = useLanguageConfig()
   const [courses, setCourses] = useState<Course[]>([])
   const [loading, setLoading] = useState(true)
   const [isAddOpen, setIsAddOpen] = useState(false)
@@ -198,20 +200,20 @@ export default function CoursesAdminPage() {
 
   const CourseForm = ({ onSubmit, submitLabel }: { onSubmit: (e: React.FormEvent) => void, submitLabel: string }) => (
     <form onSubmit={onSubmit} className="space-y-4">
-      <div className="grid grid-cols-2 gap-4">
-        <Input label={ru ? 'Название (EN)' : 'Title (EN)'} value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value, slug: form.slug || generateSlug(e.target.value) })} required />
-        <Input label={ru ? 'Название (RU)' : 'Title (RU)'} value={form.title_ru} onChange={(e) => setForm({ ...form, title_ru: e.target.value })} />
+      <div className={`grid ${lang.isBilingual ? 'grid-cols-2' : ''} gap-4`}>
+        <Input label={`${lang.pl(ru ? 'Название' : 'Title')} *`} value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value, slug: form.slug || generateSlug(e.target.value) })} required />
+        {lang.isBilingual && <Input label={lang.sl(ru ? 'Название' : 'Title')} value={form.title_ru} onChange={(e) => setForm({ ...form, title_ru: e.target.value })} />}
       </div>
       <Input label="Slug (URL)" value={form.slug} onChange={(e) => setForm({ ...form, slug: e.target.value })} placeholder="course-url-slug" />
-      <div className="grid grid-cols-2 gap-4">
+      <div className={`grid ${lang.isBilingual ? 'grid-cols-2' : ''} gap-4`}>
         <div>
-          <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">{ru ? 'Описание (EN)' : 'Description (EN)'}</label>
+          <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">{lang.pl(ru ? 'Описание' : 'Description')}</label>
           <textarea className="w-full h-20 px-4 py-3 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-teal-500" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
         </div>
-        <div>
-          <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">{ru ? 'Описание (RU)' : 'Description (RU)'}</label>
+        {lang.isBilingual && <div>
+          <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">{lang.sl(ru ? 'Описание' : 'Description')}</label>
           <textarea className="w-full h-20 px-4 py-3 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-teal-500" value={form.description_ru} onChange={(e) => setForm({ ...form, description_ru: e.target.value })} />
-        </div>
+        </div>}
       </div>
       <div className="grid grid-cols-3 gap-4">
         <Input label={ru ? 'Цена ($)' : 'Price ($)'} type="number" step="0.01" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} />

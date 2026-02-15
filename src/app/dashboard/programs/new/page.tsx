@@ -6,9 +6,12 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useTranslation } from '@/lib/i18n'
 import { ArrowLeft, Save, Plus } from 'lucide-react'
+import { useLanguageConfig } from '@/lib/useLanguageConfig'
 
 export default function NewProgramPage() {
-  const { t } = useTranslation()
+  const { t, locale } = useTranslation()
+  const ru = locale === 'ru'
+  const lang = useLanguageConfig()
   return (
     <div className="space-y-6 max-w-3xl">
       <div className="flex items-center gap-4">
@@ -22,10 +25,10 @@ export default function NewProgramPage() {
       <Card>
         <CardHeader><CardTitle>{t('settings.general.title')}</CardTitle></CardHeader>
         <CardContent className="space-y-4">
-          <Input label={`${t('programs.modal.name')} (EN)`} placeholder="e.g. 8 weeks: Lose Weight" />
-          <Input label={`${t('programs.modal.name')} (RU)`} placeholder="напр. 8 недель: Похудей" />
-          <div><label className="block text-sm font-medium text-zinc-700 mb-2">{t('programs.modal.description')} (EN)</label><textarea className="w-full px-4 py-3 rounded-xl border border-zinc-200 h-24" /></div>
-          <div><label className="block text-sm font-medium text-zinc-700 mb-2">{t('programs.modal.description')} (RU)</label><textarea className="w-full px-4 py-3 rounded-xl border border-zinc-200 h-24" /></div>
+          <Input label={lang.pl(t('programs.modal.name'))} placeholder="e.g. 8 weeks: Lose Weight" />
+          {lang.isBilingual && <Input label={lang.sl(t('programs.modal.name'))} placeholder={ru ? 'напр. 8 недель: Похудей' : ''} />}
+          <div><label className="block text-sm font-medium text-zinc-700 mb-2">{lang.pl(t('programs.modal.description'))}</label><textarea className="w-full px-4 py-3 rounded-xl border border-zinc-200 h-24" /></div>
+          {lang.isBilingual && <div><label className="block text-sm font-medium text-zinc-700 mb-2">{lang.sl(t('programs.modal.description'))}</label><textarea className="w-full px-4 py-3 rounded-xl border border-zinc-200 h-24" /></div>}
           <div className="grid grid-cols-3 gap-4">
             <Input label={t('programs.modal.duration')} type="number" defaultValue="8" />
             <Input label={t('settings.pricing.title')} type="number" defaultValue="49" />

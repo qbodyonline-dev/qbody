@@ -14,6 +14,7 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { fetchWithAuth } from '@/lib/api'
+import { useLanguageConfig } from '@/lib/useLanguageConfig'
 
 // Local modules
 import { TEMPLATES, initBlocks, defaultCourseItems, defaultProgramItems, defaultResultItems, defaultHeaderData, defaultHeroData, defaultAboutData } from './default-content'
@@ -59,6 +60,7 @@ export default function PageEditorPage() {
 function PageEditorInner() {
   const { locale } = useTranslation()
   const lang = locale as 'en' | 'ru'
+  const langConfig = useLanguageConfig()
   const searchParams = useSearchParams()
   const router = useRouter()
 
@@ -439,9 +441,9 @@ function PageEditorInner() {
             <button onClick={undo} disabled={histIdx <= 0} className="p-1.5 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 disabled:opacity-30" title="Undo"><Undo2 className="w-4 h-4" /></button>
             <button onClick={redo} disabled={histIdx >= history.length - 1} className="p-1.5 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 disabled:opacity-30" title="Redo"><Redo2 className="w-4 h-4" /></button>
           </div>
-          <div className="flex bg-zinc-100 dark:bg-zinc-800 rounded-lg p-0.5">
-            {(['en', 'ru'] as const).map(l => (<button key={l} onClick={() => setLt(l)} className={`px-3 py-1 text-xs font-medium rounded-md ${lt === l ? 'bg-white dark:bg-zinc-700 shadow text-zinc-900 dark:text-zinc-100' : 'text-zinc-500'}`}>{l.toUpperCase()}</button>))}
-          </div>
+          {langConfig.isBilingual && <div className="flex bg-zinc-100 dark:bg-zinc-800 rounded-lg p-0.5">
+            {[langConfig.primaryLanguage, langConfig.secondaryLanguage].filter(Boolean).map(l => (<button key={l} onClick={() => setLt(l as 'en' | 'ru')} className={`px-3 py-1 text-xs font-medium rounded-md ${lt === l ? 'bg-white dark:bg-zinc-700 shadow text-zinc-900 dark:text-zinc-100' : 'text-zinc-500'}`}>{(l as string).toUpperCase()}</button>))}
+          </div>}
           <Button variant="outline" size="sm" onClick={() => setPreview(!preview)}>
             {preview ? <><EyeOff className="w-3.5 h-3.5 mr-1.5" />{lang === 'ru' ? 'Ред.' : 'Edit'}</> : <><Eye className="w-3.5 h-3.5 mr-1.5" />{lang === 'ru' ? 'Превью' : 'Preview'}</>}
           </Button>

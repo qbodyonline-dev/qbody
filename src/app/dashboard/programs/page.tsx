@@ -14,6 +14,7 @@ import {
 import BlockEditor, { type Block } from '@/components/ui/block-editor'
 import { compressImage } from '@/lib/compress-image'
 import { toast } from 'sonner'
+import { useLanguageConfig } from '@/lib/useLanguageConfig'
 
 /* ═══════════ TYPES ═══════════ */
 type WorkoutRef = { id: string; name: string; name_ru: string | null; type: string; difficulty: string; estimated_duration: number }
@@ -34,6 +35,7 @@ const DIFFS = ['beginner', 'intermediate', 'advanced'] as const
 export default function ProgramsPage() {
   const { t, locale } = useTranslation()
   const ru = locale === 'ru'
+  const lang = useLanguageConfig()
 
   const [programs, setPrograms] = useState<Program[]>([])
   const [total, setTotal] = useState(0)
@@ -388,13 +390,13 @@ export default function ProgramsPage() {
         title={editingId ? (ru ? 'Редактировать программу' : 'Edit Program') : (ru ? 'Новая программа' : 'New Program')} size="xl">
         <form onSubmit={handleSubmit} className="space-y-4 max-h-[75vh] overflow-y-auto pr-1">
           {/* Basic */}
-          <div className="grid sm:grid-cols-2 gap-4">
-            <Input label={`${ru ? 'Название' : 'Name'} (EN) *`} value={fName} onChange={e => setFName(e.target.value)} required />
-            <Input label={`${ru ? 'Название' : 'Name'} (RU)`} value={fNameRu} onChange={e => setFNameRu(e.target.value)} />
+          <div className={`grid ${lang.isBilingual ? 'sm:grid-cols-2' : ''} gap-4`}>
+            <Input label={`${lang.pl(ru ? 'Название' : 'Name')} *`} value={fName} onChange={e => setFName(e.target.value)} required />
+            {lang.isBilingual && <Input label={lang.sl(ru ? 'Название' : 'Name')} value={fNameRu} onChange={e => setFNameRu(e.target.value)} />}
           </div>
-          <div className="grid sm:grid-cols-2 gap-4">
-            <Input label={`${ru ? 'Краткое описание' : 'Short Description'} (EN)`} value={fDesc} onChange={e => setFDesc(e.target.value)} />
-            <Input label={`${ru ? 'Краткое описание' : 'Short Description'} (RU)`} value={fDescRu} onChange={e => setFDescRu(e.target.value)} />
+          <div className={`grid ${lang.isBilingual ? 'sm:grid-cols-2' : ''} gap-4`}>
+            <Input label={lang.pl(ru ? 'Краткое описание' : 'Short Description')} value={fDesc} onChange={e => setFDesc(e.target.value)} />
+            {lang.isBilingual && <Input label={lang.sl(ru ? 'Краткое описание' : 'Short Description')} value={fDescRu} onChange={e => setFDescRu(e.target.value)} />}
           </div>
 
           {/* Slug / Link */}
@@ -459,14 +461,16 @@ export default function ProgramsPage() {
           <div className="border-t border-zinc-100 dark:border-zinc-800 pt-4">
             <div className="flex items-center justify-between mb-3">
               <h3 className="font-semibold text-sm">{ru ? 'Полное описание' : 'Full Description'}</h3>
-              <div className="flex gap-1">
-                <button type="button" onClick={() => setDescTab('ru')}
-                  className={`px-3 py-1 text-xs rounded-lg font-medium transition-colors ${descTab === 'ru' ? 'bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400' : 'text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800'}`}>RU</button>
-                <button type="button" onClick={() => setDescTab('en')}
-                  className={`px-3 py-1 text-xs rounded-lg font-medium transition-colors ${descTab === 'en' ? 'bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400' : 'text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800'}`}>EN</button>
-              </div>
+              {lang.isBilingual && (
+                <div className="flex gap-1">
+                  <button type="button" onClick={() => setDescTab('en')}
+                    className={`px-3 py-1 text-xs rounded-lg font-medium transition-colors ${descTab === 'en' ? 'bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400' : 'text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800'}`}>{lang.pCode}</button>
+                  <button type="button" onClick={() => setDescTab('ru')}
+                    className={`px-3 py-1 text-xs rounded-lg font-medium transition-colors ${descTab === 'ru' ? 'bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400' : 'text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800'}`}>{lang.sCode}</button>
+                </div>
+              )}
             </div>
-            {descTab === 'ru' ? (
+            {descTab === 'ru' && lang.isBilingual ? (
               <BlockEditor value={fFullDescRu} onChange={setFFullDescRu} locale="ru" uploadImage={uploadImageFile} />
             ) : (
               <BlockEditor value={fFullDesc} onChange={setFFullDesc} locale="en" uploadImage={uploadImageFile} />

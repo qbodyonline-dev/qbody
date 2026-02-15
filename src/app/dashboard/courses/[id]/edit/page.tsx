@@ -15,6 +15,7 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { fetchWithAuth, fetchWithAuthUpload } from '@/lib/api'
+import { useLanguageConfig } from '@/lib/useLanguageConfig'
 
 type ContentBlock = {
   id: string
@@ -59,6 +60,7 @@ type Course = {
 export default function CourseEditorPage() {
   const { locale } = useTranslation()
   const ru = locale === 'ru'
+  const lang = useLanguageConfig()
   const params = useParams()
   const router = useRouter()
   const courseId = params.id as string
@@ -531,9 +533,9 @@ export default function CourseEditorPage() {
       {/* Module Modal */}
       <Modal isOpen={isModuleModalOpen} onClose={() => setIsModuleModalOpen(false)} title={editingModule ? (ru ? 'Редактировать модуль' : 'Edit Module') : (ru ? 'Новый модуль' : 'New Module')} size="md">
         <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <Input label={ru ? 'Название (EN)' : 'Title (EN)'} value={moduleForm.title} onChange={(e) => setModuleForm({ ...moduleForm, title: e.target.value })} />
-            <Input label={ru ? 'Название (RU)' : 'Title (RU)'} value={moduleForm.title_ru} onChange={(e) => setModuleForm({ ...moduleForm, title_ru: e.target.value })} />
+          <div className={`grid ${lang.isBilingual ? 'grid-cols-2' : ''} gap-4`}>
+            <Input label={lang.pl(ru ? 'Название' : 'Title')} value={moduleForm.title} onChange={(e) => setModuleForm({ ...moduleForm, title: e.target.value })} />
+            {lang.isBilingual && <Input label={lang.sl(ru ? 'Название' : 'Title')} value={moduleForm.title_ru} onChange={(e) => setModuleForm({ ...moduleForm, title_ru: e.target.value })} />}
           </div>
           <div className="flex justify-end gap-3 pt-4">
             <Button variant="outline" onClick={() => setIsModuleModalOpen(false)}>{ru ? 'Отмена' : 'Cancel'}</Button>
@@ -548,9 +550,9 @@ export default function CourseEditorPage() {
       <Modal isOpen={isLessonModalOpen} onClose={() => setIsLessonModalOpen(false)} title={editingLesson ? (ru ? 'Редактировать урок' : 'Edit Lesson') : (ru ? 'Новый урок' : 'New Lesson')} size="xl">
         <div className="space-y-6 max-h-[70vh] overflow-y-auto pr-2">
           {/* Basic Info */}
-          <div className="grid grid-cols-2 gap-4">
-            <Input label={ru ? 'Название (EN)' : 'Title (EN)'} value={lessonForm.title} onChange={(e) => setLessonForm({ ...lessonForm, title: e.target.value })} />
-            <Input label={ru ? 'Название (RU)' : 'Title (RU)'} value={lessonForm.title_ru} onChange={(e) => setLessonForm({ ...lessonForm, title_ru: e.target.value })} />
+          <div className={`grid ${lang.isBilingual ? 'grid-cols-2' : ''} gap-4`}>
+            <Input label={lang.pl(ru ? 'Название' : 'Title')} value={lessonForm.title} onChange={(e) => setLessonForm({ ...lessonForm, title: e.target.value })} />
+            {lang.isBilingual && <Input label={lang.sl(ru ? 'Название' : 'Title')} value={lessonForm.title_ru} onChange={(e) => setLessonForm({ ...lessonForm, title_ru: e.target.value })} />}
           </div>
           <div className="grid grid-cols-3 gap-4">
             <div>
@@ -626,16 +628,16 @@ export default function CourseEditorPage() {
                     </div>
 
                     {block.type === 'heading' && (
-                      <div className="grid grid-cols-2 gap-3">
-                        <Input placeholder="Heading (EN)" value={block.content} onChange={(e) => updateContentBlock(block.id, 'content', e.target.value)} />
-                        <Input placeholder="Заголовок (RU)" value={lessonForm.content_ru.find(b => b.id === block.id)?.content || ''} onChange={(e) => updateContentBlock(block.id, 'content_ru', e.target.value)} />
+                      <div className={`grid ${lang.isBilingual ? 'grid-cols-2' : ''} gap-3`}>
+                        <Input placeholder={`Heading (${lang.pCode})`} value={block.content} onChange={(e) => updateContentBlock(block.id, 'content', e.target.value)} />
+                        {lang.isBilingual && <Input placeholder={`Heading (${lang.sCode})`} value={lessonForm.content_ru.find(b => b.id === block.id)?.content || ''} onChange={(e) => updateContentBlock(block.id, 'content_ru', e.target.value)} />}
                       </div>
                     )}
 
                     {block.type === 'text' && (
-                      <div className="grid grid-cols-2 gap-3">
-                        <textarea className="w-full h-24 px-4 py-3 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-sm resize-none" placeholder="Text content (EN)" value={block.content} onChange={(e) => updateContentBlock(block.id, 'content', e.target.value)} />
-                        <textarea className="w-full h-24 px-4 py-3 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-sm resize-none" placeholder="Текстовый контент (RU)" value={lessonForm.content_ru.find(b => b.id === block.id)?.content || ''} onChange={(e) => updateContentBlock(block.id, 'content_ru', e.target.value)} />
+                      <div className={`grid ${lang.isBilingual ? 'grid-cols-2' : ''} gap-3`}>
+                        <textarea className="w-full h-24 px-4 py-3 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-sm resize-none" placeholder={`Text (${lang.pCode})`} value={block.content} onChange={(e) => updateContentBlock(block.id, 'content', e.target.value)} />
+                        {lang.isBilingual && <textarea className="w-full h-24 px-4 py-3 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-sm resize-none" placeholder={`Text (${lang.sCode})`} value={lessonForm.content_ru.find(b => b.id === block.id)?.content || ''} onChange={(e) => updateContentBlock(block.id, 'content_ru', e.target.value)} />}
                       </div>
                     )}
 
@@ -667,8 +669,8 @@ export default function CourseEditorPage() {
                         {block.items?.map((item, i) => (
                           <div key={item.id} className="flex items-center gap-2">
                             <Check className="w-4 h-4 text-zinc-400" />
-                            <Input placeholder={`Item ${i + 1} (EN)`} value={item.text} onChange={(e) => updateChecklistItem(block.id, item.id, 'text', e.target.value)} className="flex-1" />
-                            <Input placeholder={`Пункт ${i + 1} (RU)`} value={item.text_ru || ''} onChange={(e) => updateChecklistItem(block.id, item.id, 'text_ru', e.target.value)} className="flex-1" />
+                            <Input placeholder={`Item ${i + 1} (${lang.pCode})`} value={item.text} onChange={(e) => updateChecklistItem(block.id, item.id, 'text', e.target.value)} className="flex-1" />
+                            {lang.isBilingual && <Input placeholder={`Item ${i + 1} (${lang.sCode})`} value={item.text_ru || ''} onChange={(e) => updateChecklistItem(block.id, item.id, 'text_ru', e.target.value)} className="flex-1" />}
                             <Button variant="ghost" size="sm" onClick={() => removeChecklistItem(block.id, item.id)} className="text-red-500"><X className="w-4 h-4" /></Button>
                           </div>
                         ))}

@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useTranslation } from '@/lib/i18n'
 import { fetchWithAuth } from '@/lib/api'
+import { useLanguageConfig } from '@/lib/useLanguageConfig'
 
 interface SitePage {
   id: string
@@ -22,6 +23,7 @@ interface SitePage {
 export default function PagesPage() {
   const { locale } = useTranslation()
   const ru = locale === 'ru'
+  const lang = useLanguageConfig()
   const [pages, setPages] = useState<SitePage[]>([])
   const [loading, setLoading] = useState(true)
   const [newTitle, setNewTitle] = useState('')
@@ -130,25 +132,25 @@ export default function PagesPage() {
           <h3 className="text-sm font-semibold text-zinc-700 dark:text-zinc-300 mb-4">
             {ru ? 'Создать страницу' : 'Create Page'}
           </h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+          <div className={`grid grid-cols-1 ${lang.isBilingual ? 'sm:grid-cols-2' : ''} gap-3 mb-4`}>
             <div>
-              <label className="text-xs text-zinc-500 mb-1 block">Title (EN)</label>
+              <label className="text-xs text-zinc-500 mb-1 block">{lang.pl(ru ? 'Название' : 'Title')}</label>
               <Input
                 value={newTitle}
                 onChange={e => setNewTitle(e.target.value)}
-                placeholder={ru ? 'Название (EN)' : 'Page title'}
+                placeholder={ru ? 'Название' : 'Page title'}
                 onKeyDown={e => e.key === 'Enter' && createPage()}
               />
             </div>
-            <div>
-              <label className="text-xs text-zinc-500 mb-1 block">Title (RU)</label>
+            {lang.isBilingual && <div>
+              <label className="text-xs text-zinc-500 mb-1 block">{lang.sl(ru ? 'Название' : 'Title')}</label>
               <Input
                 value={newTitleRu}
                 onChange={e => setNewTitleRu(e.target.value)}
-                placeholder={ru ? 'Название (RU)' : 'Page title (RU)'}
+                placeholder={ru ? 'Название' : 'Page title'}
                 onKeyDown={e => e.key === 'Enter' && createPage()}
               />
-            </div>
+            </div>}
           </div>
           {newTitle.trim() && (
             <p className="text-xs text-zinc-400 mb-3">

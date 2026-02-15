@@ -9,6 +9,7 @@ import { useTranslation } from '@/lib/i18n'
 import { fetchWithAuth } from '@/lib/api'
 import { Search, Plus, Play, Edit, Trash2, Video, Loader2, Dumbbell, ExternalLink } from 'lucide-react'
 import { toast } from 'sonner'
+import { useLanguageConfig } from '@/lib/useLanguageConfig'
 
 /* ═══════════ TYPES ═══════════ */
 type Exercise = {
@@ -73,6 +74,7 @@ const DIFFICULTIES = ['beginner', 'intermediate', 'advanced']
 export default function ExercisesPage() {
   const { t, locale } = useTranslation()
   const ru = locale === 'ru'
+  const lang = useLanguageConfig()
 
   const [exercises, setExercises] = useState<Exercise[]>([])
   const [total, setTotal] = useState(0)
@@ -373,13 +375,13 @@ export default function ExercisesPage() {
           {/* TAB: Basic */}
           {activeTab === 'basic' && (
             <div className="space-y-4">
-              <div className="grid sm:grid-cols-2 gap-4">
-                <Input label={`${ru ? 'Название' : 'Name'} (EN) *`} value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} required />
-                <Input label={`${ru ? 'Название' : 'Name'} (RU)`} value={formData.name_ru} onChange={(e) => setFormData({...formData, name_ru: e.target.value})} />
+              <div className={`grid ${lang.isBilingual ? 'sm:grid-cols-2' : ''} gap-4`}>
+                <Input label={`${lang.pl(ru ? 'Название' : 'Name')} *`} value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} required />
+                {lang.isBilingual && <Input label={lang.sl(ru ? 'Название' : 'Name')} value={formData.name_ru} onChange={(e) => setFormData({...formData, name_ru: e.target.value})} />}
               </div>
-              <div className="grid sm:grid-cols-2 gap-4">
-                <Input label={`${ru ? 'Описание' : 'Description'} (EN)`} value={formData.description} onChange={(e) => setFormData({...formData, description: e.target.value})} />
-                <Input label={`${ru ? 'Описание' : 'Description'} (RU)`} value={formData.description_ru} onChange={(e) => setFormData({...formData, description_ru: e.target.value})} />
+              <div className={`grid ${lang.isBilingual ? 'sm:grid-cols-2' : ''} gap-4`}>
+                <Input label={lang.pl(ru ? 'Описание' : 'Description')} value={formData.description} onChange={(e) => setFormData({...formData, description: e.target.value})} />
+                {lang.isBilingual && <Input label={lang.sl(ru ? 'Описание' : 'Description')} value={formData.description_ru} onChange={(e) => setFormData({...formData, description_ru: e.target.value})} />}
               </div>
 
               {/* Muscle groups */}
@@ -422,45 +424,45 @@ export default function ExercisesPage() {
           {/* TAB: Technique */}
           {activeTab === 'technique' && (
             <div className="space-y-4">
-              <div className="grid sm:grid-cols-2 gap-4">
+              <div className={`grid ${lang.isBilingual ? 'sm:grid-cols-2' : ''} gap-4`}>
                 <div>
-                  <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">{ru ? 'Инструкция' : 'Instructions'} (EN)</label>
+                  <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">{lang.pl(ru ? 'Инструкция' : 'Instructions')}</label>
                   <textarea className="w-full px-3 py-2 rounded-lg border border-zinc-200 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 resize-none text-sm" rows={4} placeholder="Step by step..." value={formData.instructions} onChange={e => setFormData({...formData, instructions: e.target.value})} />
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">{ru ? 'Инструкция' : 'Instructions'} (RU)</label>
+                {lang.isBilingual && <div>
+                  <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">{lang.sl(ru ? 'Инструкция' : 'Instructions')}</label>
                   <textarea className="w-full px-3 py-2 rounded-lg border border-zinc-200 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 resize-none text-sm" rows={4} placeholder="Пошагово..." value={formData.instructions_ru} onChange={e => setFormData({...formData, instructions_ru: e.target.value})} />
-                </div>
+                </div>}
               </div>
-              <div className="grid sm:grid-cols-2 gap-4">
+              <div className={`grid ${lang.isBilingual ? 'sm:grid-cols-2' : ''} gap-4`}>
                 <div>
-                  <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">{ru ? 'Типичные ошибки' : 'Common Mistakes'} (EN)</label>
+                  <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">{lang.pl(ru ? 'Типичные ошибки' : 'Common Mistakes')}</label>
                   <textarea className="w-full px-3 py-2 rounded-lg border border-zinc-200 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 resize-none text-sm" rows={3} value={formData.common_mistakes} onChange={e => setFormData({...formData, common_mistakes: e.target.value})} />
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">{ru ? 'Типичные ошибки' : 'Common Mistakes'} (RU)</label>
+                {lang.isBilingual && <div>
+                  <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">{lang.sl(ru ? 'Типичные ошибки' : 'Common Mistakes')}</label>
                   <textarea className="w-full px-3 py-2 rounded-lg border border-zinc-200 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 resize-none text-sm" rows={3} value={formData.common_mistakes_ru} onChange={e => setFormData({...formData, common_mistakes_ru: e.target.value})} />
-                </div>
+                </div>}
               </div>
-              <div className="grid sm:grid-cols-2 gap-4">
+              <div className={`grid ${lang.isBilingual ? 'sm:grid-cols-2' : ''} gap-4`}>
                 <div>
-                  <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">{ru ? 'Регрессии (упрощения)' : 'Regressions'} (EN)</label>
+                  <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">{lang.pl(ru ? 'Регрессии (упрощения)' : 'Regressions')}</label>
                   <textarea className="w-full px-3 py-2 rounded-lg border border-zinc-200 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 resize-none text-sm" rows={2} placeholder={ru ? 'Облегчённые варианты...' : 'Easier alternatives...'} value={formData.regressions} onChange={e => setFormData({...formData, regressions: e.target.value})} />
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">{ru ? 'Регрессии (упрощения)' : 'Regressions'} (RU)</label>
+                {lang.isBilingual && <div>
+                  <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">{lang.sl(ru ? 'Регрессии (упрощения)' : 'Regressions')}</label>
                   <textarea className="w-full px-3 py-2 rounded-lg border border-zinc-200 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 resize-none text-sm" rows={2} value={formData.regressions_ru} onChange={e => setFormData({...formData, regressions_ru: e.target.value})} />
-                </div>
+                </div>}
               </div>
-              <div className="grid sm:grid-cols-2 gap-4">
+              <div className={`grid ${lang.isBilingual ? 'sm:grid-cols-2' : ''} gap-4`}>
                 <div>
-                  <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">{ru ? 'Прогрессии (усложнения)' : 'Progressions'} (EN)</label>
+                  <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">{lang.pl(ru ? 'Прогрессии (усложнения)' : 'Progressions')}</label>
                   <textarea className="w-full px-3 py-2 rounded-lg border border-zinc-200 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 resize-none text-sm" rows={2} placeholder={ru ? 'Усложнённые варианты...' : 'Harder variations...'} value={formData.progressions} onChange={e => setFormData({...formData, progressions: e.target.value})} />
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">{ru ? 'Прогрессии (усложнения)' : 'Progressions'} (RU)</label>
+                {lang.isBilingual && <div>
+                  <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">{lang.sl(ru ? 'Прогрессии (усложнения)' : 'Progressions')}</label>
                   <textarea className="w-full px-3 py-2 rounded-lg border border-zinc-200 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 resize-none text-sm" rows={2} value={formData.progressions_ru} onChange={e => setFormData({...formData, progressions_ru: e.target.value})} />
-                </div>
+                </div>}
               </div>
             </div>
           )}

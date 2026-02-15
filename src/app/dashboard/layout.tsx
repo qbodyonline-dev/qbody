@@ -18,6 +18,7 @@ import { cn } from '@/lib/utils'
 import { useAuth } from '@/lib/auth'
 import { createClient } from '@/lib/supabase'
 import { DashboardSearch } from '@/components/dashboard/DashboardSearch'
+import { LanguageConfigProvider } from '@/lib/useLanguageConfig'
 
 type NavItem = {
   name: string; href: string; icon: any; badge?: number
@@ -328,7 +329,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </div>
           </div>
         </header>
-        <main className="p-4 lg:p-6">{children}</main>
+        <main className="p-4 lg:p-6"><LanguageConfigProvider>{children}</LanguageConfigProvider></main>
       </div>
     </div>
   )
