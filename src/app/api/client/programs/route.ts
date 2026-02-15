@@ -7,6 +7,8 @@ import { authenticateRequest } from '@/lib/api-auth'
  * Returns available programs + which one the client is currently enrolled in.
  * Used by the mobile app's Programs screen.
  */
+export const dynamic = 'force-dynamic'
+
 export async function GET(request: NextRequest) {
   const auth = await authenticateRequest(request)
   if (!auth.success) {
@@ -21,7 +23,7 @@ export async function GET(request: NextRequest) {
     // Get all programs
     const { data: programs, error } = await supabase
       .from('training_programs')
-      .select('id, name, name_ru, description, description_ru, duration_weeks, goal, difficulty, created_at')
+      .select('id, name, name_ru, description, description_ru, full_description, full_description_ru, hero_image_url, duration_weeks, goal, difficulty, created_at')
       .order('created_at', { ascending: false })
 
     if (error) {

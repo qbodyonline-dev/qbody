@@ -1,16 +1,54 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase-server'
-import { requireAdmin } from '@/lib/api-auth'
+import { authenticateRequest, requireAdmin } from '@/lib/api-auth'
 
 // GET — single program with days + clients
+// Supports both admin and client access
 export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  const auth = await requireAdmin(request)
+  // Try client auth first (mobile app / client)
+  const auth = await authenticateRequest(request)
   if (!auth.success) {
     return NextResponse.json({ error: auth.error.error }, { status: auth.error.status })
   }
+
+  const isAdmin = auth.data.profile?.role === 'admin' || auth.data.profile?.role === 'trainer'
+
+  // If NOT admin, return client-friendly response
+  if (!isAdmin) {
+    try {
+      const supabase = createServerClient()
+      const { data, error } = await supabase
+        .from('training_programs')
+        .select('id, name, name_ru, description, description_ru, full_description, full_description_ru, hero_image_url, duration_weeks, goal, difficulty, created_at')
+        .eq('id', params.id)
+        .single()
+
+      if (error || !data) {
+        return NextResponse.json({ error: 'Program not found' }, { status: 404 })
+      }
+
+      // Check if client has active enrollment
+      const { data: enrollment } = await supabase
+        .from('client_programs')
+        .select('id, status, start_date, current_week')
+        .eq('client_id', auth.data.user.id)
+        .eq('program_id', params.id)
+        .maybeSingle()
+
+      return NextResponse.json({
+        ...data,
+        enrollment: enrollment || null,
+      })
+    } catch (err: any) {
+      console.error('GET /api/programs/[id] client error:', err)
+      return NextResponse.json({ error: 'Server error' }, { status: 500 })
+    }
+  }
+
+  // Admin flow (original)
 
   try {
     const supabase = createServerClient()
