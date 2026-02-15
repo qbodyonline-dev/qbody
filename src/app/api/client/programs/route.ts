@@ -9,6 +9,30 @@ import { authenticateRequest } from '@/lib/api-auth'
  */
 export const dynamic = 'force-dynamic'
 
+/**
+ * Convert Tiptap/ProseMirror JSON to plain text.
+ */
+function tiptapToText(value: any): string | null {
+  if (!value) return null
+  if (typeof value === 'string') return value
+  try {
+    const nodes = Array.isArray(value) ? value : value.content || []
+    return extractText(nodes).trim() || null
+  } catch {
+    return null
+  }
+}
+
+function extractText(nodes: any[]): string {
+  if (!Array.isArray(nodes)) return ''
+  return nodes.map((node: any) => {
+    if (node.type === 'text') return node.text || ''
+    if (node.content) return extractText(node.content) + (node.type === 'paragraph' ? '\n' : '')
+    if (node.type === 'hardBreak') return '\n'
+    return ''
+  }).join('')
+}
+
 export async function GET(request: NextRequest) {
   const auth = await authenticateRequest(request)
   if (!auth.success) {
@@ -41,9 +65,11 @@ export async function GET(request: NextRequest) {
 
     const activeProgramId = activeProgram?.program_id || null
 
-    // Mark which program is active for this client
+    // Mark which program is active + convert rich text to plain text
     const result = (programs || []).map((p: any) => ({
       ...p,
+      full_description: tiptapToText(p.full_description),
+      full_description_ru: tiptapToText(p.full_description_ru),
       is_active: p.id === activeProgramId,
     }))
 

@@ -2,6 +2,30 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase-server'
 import { authenticateRequest, requireAdmin } from '@/lib/api-auth'
 
+/**
+ * Convert Tiptap/ProseMirror JSON to plain text.
+ */
+function tiptapToText(value: any): string | null {
+  if (!value) return null
+  if (typeof value === 'string') return value
+  try {
+    const nodes = Array.isArray(value) ? value : value.content || []
+    return extractText(nodes).trim() || null
+  } catch {
+    return null
+  }
+}
+
+function extractText(nodes: any[]): string {
+  if (!Array.isArray(nodes)) return ''
+  return nodes.map((node: any) => {
+    if (node.type === 'text') return node.text || ''
+    if (node.content) return extractText(node.content) + (node.type === 'paragraph' ? '\n' : '')
+    if (node.type === 'hardBreak') return '\n'
+    return ''
+  }).join('')
+}
+
 // GET — single program with days + clients
 // Supports both admin and client access
 export async function GET(
@@ -40,6 +64,8 @@ export async function GET(
 
       return NextResponse.json({
         ...data,
+        full_description: tiptapToText(data.full_description),
+        full_description_ru: tiptapToText(data.full_description_ru),
         enrollment: enrollment || null,
       })
     } catch (err: any) {
