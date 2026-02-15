@@ -37,10 +37,14 @@ function RegisterContent() {
         if (session?.user) {
           const { data: profile } = await supabase
             .from('profiles')
-            .select('role')
+            .select('role, onboarding_completed')
             .eq('id', session.user.id)
             .single()
-          window.location.href = profile?.role === 'client' ? '/client/home' : '/dashboard'
+          if (profile?.role === 'client' && profile?.onboarding_completed === false) {
+            window.location.href = '/client/onboarding'
+          } else {
+            window.location.href = profile?.role === 'client' ? '/client/home' : '/dashboard'
+          }
         }
       } catch {}
     }
@@ -101,7 +105,22 @@ function RegisterContent() {
         setIsLoading(false)
         return
       }
-      toast.success(ru ? 'Регистрация успешна! Добро пожаловать!' : 'Registration successful! Welcome aboard!')
+      toast.success(ru ? 'Регистрация успешна!' : 'Registration successful!')
+      
+      // Auto-login after registration
+      try {
+        const { createClient } = await import('@/lib/supabase')
+        const supabase = createClient()
+        const { error: loginError } = await supabase.auth.signInWithPassword({
+          email: formData.email,
+          password: formData.password,
+        })
+        if (!loginError) {
+          // Go directly to onboarding
+          window.location.href = '/client/onboarding'
+          return
+        }
+      } catch { /* fallback to login page */ }
       router.push('/auth/login')
     } catch {
       toast.error(ru ? 'Что-то пошло не так' : 'Something went wrong')

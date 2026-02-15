@@ -15,7 +15,7 @@ import { useRecaptcha } from '@/lib/recaptcha'
 function LoginForm() {
   const { t, locale } = useTranslation()
   const searchParams = useSearchParams()
-  const { signIn, user, isClient, loading: authLoading } = useAuth()
+  const { signIn, user, profile, isClient, loading: authLoading } = useAuth()
   const [isLoading, setIsLoading] = useState(false)
   const [formData, setFormData] = useState({ email: '', password: '' })
 
@@ -23,10 +23,14 @@ function LoginForm() {
 
   // Redirect already logged-in users
   useEffect(() => {
-    if (!authLoading && user) {
-      window.location.href = isClient ? '/client/home' : '/dashboard'
+    if (!authLoading && user && profile) {
+      if (isClient && profile.onboarding_completed === false) {
+        window.location.href = '/client/onboarding'
+      } else {
+        window.location.href = isClient ? '/client/home' : '/dashboard'
+      }
     }
-  }, [authLoading, user, isClient])
+  }, [authLoading, user, profile, isClient])
 
   // Handle auth callback errors
   useEffect(() => {
@@ -87,20 +91,27 @@ function LoginForm() {
       console.log('[LOGIN] Success, redirecting...')
       toast.success('Login successful!')
       
-      // Fetch profile to determine role
+      // Fetch profile to determine role & onboarding status
       const supabase = (await import('@/lib/supabase')).createClient()
       const { data: { user } } = await supabase.auth.getUser()
       if (user) {
         const { data: profile } = await supabase
           .from('profiles')
-          .select('role')
+          .select('role, onboarding_completed')
           .eq('id', user.id)
           .single()
         
         const role = profile?.role || 'client'
-        const defaultRedirect = role === 'admin' || role === 'trainer' ? '/dashboard' : '/client/home'
-        const redirect = searchParams.get('redirect') || defaultRedirect
-        window.location.href = redirect
+        const isClientRole = role === 'client'
+        
+        // Client who hasn't completed onboarding → go to onboarding
+        if (isClientRole && profile?.onboarding_completed === false) {
+          window.location.href = '/client/onboarding'
+        } else {
+          const defaultRedirect = isClientRole ? '/client/home' : '/dashboard'
+          const redirect = searchParams.get('redirect') || defaultRedirect
+          window.location.href = redirect
+        }
       } else {
         window.location.href = searchParams.get('redirect') || '/client/home'
       }

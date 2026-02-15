@@ -99,6 +99,7 @@ export async function POST(request: NextRequest) {
           full_name: cleanName,
           phone: cleanPhone,
           role: 'client',
+          onboarding_completed: false,
         }, { onConflict: 'id' })
 
       await sendWelcomeEmail(cleanEmail, cleanName, cleanCourseSlug)

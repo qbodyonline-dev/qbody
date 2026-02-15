@@ -85,6 +85,7 @@ export async function POST(request: NextRequest) {
           full_name: cleanName,
           phone: cleanPhone,
           role: 'client',
+          onboarding_completed: false,
         }, { onConflict: 'id' })
 
       // Send welcome email (non-blocking)
