@@ -46,13 +46,32 @@ export async function GET(
       const supabase = createServerClient()
       const { data, error } = await supabase
         .from('training_programs')
-        .select('id, name, name_ru, description, description_ru, full_description, full_description_ru, hero_image_url, duration_weeks, goal, difficulty, created_at')
+        .select(`
+          id, name, name_ru, description, description_ru,
+          full_description, full_description_ru,
+          hero_image_url, duration_weeks, goal, difficulty,
+          price, original_price, features, features_ru, includes, includes_ru,
+          created_at,
+          program_days (
+            week_number, day_of_week, is_rest_day,
+            workouts:workout_id ( name, name_ru, type, estimated_duration )
+          )
+        `)
         .eq('id', params.id)
         .single()
 
       if (error || !data) {
         return NextResponse.json({ error: 'Program not found' }, { status: 404 })
       }
+
+      // Sort days
+      if (data.program_days) {
+        data.program_days.sort((a: any, b: any) =>
+          a.week_number !== b.week_number ? a.week_number - b.week_number : a.day_of_week - b.day_of_week
+        )
+      }
+
+      const totalWorkouts = (data.program_days || []).filter((d: any) => !d.is_rest_day && d.workouts).length
 
       // Check if client has active enrollment
       const { data: enrollment } = await supabase
@@ -66,6 +85,7 @@ export async function GET(
         ...data,
         full_description: tiptapToText(data.full_description),
         full_description_ru: tiptapToText(data.full_description_ru),
+        total_workouts: totalWorkouts,
         enrollment: enrollment || null,
       })
     } catch (err: any) {
