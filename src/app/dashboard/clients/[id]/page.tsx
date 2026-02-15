@@ -17,8 +17,29 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { fetchWithAuth } from '@/lib/api'
-import ClientQuestionnaire from '@/components/dashboard/ClientQuestionnaire'
 import ClientProgress from '@/components/dashboard/ClientProgress'
+
+/* ── Fitness label maps ── */
+const goalLabels: Record<string, { en: string; ru: string }> = {
+  weight_loss: { en: 'Lose Weight', ru: 'Похудеть' },
+  toning: { en: 'Stay in Shape', ru: 'Поддержка формы' },
+  muscle_gain: { en: 'Build Muscle', ru: 'Нарастить мышцы' },
+  general_health: { en: 'Improve Nutrition', ru: 'Наладить питание' },
+  recovery: { en: 'Recovery', ru: 'Восстановление' },
+  postnatal: { en: 'Postnatal', ru: 'Послеродовое' },
+}
+const levelLabels: Record<string, { en: string; ru: string }> = {
+  none: { en: 'No activity', ru: 'Нет нагрузки' },
+  beginner: { en: '1-3x / week', ru: '1-3 р/нед' },
+  intermediate: { en: '3+ / week', ru: '3+ / нед' },
+  advanced: { en: 'Professional', ru: 'Профессионал' },
+}
+const locationLabels: Record<string, { en: string; ru: string }> = {
+  gym: { en: 'Gym', ru: 'Зал' },
+  home: { en: 'Home', ru: 'Дома' },
+  both: { en: 'Gym & Home', ru: 'Зал и дома' },
+  outdoor: { en: 'Outdoor', ru: 'Улица' },
+}
 
 const coursesMeta: Record<string, { title: string; titleRu: string; icon: any; color: string }> = {
   'breast-augmentation-recovery': { title: 'Breast Augmentation Recovery', titleRu: 'Восстановление после увеличения груди', icon: Heart, color: 'from-pink-500 to-rose-500' },
@@ -55,6 +76,18 @@ type Client = {
   avatar_url: string | null
   role: string
   created_at: string
+  onboarding_completed?: boolean
+  gender?: string
+  date_of_birth?: string
+  height?: number
+  current_weight?: number
+  target_weight?: number
+  primary_goal?: string
+  training_experience?: string
+  training_location?: string
+  activity_level?: string
+  medical_conditions?: string
+  photo_front?: string
   courses: CourseAccess[]
   orders: Order[]
 }
@@ -402,6 +435,51 @@ export default function ClientDetailPage() {
           </div>
         </CardContent></Card>
       </div>
+
+      {/* Fitness Profile */}
+      {(client.current_weight || client.primary_goal || client.height) && (
+        <Card>
+          <CardHeader><CardTitle>{ru ? 'Фитнес-профиль' : 'Fitness Profile'}</CardTitle></CardHeader>
+          <CardContent>
+            <div className="space-y-5">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                {[
+                  { label: ru ? 'Вес' : 'Weight', value: client.current_weight ? `${client.current_weight} ${ru ? 'кг' : 'kg'}` : '—', icon: '⚖️' },
+                  { label: ru ? 'Рост' : 'Height', value: client.height ? `${client.height} ${ru ? 'см' : 'cm'}` : '—', icon: '📏' },
+                  { label: ru ? 'Цель' : 'Target', value: client.target_weight ? `${client.target_weight} ${ru ? 'кг' : 'kg'}` : '—', icon: '🎯' },
+                  { label: ru ? 'Пол' : 'Gender', value: client.gender === 'male' ? (ru ? 'Муж.' : 'Male') : client.gender === 'female' ? (ru ? 'Жен.' : 'Female') : '—', icon: '👤' },
+                ].map((s, i) => (
+                  <div key={i} className="bg-zinc-50 dark:bg-zinc-800/50 rounded-xl p-3 text-center">
+                    <span className="text-xl">{s.icon}</span>
+                    <p className="text-lg font-bold text-zinc-900 dark:text-zinc-100 mt-1">{s.value}</p>
+                    <p className="text-[11px] text-zinc-400">{s.label}</p>
+                  </div>
+                ))}
+              </div>
+              <div className="grid sm:grid-cols-3 gap-4">
+                {[
+                  { label: ru ? 'Дата рождения' : 'Date of birth', value: client.date_of_birth ? new Date(client.date_of_birth).toLocaleDateString(ru ? 'ru-RU' : 'en-US', { day: 'numeric', month: 'long', year: 'numeric' }) : null },
+                  { label: ru ? 'Цель' : 'Goal', value: client.primary_goal ? (goalLabels[client.primary_goal]?.[ru ? 'ru' : 'en'] || client.primary_goal) : null },
+                  { label: ru ? 'Уровень' : 'Level', value: client.training_experience ? (levelLabels[client.training_experience]?.[ru ? 'ru' : 'en'] || client.training_experience) : null },
+                  { label: ru ? 'Место' : 'Location', value: client.training_location ? (locationLabels[client.training_location]?.[ru ? 'ru' : 'en'] || client.training_location) : null },
+                  { label: ru ? 'Здоровье' : 'Health', value: client.medical_conditions },
+                ].filter(d => d.value).map((d, i) => (
+                  <div key={i}>
+                    <p className="text-xs text-zinc-400 mb-0.5">{d.label}</p>
+                    <p className="text-sm font-medium text-zinc-800 dark:text-zinc-200">{d.value}</p>
+                  </div>
+                ))}
+              </div>
+              {client.photo_front && (
+                <div>
+                  <p className="text-xs text-zinc-400 mb-2">{ru ? 'Фото до' : 'Starting photo'}</p>
+                  <img src={client.photo_front} alt="" className="w-32 h-40 object-cover rounded-xl" />
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Courses with Management */}
       <Card>

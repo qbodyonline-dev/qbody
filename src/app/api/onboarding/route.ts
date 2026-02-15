@@ -16,14 +16,14 @@ export async function GET(request: NextRequest) {
     const supabase = createServerClient()
     const userId = auth.data.user.id
 
-    // Check if onboarding is completed
-    const { data: profile } = await supabase
+    // Load profile with ALL fitness fields
+    const { data: profileData } = await supabase
       .from('profiles')
-      .select('onboarding_completed')
+      .select('onboarding_completed, full_name, gender, date_of_birth, height, current_weight, target_weight, primary_goal, training_experience, training_location, activity_level, medical_conditions, photo_front')
       .eq('id', userId)
       .single()
 
-    const completed = profile?.onboarding_completed === true
+    const completed = profileData?.onboarding_completed === true
 
     // Load onboarding template
     const { data: templates } = await supabase
@@ -35,14 +35,7 @@ export async function GET(request: NextRequest) {
 
     const template = templates?.[0] || null
 
-    // Load existing questionnaire if any
-    const { data: questionnaire } = await supabase
-      .from('client_questionnaires')
-      .select('*')
-      .eq('client_id', userId)
-      .maybeSingle()
-
-    return NextResponse.json({ completed, template, questionnaire })
+    return NextResponse.json({ completed, template, profile: profileData })
   } catch (err: any) {
     console.error('GET /api/onboarding error:', err)
     return NextResponse.json({ error: 'Server error' }, { status: 500 })
@@ -103,12 +96,20 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to save questionnaire' }, { status: 500 })
     }
 
-    // Update profile fields if provided
+    // Update ALL fields in profiles — single source of truth for site + app
+    const PROFILE_FIELDS = [
+      'full_name', 'date_of_birth', 'gender', 'height', 'current_weight',
+      'target_weight', 'primary_goal', 'training_experience', 'training_location',
+      'activity_level', 'medical_conditions', 'photo_front',
+    ]
+    const NUMERIC_FIELDS = new Set(['height', 'current_weight', 'target_weight'])
+
     const profileUpdates: Record<string, any> = { onboarding_completed: true }
-    if (values.full_name) profileUpdates.full_name = values.full_name
-    if (values.date_of_birth) profileUpdates.date_of_birth = values.date_of_birth
-    if (values.height) profileUpdates.height = Number(values.height)
-    if (values.current_weight) profileUpdates.current_weight = Number(values.current_weight)
+    for (const field of PROFILE_FIELDS) {
+      if (values[field] !== undefined && values[field] !== null && values[field] !== '') {
+        profileUpdates[field] = NUMERIC_FIELDS.has(field) ? Number(values[field]) : values[field]
+      }
+    }
 
     const { error: pError } = await supabase
       .from('profiles')
@@ -117,7 +118,6 @@ export async function POST(request: NextRequest) {
 
     if (pError) {
       console.error('Update profile error:', pError)
-      // Don't fail completely — questionnaire was saved
     }
 
     return NextResponse.json({ success: true })

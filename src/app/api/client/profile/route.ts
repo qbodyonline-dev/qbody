@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
       { data: cp },
     ] = await Promise.all([
       supabase.from('profiles')
-        .select('id, full_name, email, phone, avatar_url, role, locale, created_at')
+        .select('id, full_name, email, phone, avatar_url, role, locale, created_at, onboarding_completed, gender, date_of_birth, height, current_weight, target_weight, primary_goal, training_experience, training_location, activity_level, medical_conditions, photo_front')
         .eq('id', userId).single(),
       supabase.from('client_questionnaires')
         .select('*')
@@ -44,6 +44,18 @@ export async function GET(request: NextRequest) {
         role: profile.role,
         locale: profile.locale,
         member_since: profile.created_at,
+        onboarding_completed: (profile as any).onboarding_completed,
+        gender: (profile as any).gender,
+        date_of_birth: (profile as any).date_of_birth,
+        height: (profile as any).height,
+        current_weight: (profile as any).current_weight,
+        target_weight: (profile as any).target_weight,
+        primary_goal: (profile as any).primary_goal,
+        training_experience: (profile as any).training_experience,
+        training_location: (profile as any).training_location,
+        activity_level: (profile as any).activity_level,
+        medical_conditions: (profile as any).medical_conditions,
+        photo_front: (profile as any).photo_front,
       },
       questionnaire: questionnaire || null,
       program: cp ? {
@@ -73,10 +85,18 @@ export async function PUT(request: NextRequest) {
     const supabase = createServerClient()
     const body = await request.json()
 
-    const allowed = ['full_name', 'phone', 'locale']
+    const allowed = [
+      'full_name', 'phone', 'locale', 'gender', 'date_of_birth',
+      'height', 'current_weight', 'target_weight', 'primary_goal',
+      'training_experience', 'training_location', 'activity_level',
+      'medical_conditions', 'photo_front',
+    ]
+    const NUMERIC = new Set(['height', 'current_weight', 'target_weight'])
     const update: Record<string, any> = {}
     for (const key of allowed) {
-      if (body[key] !== undefined) update[key] = body[key]
+      if (body[key] !== undefined) {
+        update[key] = NUMERIC.has(key) && body[key] !== null ? Number(body[key]) : body[key]
+      }
     }
 
     if (Object.keys(update).length === 0) {

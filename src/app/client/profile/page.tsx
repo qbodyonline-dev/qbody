@@ -11,7 +11,29 @@ import { createClient } from '@/lib/supabase'
 import { User, Mail, Phone, Lock, Save, Loader2, Camera, Trash2, AlertTriangle } from 'lucide-react'
 import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
-import ClientQuestionnaire from '@/components/dashboard/ClientQuestionnaire'
+import { fetchWithAuth } from '@/lib/api'
+
+/* ── Label maps ── */
+const goalLabels: Record<string, { en: string; ru: string }> = {
+  weight_loss: { en: 'Lose Weight', ru: 'Похудеть' },
+  toning: { en: 'Stay in Shape', ru: 'Поддержка формы' },
+  muscle_gain: { en: 'Build Muscle', ru: 'Нарастить мышцы' },
+  general_health: { en: 'Improve Nutrition', ru: 'Наладить питание' },
+  recovery: { en: 'Recovery', ru: 'Восстановление' },
+  postnatal: { en: 'Postnatal', ru: 'Послеродовое' },
+}
+const levelLabels: Record<string, { en: string; ru: string }> = {
+  none: { en: 'No activity', ru: 'Нет нагрузки' },
+  beginner: { en: '1-3x / week', ru: '1-3 раза / нед.' },
+  intermediate: { en: '3+ / week', ru: '3+ / нед.' },
+  advanced: { en: 'Professional', ru: 'Профессионал' },
+}
+const locationLabels: Record<string, { en: string; ru: string }> = {
+  gym: { en: 'Gym', ru: 'Зал' },
+  home: { en: 'Home', ru: 'Дома' },
+  both: { en: 'Gym & Home', ru: 'Зал и дома' },
+  outdoor: { en: 'Outdoor', ru: 'Улица' },
+}
 
 export default function ProfilePage() {
   const { t, locale } = useTranslation()
@@ -23,6 +45,8 @@ export default function ProfilePage() {
   const [form, setForm] = useState({ name: '', email: '', phone: '' })
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
+  const [fitnessData, setFitnessData] = useState<any>(null)
+  const [loadingFitness, setLoadingFitness] = useState(true)
   const [uploadingPhoto, setUploadingPhoto] = useState(false)
   const [passwords, setPasswords] = useState({ current: '', new: '', confirm: '' })
   const [changingPassword, setChangingPassword] = useState(false)
@@ -42,6 +66,21 @@ export default function ProfilePage() {
       setForm(f => ({ ...f, email: user.email || '' }))
     }
   }, [profile, user])
+
+  // Load full profile with fitness data
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const res = await fetchWithAuth('/api/client/profile')
+        if (res.ok) {
+          const data = await res.json()
+          setFitnessData(data.profile)
+        }
+      } catch { /* ignore */ }
+      finally { setLoadingFitness(false) }
+    }
+    if (user) load()
+  }, [user])
 
   const initials = form.name
     ? form.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
@@ -296,8 +335,82 @@ export default function ProfilePage() {
         </CardContent>
       </Card>
 
-      {/* Client Questionnaire */}
-      {user && <ClientQuestionnaire clientId={user.id} ru={ru} />}
+      {/* Fitness Profile */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle>{ru ? 'Фитнес-профиль' : 'Fitness Profile'}</CardTitle>
+            <Button variant="outline" size="sm" onClick={() => router.push('/client/onboarding?edit=true')}>
+              {ru ? 'Редактировать' : 'Edit'}
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {loadingFitness ? (
+            <div className="flex justify-center py-8"><Loader2 className="w-6 h-6 animate-spin text-teal-500" /></div>
+          ) : fitnessData ? (
+            <div className="space-y-6">
+              {/* Stats grid */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                {[
+                  { label: ru ? 'Вес' : 'Weight', value: fitnessData.current_weight ? `${fitnessData.current_weight} ${ru ? 'кг' : 'kg'}` : '—', icon: '⚖️' },
+                  { label: ru ? 'Рост' : 'Height', value: fitnessData.height ? `${fitnessData.height} ${ru ? 'см' : 'cm'}` : '—', icon: '📏' },
+                  { label: ru ? 'Цель' : 'Target', value: fitnessData.target_weight ? `${fitnessData.target_weight} ${ru ? 'кг' : 'kg'}` : '—', icon: '🎯' },
+                  { label: ru ? 'Пол' : 'Gender', value: fitnessData.gender === 'male' ? (ru ? 'Мужской' : 'Male') : fitnessData.gender === 'female' ? (ru ? 'Женский' : 'Female') : '—', icon: '👤' },
+                ].map((s, i) => (
+                  <div key={i} className="bg-zinc-50 dark:bg-zinc-800/50 rounded-xl p-3 text-center">
+                    <span className="text-xl">{s.icon}</span>
+                    <p className="text-lg font-bold text-zinc-900 dark:text-zinc-100 mt-1">{s.value}</p>
+                    <p className="text-[11px] text-zinc-400">{s.label}</p>
+                  </div>
+                ))}
+              </div>
+
+              {/* Details */}
+              <div className="grid sm:grid-cols-2 gap-4">
+                {[
+                  { label: ru ? 'Дата рождения' : 'Date of birth', value: fitnessData.date_of_birth ? new Date(fitnessData.date_of_birth).toLocaleDateString(ru ? 'ru-RU' : 'en-US', { day: 'numeric', month: 'long', year: 'numeric' }) : null },
+                  { label: ru ? 'Цель' : 'Goal', value: fitnessData.primary_goal ? (goalLabels[fitnessData.primary_goal]?.[ru ? 'ru' : 'en'] || fitnessData.primary_goal) : null },
+                  { label: ru ? 'Уровень' : 'Level', value: fitnessData.training_experience ? (levelLabels[fitnessData.training_experience]?.[ru ? 'ru' : 'en'] || fitnessData.training_experience) : null },
+                  { label: ru ? 'Место' : 'Location', value: fitnessData.training_location ? (locationLabels[fitnessData.training_location]?.[ru ? 'ru' : 'en'] || fitnessData.training_location) : null },
+                  { label: ru ? 'Активность' : 'Activity', value: fitnessData.activity_level },
+                  { label: ru ? 'Здоровье' : 'Health', value: fitnessData.medical_conditions },
+                ].filter(d => d.value).map((d, i) => (
+                  <div key={i}>
+                    <p className="text-xs text-zinc-400 mb-0.5">{d.label}</p>
+                    <p className="text-sm font-medium text-zinc-800 dark:text-zinc-200">{d.value}</p>
+                  </div>
+                ))}
+              </div>
+
+              {/* Starting photo */}
+              {fitnessData.photo_front && (
+                <div>
+                  <p className="text-xs text-zinc-400 mb-2">{ru ? 'Фото до' : 'Starting photo'}</p>
+                  <img src={fitnessData.photo_front} alt="" className="w-32 h-40 object-cover rounded-xl" />
+                </div>
+              )}
+
+              {/* Empty state */}
+              {!fitnessData.current_weight && !fitnessData.primary_goal && (
+                <div className="text-center py-6">
+                  <p className="text-zinc-400 text-sm mb-3">{ru ? 'Заполните анкету для персонализации' : 'Complete your profile for personalized experience'}</p>
+                  <Button variant="gradient" size="sm" onClick={() => router.push('/client/onboarding?edit=true')}>
+                    {ru ? 'Заполнить анкету' : 'Fill Questionnaire'}
+                  </Button>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="text-center py-6">
+              <p className="text-zinc-400 text-sm mb-3">{ru ? 'Заполните анкету' : 'Complete your profile'}</p>
+              <Button variant="gradient" size="sm" onClick={() => router.push('/client/onboarding?edit=true')}>
+                {ru ? 'Заполнить' : 'Fill out'}
+              </Button>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Security Card */}
       <Card>

@@ -89,6 +89,8 @@ export default function OnboardingPage() {
   const router = useRouter()
   const ru = locale === 'ru'
 
+  // Check if this is edit mode (coming from profile page)
+  const [isEditMode, setIsEditMode] = useState(false)
   const [step, setStep] = useState(0)
   const [values, setValues] = useState<Record<string, any>>({
     gender: 'female',
@@ -104,36 +106,46 @@ export default function OnboardingPage() {
   const totalSteps = STEPS.length
   const current = STEPS[step]
 
-  // Check if onboarding already completed
+  // Load profile data
   useEffect(() => {
     const check = async () => {
       try {
+        // Detect edit mode from URL or referrer
+        const params = new URLSearchParams(window.location.search)
+        const editParam = params.get('edit') === 'true'
+
         const res = await fetchWithAuth('/api/onboarding')
         if (res.ok) {
           const data = await res.json()
-          if (data.completed) {
+
+          // If completed and NOT edit mode — redirect to home
+          if (data.completed && !editParam) {
             router.replace('/client/home')
             return
           }
-          // Pre-fill existing data
-          if (data.questionnaire) {
+
+          if (data.completed && editParam) {
+            setIsEditMode(true)
+          }
+
+          // Pre-fill from profile data
+          if (data.profile) {
             const existing: Record<string, any> = {}
-            Object.entries(data.questionnaire).forEach(([k, v]) => {
-              if (v !== null && v !== undefined && k !== 'id' && k !== 'client_id' && k !== 'created_at') {
+            const FIELDS = ['full_name', 'gender', 'date_of_birth', 'height', 'current_weight', 'target_weight', 'primary_goal', 'training_experience', 'training_location', 'activity_level', 'medical_conditions', 'photo_front']
+            FIELDS.forEach(k => {
+              const v = data.profile[k]
+              if (v !== null && v !== undefined && v !== '') {
                 existing[k] = v
               }
             })
             setValues(prev => ({ ...prev, ...existing }))
-          }
-          if (profile?.full_name) {
-            setValues(prev => ({ ...prev, full_name: profile.full_name }))
           }
         }
       } catch { /* use defaults */ }
       finally { setLoading(false) }
     }
     if (!authLoading && user) check()
-  }, [authLoading, user, profile, router])
+  }, [authLoading, user, router])
 
   const set = (key: string, val: any) => setValues(prev => ({ ...prev, [key]: val }))
 
@@ -171,8 +183,9 @@ export default function OnboardingPage() {
       })
       if (!res.ok) throw new Error()
       setCompleted(true)
-      toast.success(ru ? 'Анкета заполнена!' : 'Questionnaire completed!')
-      setTimeout(() => router.push('/client/home'), 2000)
+      toast.success(ru ? 'Сохранено!' : 'Saved!')
+      const redirect = isEditMode ? '/client/profile' : '/client/home'
+      setTimeout(() => router.push(redirect), 1500)
     } catch {
       toast.error(ru ? 'Ошибка сохранения' : 'Failed to save')
     } finally { setSaving(false) }
