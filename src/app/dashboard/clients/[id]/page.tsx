@@ -653,8 +653,6 @@ export default function ClientDetailPage() {
       {/* Client Progress */}
       <ClientProgress clientId={clientId} ru={ru} />
 
-      {/* Client Questionnaire */}
-      <ClientQuestionnaire clientId={clientId} ru={ru} />
 
       {/* Edit Modal */}
       <Modal isOpen={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} title={ru ? 'Редактировать профиль' : 'Edit Profile'} size="md">
