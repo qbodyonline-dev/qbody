@@ -7,11 +7,20 @@ import { authenticateRequest, requireAdmin } from '@/lib/api-auth'
  */
 function tiptapToText(value: any): string | null {
   if (!value) return null
-  if (typeof value === 'string') return value
+  if (typeof value === 'string') {
+    // Try parsing JSON string
+    try {
+      const parsed = JSON.parse(value)
+      if (typeof parsed === 'object') return tiptapToText(parsed)
+    } catch {}
+    return value
+  }
   try {
     const nodes = Array.isArray(value) ? value : value.content || []
-    return extractText(nodes).trim() || null
-  } catch {
+    const text = extractText(nodes).trim()
+    return text || null
+  } catch (e) {
+    console.error('tiptapToText error:', e, 'value type:', typeof value)
     return null
   }
 }
@@ -20,8 +29,12 @@ function extractText(nodes: any[]): string {
   if (!Array.isArray(nodes)) return ''
   return nodes.map((node: any) => {
     if (node.type === 'text') return node.text || ''
-    if (node.content) return extractText(node.content) + (node.type === 'paragraph' ? '\n' : '')
     if (node.type === 'hardBreak') return '\n'
+    if (node.type === 'heading' && node.content) return extractText(node.content) + '\n'
+    if (node.type === 'bulletList' || node.type === 'orderedList') {
+      return (node.content || []).map((li: any) => '• ' + extractText(li.content || [])).join('\n') + '\n'
+    }
+    if (node.content) return extractText(node.content) + (node.type === 'paragraph' ? '\n' : '')
     return ''
   }).join('')
 }
@@ -80,6 +93,9 @@ export async function GET(
         .eq('client_id', auth.data.user.id)
         .eq('program_id', params.id)
         .maybeSingle()
+
+      console.log('Program full_description type:', typeof data.full_description, 'value:', JSON.stringify(data.full_description)?.substring(0, 200))
+      console.log('Program full_description_ru type:', typeof data.full_description_ru, 'value:', JSON.stringify(data.full_description_ru)?.substring(0, 200))
 
       return NextResponse.json({
         ...data,
