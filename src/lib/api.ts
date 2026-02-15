@@ -14,8 +14,9 @@ export async function fetchWithAuth(url: string, options: RequestInit = {}) {
   
   // Build headers — if we have a token, add Bearer auth
   // If not, send without Authorization header — server will use cookie-based auth fallback
+  const isFormData = typeof FormData !== 'undefined' && options.body instanceof FormData
   const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
+    ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
     ...(options.headers as Record<string, string> || {}),
   }
   

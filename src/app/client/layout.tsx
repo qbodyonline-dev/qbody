@@ -1,7 +1,7 @@
 'use client'
 import React, { useState, useRef, useEffect, useCallback } from 'react'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { Home, BookOpen, TrendingUp, User, Menu, X, LogOut, MessageCircle, Dumbbell, Scale, Globe } from 'lucide-react'
 import { Avatar } from '@/components/ui/avatar'
 import { LanguageSwitcher } from '@/components/ui/language-switcher'
@@ -12,10 +12,20 @@ import { cn } from '@/lib/utils'
 
 export default function ClientLayout({ children }: { children: React.ReactNode }) {
   const { t, locale } = useTranslation()
-  const { user, profile, signOut, session } = useAuth()
+  const { user, profile, signOut, session, loading: authLoading, isClient } = useAuth()
   const ru = locale === 'ru'
   const pathname = usePathname()
+  const router = useRouter()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+
+  // Redirect to onboarding if not completed (only for clients, not on onboarding page)
+  useEffect(() => {
+    if (!authLoading && user && isClient && profile && !pathname.startsWith('/client/onboarding')) {
+      if (profile.onboarding_completed === false) {
+        router.replace('/client/onboarding')
+      }
+    }
+  }, [authLoading, user, isClient, profile, pathname, router])
   const [showUserMenu, setShowUserMenu] = useState(false)
   const [unreadMessages, setUnreadMessages] = useState(0)
   const menuRef = useRef<HTMLDivElement>(null)
@@ -109,6 +119,11 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
   const handleSignOut = async () => {
     setShowUserMenu(false)
     await signOut()
+  }
+
+  // Onboarding page — render without layout chrome
+  if (pathname.startsWith('/client/onboarding')) {
+    return <>{children}</>
   }
 
   return (

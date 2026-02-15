@@ -12,6 +12,7 @@ type Profile = {
   avatar_url: string | null
   phone: string | null
   role: 'admin' | 'trainer' | 'client'
+  onboarding_completed?: boolean
 }
 
 type AuthContextType = {

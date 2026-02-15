@@ -3,14 +3,15 @@ import React, { useState, useEffect, useCallback } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Input } from '@/components/ui/input'
 import { Modal } from '@/components/ui/modal'
 import { useTranslation } from '@/lib/i18n'
 import { useAuth } from '@/lib/auth'
 import { fetchWithAuth } from '@/lib/api'
+import DynamicFormRenderer from '@/components/ui/dynamic-form-renderer'
+import type { FormField } from '@/lib/form-types'
+import { compressImage } from '@/lib/compress-image'
 import {
   Scale, Plus, Loader2, Calendar, TrendingUp, TrendingDown,
-  Moon, Zap, Brain, Apple, Dumbbell as MuscleIcon,
   MessageCircle, CheckCircle2, AlertTriangle, ChevronDown, Send
 } from 'lucide-react'
 import { toast } from 'sonner'
@@ -42,24 +43,29 @@ type Checkin = {
   photos_count: number
   has_response: boolean
   checkin_responses: any[]
+  custom_data?: Record<string, any>
   created_at: string
 }
 
-type CheckinForm = {
-  weight: string; waist: string; hips: string; chest: string
-  thigh: string; arm: string; body_fat_pct: string
-  sleep_quality: string; sleep_hours: string; energy_level: string
-  stress_level: string; appetite: string; soreness: string
-  comment: string; cycle_day: string; cycle_notes: string
-}
-
-const EMPTY_FORM: CheckinForm = {
-  weight: '', waist: '', hips: '', chest: '',
-  thigh: '', arm: '', body_fat_pct: '',
-  sleep_quality: '', sleep_hours: '', energy_level: '',
-  stress_level: '', appetite: '', soreness: '',
-  comment: '', cycle_day: '', cycle_notes: '',
-}
+/* ═══════════ Fallback fields if no template in DB ═══════════ */
+const defaultCheckinFields: FormField[] = [
+  { id: 'f1', type: 'number', labelEn: 'Weight (kg)', labelRu: 'Вес (кг)', required: true, dbField: 'weight' },
+  { id: 'f2', type: 'number', labelEn: 'Waist (cm)', labelRu: 'Талия (см)', required: false, dbField: 'waist' },
+  { id: 'f3', type: 'number', labelEn: 'Hips (cm)', labelRu: 'Бёдра (см)', required: false, dbField: 'hips' },
+  { id: 'f4', type: 'number', labelEn: 'Chest (cm)', labelRu: 'Грудь (см)', required: false, dbField: 'chest' },
+  { id: 'f5', type: 'number', labelEn: 'Thigh (cm)', labelRu: 'Бедро (см)', required: false, dbField: 'thigh' },
+  { id: 'f6', type: 'number', labelEn: 'Arm (cm)', labelRu: 'Рука (см)', required: false, dbField: 'arm' },
+  { id: 'f7', type: 'number', labelEn: 'Body fat %', labelRu: '% жира', required: false, dbField: 'body_fat_pct' },
+  { id: 'f8', type: 'scale', labelEn: 'Sleep quality', labelRu: 'Качество сна', required: false, min: 1, max: 10, dbField: 'sleep_quality' },
+  { id: 'f9', type: 'number', labelEn: 'Sleep hours', labelRu: 'Часов сна', required: false, dbField: 'sleep_hours' },
+  { id: 'f10', type: 'scale', labelEn: 'Energy level', labelRu: 'Энергия', required: false, min: 1, max: 10, dbField: 'energy_level' },
+  { id: 'f11', type: 'scale', labelEn: 'Stress level', labelRu: 'Стресс', required: false, min: 1, max: 10, dbField: 'stress_level' },
+  { id: 'f12', type: 'scale', labelEn: 'Appetite', labelRu: 'Аппетит', required: false, min: 1, max: 10, dbField: 'appetite' },
+  { id: 'f13', type: 'scale', labelEn: 'Soreness', labelRu: 'Болезненность', required: false, min: 1, max: 10, dbField: 'soreness' },
+  { id: 'f14', type: 'number', labelEn: 'Cycle day', labelRu: 'День цикла', required: false, dbField: 'cycle_day' },
+  { id: 'f15', type: 'textarea', labelEn: 'Cycle notes', labelRu: 'Заметки по циклу', required: false, dbField: 'cycle_notes' },
+  { id: 'f16', type: 'textarea', labelEn: 'Comment', labelRu: 'Комментарий', required: false, dbField: 'comment' },
+]
 
 export default function ClientCheckinsPage() {
   const { locale } = useTranslation()
@@ -70,12 +76,34 @@ export default function ClientCheckinsPage() {
   const [loading, setLoading] = useState(true)
   const [isNewOpen, setIsNewOpen] = useState(false)
   const [saving, setSaving] = useState(false)
-  const [form, setForm] = useState<CheckinForm>({ ...EMPTY_FORM })
   const [selectedCheckin, setSelectedCheckin] = useState<Checkin | null>(null)
   const [isDetailOpen, setIsDetailOpen] = useState(false)
   const [responses, setResponses] = useState<any[]>([])
 
-  /* ─── Fetch ─── */
+  // Dynamic form
+  const [templateFields, setTemplateFields] = useState<FormField[]>(defaultCheckinFields)
+  const [formValues, setFormValues] = useState<Record<string, any>>({})
+  const [templateLoading, setTemplateLoading] = useState(true)
+
+  /* ─── Load template from DB ─── */
+  useEffect(() => {
+    const loadTemplate = async () => {
+      try {
+        const res = await fetchWithAuth('/api/form-templates?type=checkin')
+        if (res.ok) {
+          const data = await res.json()
+          const active = data.find((t: any) => t.active)
+          if (active && active.fields?.length > 0) {
+            setTemplateFields(active.fields)
+          }
+        }
+      } catch { /* use defaults */ }
+      finally { setTemplateLoading(false) }
+    }
+    loadTemplate()
+  }, [])
+
+  /* ─── Fetch checkins ─── */
   const fetchCheckins = useCallback(async () => {
     try {
       const res = await fetchWithAuth('/api/checkins')
@@ -91,67 +119,73 @@ export default function ClientCheckinsPage() {
     if (user) fetchCheckins()
   }, [user, fetchCheckins])
 
-  /* ─── Submit new ─── */
+  /* ─── Image upload helper ─── */
+  const uploadImage = async (file: File): Promise<string> => {
+    let toUpload = file
+    if (typeof compressImage === 'function') {
+      try { toUpload = await compressImage(file) } catch { /* use original */ }
+    }
+    const fd = new FormData()
+    fd.append('file', toUpload)
+    const res = await fetchWithAuth('/api/upload', { method: 'POST', body: fd, headers: {} })
+    if (!res.ok) throw new Error('Upload failed')
+    const { url } = await res.json()
+    return url
+  }
+
+  /* ─── Submit ─── */
   const handleSubmit = async () => {
-    if (!form.weight) {
-      toast.error(ru ? 'Укажите вес' : 'Weight is required')
+    // Check required fields
+    const missing = templateFields.filter(f => f.required && !formValues[f.dbField || f.id])
+    if (missing.length > 0) {
+      const label = ru ? missing[0].labelRu : missing[0].labelEn
+      toast.error(ru ? `Заполните: ${label}` : `Required: ${label}`)
       return
     }
     setSaving(true)
     try {
-      const payload: any = { checkin_date: new Date().toISOString().split('T')[0] }
-      const numFields = ['weight', 'waist', 'hips', 'chest', 'thigh', 'arm', 'body_fat_pct',
-        'sleep_quality', 'sleep_hours', 'energy_level', 'stress_level', 'appetite', 'soreness', 'cycle_day']
-      numFields.forEach(f => {
-        const v = (form as any)[f]
-        if (v) payload[f] = parseFloat(v)
-      })
-      if (form.comment) payload.comment = form.comment
-      if (form.cycle_notes) payload.cycle_notes = form.cycle_notes
+      // Collect photo URLs from photo fields
+      const photos: string[] = []
+      const values: Record<string, any> = {}
+      for (const [key, val] of Object.entries(formValues)) {
+        const field = templateFields.find(f => (f.dbField || f.id) === key)
+        if (field?.type === 'photo' && val) {
+          photos.push(val)
+        } else {
+          values[key] = val
+        }
+      }
+
+      const payload: any = {
+        checkin_date: new Date().toISOString().split('T')[0],
+        values,
+        photos: photos.map(url => ({ photo_url: url, photo_type: 'progress' })),
+      }
 
       const res = await fetchWithAuth('/api/checkins', { method: 'POST', body: JSON.stringify(payload) })
       if (!res.ok) throw new Error()
       toast.success(ru ? 'Чекин отправлен!' : 'Check-in submitted!')
       setIsNewOpen(false)
-      setForm({ ...EMPTY_FORM })
+      setFormValues({})
       fetchCheckins()
     } catch {
       toast.error(ru ? 'Ошибка отправки' : 'Failed to submit')
-    } finally {
-      setSaving(false)
-    }
+    } finally { setSaving(false) }
   }
 
   /* ─── Open detail ─── */
-  const openDetail = async (c: Checkin) => {
+  const openDetail = (c: Checkin) => {
     setSelectedCheckin(c)
     setIsDetailOpen(true)
-    // Use joined responses from list data
     setResponses(c.checkin_responses || [])
   }
 
-  /* ─── Helpers ─── */
-  const WellnessSlider = ({ label, icon, value, onChange, max = 10 }: {
-    label: string; icon: React.ReactNode; value: string; onChange: (v: string) => void; max?: number
-  }) => (
-    <div>
-      <div className="flex items-center justify-between mb-1">
-        <label className="text-xs text-zinc-500 flex items-center gap-1">{icon} {label}</label>
-        <span className="text-xs font-medium text-zinc-700 dark:text-zinc-300">{value || '—'}/{max}</span>
-      </div>
-      <input type="range" min="1" max={max} value={value || '5'}
-        onChange={e => onChange(e.target.value)}
-        className="w-full h-2 bg-zinc-200 dark:bg-zinc-700 rounded-lg appearance-none cursor-pointer accent-teal-500" />
-    </div>
-  )
-
-  const diff = (val: number | null, change: number | null) => {
-    if (val === null || change === null || change === 0) return null
-    const positive = change > 0
+  const diff = (change: number | null) => {
+    if (change === null || change === 0) return null
     return (
-      <span className={`text-xs flex items-center gap-0.5 ${positive ? 'text-red-500' : 'text-green-500'}`}>
-        {positive ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
-        {positive ? '+' : ''}{change.toFixed(1)}
+      <span className={`text-xs flex items-center gap-0.5 ${change > 0 ? 'text-red-500' : 'text-green-500'}`}>
+        {change > 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
+        {change > 0 ? '+' : ''}{change.toFixed(1)}
       </span>
     )
   }
@@ -169,7 +203,7 @@ export default function ClientCheckinsPage() {
           <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">{ru ? 'Мои чекины' : 'My Check-ins'}</h1>
           <p className="text-zinc-500 text-sm mt-1">{ru ? 'Отслеживайте свой прогресс' : 'Track your progress'}</p>
         </div>
-        <Button variant="gradient" onClick={() => setIsNewOpen(true)}>
+        <Button variant="gradient" onClick={() => { setFormValues({}); setIsNewOpen(true) }}>
           <Plus className="w-4 h-4 mr-2" />{ru ? 'Новый чекин' : 'New Check-in'}
         </Button>
       </div>
@@ -189,7 +223,7 @@ export default function ClientCheckinsPage() {
                 <Icon className="w-5 h-5 text-teal-500 mb-2" />
                 <p className="text-lg font-bold text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
                   {s.value}
-                  {s.change !== null && diff(1, s.change)}
+                  {s.change !== null && diff(s.change)}
                 </p>
                 <p className="text-xs text-zinc-500">{s.label}</p>
               </CardContent></Card>
@@ -198,12 +232,10 @@ export default function ClientCheckinsPage() {
         </div>
       )}
 
-      {/* Checkin history */}
+      {/* History */}
       {checkins.length > 0 ? (
         <Card>
-          <CardHeader>
-            <CardTitle className="text-base">{ru ? 'История' : 'History'}</CardTitle>
-          </CardHeader>
+          <CardHeader><CardTitle className="text-base">{ru ? 'История' : 'History'}</CardTitle></CardHeader>
           <CardContent className="p-0">
             <div className="divide-y divide-zinc-100 dark:divide-zinc-800">
               {checkins.map(c => (
@@ -212,8 +244,7 @@ export default function ClientCheckinsPage() {
                   <div className="flex items-center gap-3">
                     <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
                       c.status === 'reviewed' ? 'bg-green-100 dark:bg-green-500/20' :
-                      c.flagged ? 'bg-red-100 dark:bg-red-500/20' :
-                      'bg-teal-100 dark:bg-teal-500/20'
+                      c.flagged ? 'bg-red-100 dark:bg-red-500/20' : 'bg-teal-100 dark:bg-teal-500/20'
                     }`}>
                       {c.flagged ? <AlertTriangle className="w-5 h-5 text-red-500" /> :
                        c.status === 'reviewed' ? <CheckCircle2 className="w-5 h-5 text-green-500" /> :
@@ -226,21 +257,17 @@ export default function ClientCheckinsPage() {
                       <div className="flex gap-3 text-xs text-zinc-500">
                         {c.weight && <span>{c.weight} kg</span>}
                         {c.weight_change !== null && c.weight_change !== 0 && (
-                          <span className={c.weight_change < 0 ? 'text-green-500' : 'text-red-500'}>
-                            {c.weight_change > 0 ? '+' : ''}{c.weight_change.toFixed(1)} kg
+                          <span className={c.weight_change! < 0 ? 'text-green-500' : 'text-red-500'}>
+                            {c.weight_change! > 0 ? '+' : ''}{c.weight_change!.toFixed(1)} kg
                           </span>
                         )}
                       </div>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    {c.has_response && (
-                      <Badge variant="secondary" className="text-xs">
-                        <MessageCircle className="w-3 h-3 mr-1" />{ru ? 'Ответ' : 'Reply'}
-                      </Badge>
-                    )}
+                    {c.has_response && <Badge variant="secondary" className="text-xs"><MessageCircle className="w-3 h-3 mr-1" />{ru ? 'Ответ' : 'Reply'}</Badge>}
                     <Badge variant={c.status === 'reviewed' ? 'success' : c.flagged ? 'destructive' : 'secondary'}>
-                      {c.status === 'reviewed' ? (ru ? '✓' : '✓') : c.flagged ? '⚑' : (ru ? 'Новый' : 'New')}
+                      {c.status === 'reviewed' ? '✓' : c.flagged ? '⚑' : (ru ? 'Новый' : 'New')}
                     </Badge>
                     <ChevronDown className="w-4 h-4 text-zinc-300 -rotate-90" />
                   </div>
@@ -252,109 +279,46 @@ export default function ClientCheckinsPage() {
       ) : (
         <Card className="p-12 text-center">
           <Scale className="w-16 h-16 text-zinc-300 mx-auto mb-4" />
-          <h3 className="text-xl font-semibold text-zinc-600 dark:text-zinc-400 mb-2">
-            {ru ? 'Нет чекинов' : 'No check-ins yet'}
-          </h3>
-          <p className="text-zinc-400 text-sm mb-4">
-            {ru ? 'Отправьте первый чекин с вашими замерами' : 'Submit your first check-in with measurements'}
-          </p>
-          <Button variant="gradient" onClick={() => setIsNewOpen(true)}>
+          <h3 className="text-xl font-semibold text-zinc-600 dark:text-zinc-400 mb-2">{ru ? 'Нет чекинов' : 'No check-ins yet'}</h3>
+          <p className="text-zinc-400 text-sm mb-4">{ru ? 'Отправьте первый чекин' : 'Submit your first check-in'}</p>
+          <Button variant="gradient" onClick={() => { setFormValues({}); setIsNewOpen(true) }}>
             <Plus className="w-4 h-4 mr-2" />{ru ? 'Первый чекин' : 'First Check-in'}
           </Button>
         </Card>
       )}
 
-      {/* ═══ New Check-in Modal ═══ */}
-      <Modal isOpen={isNewOpen} onClose={() => setIsNewOpen(false)}
-        title={ru ? 'Новый чекин' : 'New Check-in'} size="lg">
-        <div className="space-y-5">
-
-          {/* Measurements */}
-          <div>
-            <p className="text-sm font-semibold text-zinc-700 dark:text-zinc-300 mb-3 flex items-center gap-1">
-              <Scale className="w-4 h-4" />{ru ? 'Замеры' : 'Measurements'}
-            </p>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-              <Input label={`${ru ? 'Вес' : 'Weight'} (kg) *`} type="number" step="0.1"
-                value={form.weight} onChange={e => setForm({ ...form, weight: e.target.value })} />
-              <Input label={`${ru ? 'Талия' : 'Waist'} (cm)`} type="number" step="0.1"
-                value={form.waist} onChange={e => setForm({ ...form, waist: e.target.value })} />
-              <Input label={`${ru ? 'Бёдра' : 'Hips'} (cm)`} type="number" step="0.1"
-                value={form.hips} onChange={e => setForm({ ...form, hips: e.target.value })} />
-              <Input label={`${ru ? 'Грудь' : 'Chest'} (cm)`} type="number" step="0.1"
-                value={form.chest} onChange={e => setForm({ ...form, chest: e.target.value })} />
-              <Input label={`${ru ? 'Бедро' : 'Thigh'} (cm)`} type="number" step="0.1"
-                value={form.thigh} onChange={e => setForm({ ...form, thigh: e.target.value })} />
-              <Input label={`${ru ? 'Рука' : 'Arm'} (cm)`} type="number" step="0.1"
-                value={form.arm} onChange={e => setForm({ ...form, arm: e.target.value })} />
-              <Input label={`${ru ? '% жира' : 'Body Fat %'}`} type="number" step="0.1"
-                value={form.body_fat_pct} onChange={e => setForm({ ...form, body_fat_pct: e.target.value })} />
+      {/* ═══ New Check-in Modal — Dynamic Form ═══ */}
+      <Modal isOpen={isNewOpen} onClose={() => setIsNewOpen(false)} title={ru ? 'Новый чекин' : 'New Check-in'} size="lg">
+        {templateLoading ? (
+          <div className="flex justify-center py-12"><Loader2 className="w-8 h-8 animate-spin text-teal-500" /></div>
+        ) : (
+          <>
+            <DynamicFormRenderer
+              fields={templateFields}
+              values={formValues}
+              onChange={setFormValues}
+              ru={ru}
+              uploadImage={uploadImage}
+            />
+            <div className="flex justify-end gap-3 pt-4 border-t border-zinc-100 dark:border-zinc-800 mt-4">
+              <Button variant="outline" onClick={() => setIsNewOpen(false)}>{ru ? 'Отмена' : 'Cancel'}</Button>
+              <Button variant="gradient" onClick={handleSubmit} disabled={saving}>
+                {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Send className="w-4 h-4 mr-2" />}
+                {ru ? 'Отправить' : 'Submit'}
+              </Button>
             </div>
-          </div>
-
-          {/* Wellness */}
-          <div className="border-t border-zinc-100 dark:border-zinc-800 pt-4">
-            <p className="text-sm font-semibold text-zinc-700 dark:text-zinc-300 mb-3">
-              {ru ? '🌟 Самочувствие' : '🌟 Wellness'}
-            </p>
-            <div className="space-y-4">
-              <WellnessSlider label={ru ? 'Качество сна' : 'Sleep Quality'} icon={<Moon className="w-3.5 h-3.5" />}
-                value={form.sleep_quality} onChange={v => setForm({ ...form, sleep_quality: v })} />
-              <Input label={ru ? 'Часов сна' : 'Sleep Hours'} type="number" step="0.5"
-                value={form.sleep_hours} onChange={e => setForm({ ...form, sleep_hours: e.target.value })} />
-              <WellnessSlider label={ru ? 'Энергия' : 'Energy'} icon={<Zap className="w-3.5 h-3.5" />}
-                value={form.energy_level} onChange={v => setForm({ ...form, energy_level: v })} />
-              <WellnessSlider label={ru ? 'Стресс' : 'Stress'} icon={<Brain className="w-3.5 h-3.5" />}
-                value={form.stress_level} onChange={v => setForm({ ...form, stress_level: v })} />
-              <WellnessSlider label={ru ? 'Аппетит' : 'Appetite'} icon={<Apple className="w-3.5 h-3.5" />}
-                value={form.appetite} onChange={v => setForm({ ...form, appetite: v })} />
-              <WellnessSlider label={ru ? 'Болезненность мышц' : 'Soreness'} icon={<MuscleIcon className="w-3.5 h-3.5" />}
-                value={form.soreness} onChange={v => setForm({ ...form, soreness: v })} />
-            </div>
-          </div>
-
-          {/* Cycle */}
-          <div className="border-t border-zinc-100 dark:border-zinc-800 pt-4">
-            <p className="text-sm font-semibold text-zinc-700 dark:text-zinc-300 mb-3">
-              {ru ? '📅 Цикл (опционально)' : '📅 Cycle (optional)'}
-            </p>
-            <div className="grid sm:grid-cols-2 gap-3">
-              <Input label={ru ? 'День цикла' : 'Cycle Day'} type="number"
-                value={form.cycle_day} onChange={e => setForm({ ...form, cycle_day: e.target.value })} />
-              <Input label={ru ? 'Заметки по циклу' : 'Cycle Notes'}
-                value={form.cycle_notes} onChange={e => setForm({ ...form, cycle_notes: e.target.value })} />
-            </div>
-          </div>
-
-          {/* Notes */}
-          <div className="border-t border-zinc-100 dark:border-zinc-800 pt-4">
-            <label className="block text-xs text-zinc-500 mb-1">{ru ? 'Комментарий' : 'Notes'}</label>
-            <textarea className="w-full px-3 py-2 rounded-lg border border-zinc-200 dark:border-zinc-700 dark:bg-zinc-800 text-sm resize-none"
-              rows={3} placeholder={ru ? 'Как прошла неделя...' : 'How was your week...'}
-              value={form.comment} onChange={e => setForm({ ...form, comment: e.target.value })} />
-          </div>
-        </div>
-
-        <div className="flex justify-end gap-3 pt-4 border-t border-zinc-100 dark:border-zinc-800 mt-4">
-          <Button variant="outline" onClick={() => setIsNewOpen(false)}>{ru ? 'Отмена' : 'Cancel'}</Button>
-          <Button variant="gradient" onClick={handleSubmit} disabled={saving}>
-            {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Send className="w-4 h-4 mr-2" />}
-            {ru ? 'Отправить' : 'Submit'}
-          </Button>
-        </div>
+          </>
+        )}
       </Modal>
 
       {/* ═══ Detail Modal ═══ */}
       <Modal isOpen={isDetailOpen} onClose={() => { setIsDetailOpen(false); setResponses([]) }}
-        title={selectedCheckin ? new Date(selectedCheckin.checkin_date).toLocaleDateString(ru ? 'ru-RU' : 'en-US', { weekday: 'long', day: 'numeric', month: 'long' }) : ''}
-        size="lg">
+        title={selectedCheckin ? new Date(selectedCheckin.checkin_date).toLocaleDateString(ru ? 'ru-RU' : 'en-US', { weekday: 'long', day: 'numeric', month: 'long' }) : ''} size="lg">
         {selectedCheckin && (
           <div className="space-y-4">
-            {/* Status */}
             <div className="flex gap-2">
               <Badge variant={selectedCheckin.status === 'reviewed' ? 'success' : selectedCheckin.flagged ? 'destructive' : 'secondary'}>
-                {selectedCheckin.status === 'reviewed' ? (ru ? 'Просмотрен' : 'Reviewed') :
-                 selectedCheckin.flagged ? (ru ? 'Отмечен' : 'Flagged') : (ru ? 'Новый' : 'New')}
+                {selectedCheckin.status === 'reviewed' ? (ru ? 'Просмотрен' : 'Reviewed') : selectedCheckin.flagged ? (ru ? 'Отмечен' : 'Flagged') : (ru ? 'Новый' : 'New')}
               </Badge>
               {selectedCheckin.flag_reason && <span className="text-xs text-red-500">{selectedCheckin.flag_reason}</span>}
             </div>
@@ -412,9 +376,22 @@ export default function ClientCheckinsPage() {
             {selectedCheckin.comment && (
               <div>
                 <p className="text-xs font-semibold text-zinc-500 uppercase mb-1">{ru ? 'Комментарий' : 'Notes'}</p>
-                <p className="text-sm text-zinc-600 dark:text-zinc-400 bg-zinc-50 dark:bg-zinc-800/50 p-3 rounded-lg">
-                  {selectedCheckin.comment}
-                </p>
+                <p className="text-sm text-zinc-600 dark:text-zinc-400 bg-zinc-50 dark:bg-zinc-800/50 p-3 rounded-lg">{selectedCheckin.comment}</p>
+              </div>
+            )}
+
+            {/* Custom data */}
+            {selectedCheckin.custom_data && Object.keys(selectedCheckin.custom_data).length > 0 && (
+              <div>
+                <p className="text-xs font-semibold text-zinc-500 uppercase mb-2">{ru ? 'Дополнительно' : 'Additional'}</p>
+                <div className="grid grid-cols-2 gap-2">
+                  {Object.entries(selectedCheckin.custom_data).map(([k, v]) => (
+                    <div key={k} className="bg-zinc-50 dark:bg-zinc-800/50 rounded-lg p-2.5">
+                      <p className="text-[10px] text-zinc-400">{k}</p>
+                      <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100">{String(v)}</p>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
 
@@ -427,7 +404,7 @@ export default function ClientCheckinsPage() {
                     <div key={r.id} className="bg-teal-50 dark:bg-teal-500/10 rounded-lg p-3 border-l-3 border-teal-500">
                       <p className="text-sm text-zinc-700 dark:text-zinc-300">{r.message}</p>
                       <p className="text-[10px] text-zinc-400 mt-1">
-                        {r.responder_name || (ru ? 'Тренер' : 'Trainer')} • {new Date(r.created_at).toLocaleDateString(ru ? 'ru-RU' : 'en-US', { day: 'numeric', month: 'short' })}
+                        {r.profiles?.full_name || (ru ? 'Тренер' : 'Trainer')} • {new Date(r.created_at).toLocaleDateString(ru ? 'ru-RU' : 'en-US', { day: 'numeric', month: 'short' })}
                       </p>
                     </div>
                   ))}
@@ -436,9 +413,7 @@ export default function ClientCheckinsPage() {
             )}
 
             <div className="flex justify-end pt-4 border-t border-zinc-100 dark:border-zinc-800">
-              <Button variant="outline" onClick={() => { setIsDetailOpen(false); setResponses([]) }}>
-                {ru ? 'Закрыть' : 'Close'}
-              </Button>
+              <Button variant="outline" onClick={() => { setIsDetailOpen(false); setResponses([]) }}>{ru ? 'Закрыть' : 'Close'}</Button>
             </div>
           </div>
         )}

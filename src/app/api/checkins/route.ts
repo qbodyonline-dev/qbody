@@ -94,6 +94,13 @@ export async function GET(request: NextRequest) {
   }
 }
 
+// Known DB columns for checkins
+const CHECKIN_DB_COLUMNS = new Set([
+  'weight', 'body_fat_pct', 'waist', 'hips', 'chest', 'thigh', 'arm',
+  'sleep_hours', 'sleep_quality', 'stress_level', 'energy_level',
+  'appetite', 'soreness', 'cycle_day', 'cycle_notes', 'comment'
+])
+
 // POST — create checkin (client submits)
 export async function POST(request: NextRequest) {
   const auth = await authenticateRequest(request)
@@ -108,29 +115,34 @@ export async function POST(request: NextRequest) {
     const isAdmin = ['admin', 'trainer'].includes(auth.data.profile.role)
     const clientId = isAdmin ? (body.client_id || auth.data.user.id) : auth.data.user.id
 
+    // Separate known DB columns from custom data
+    const insert: Record<string, any> = {
+      client_id: clientId,
+      checkin_date: body.checkin_date || new Date().toISOString().split('T')[0],
+      status: 'new',
+    }
+    const customData: Record<string, any> = {}
+
+    // Process form values
+    const formValues = body.values || body // support both old {weight:x} and new {values:{weight:x}} format
+    for (const [key, val] of Object.entries(formValues)) {
+      if (['client_id', 'checkin_date', 'status', 'photos', 'values'].includes(key)) continue
+      if (val === null || val === undefined || val === '') continue
+      
+      if (CHECKIN_DB_COLUMNS.has(key)) {
+        insert[key] = typeof val === 'string' ? (isNaN(Number(val)) ? val : Number(val)) : val
+      } else {
+        customData[key] = val
+      }
+    }
+
+    if (Object.keys(customData).length > 0) {
+      insert.custom_data = customData
+    }
+
     const { data, error } = await supabase
       .from('checkins')
-      .insert({
-        client_id: clientId,
-        checkin_date: body.checkin_date || new Date().toISOString().split('T')[0],
-        weight: body.weight || null,
-        body_fat_pct: body.body_fat_pct || null,
-        waist: body.waist || null,
-        hips: body.hips || null,
-        chest: body.chest || null,
-        thigh: body.thigh || null,
-        arm: body.arm || null,
-        sleep_hours: body.sleep_hours || null,
-        sleep_quality: body.sleep_quality || null,
-        stress_level: body.stress_level || null,
-        energy_level: body.energy_level || null,
-        appetite: body.appetite || null,
-        soreness: body.soreness || null,
-        cycle_day: body.cycle_day || null,
-        cycle_notes: body.cycle_notes || null,
-        comment: body.comment || null,
-        status: 'new',
-      })
+      .insert(insert)
       .select()
       .single()
 
@@ -140,13 +152,13 @@ export async function POST(request: NextRequest) {
     }
 
     // Insert photos if provided
-    if (body.photos && Array.isArray(body.photos) && body.photos.length > 0) {
-      const photoRows = body.photos.map((p: any) => ({
+    const photos = body.photos || []
+    if (Array.isArray(photos) && photos.length > 0) {
+      const photoRows = photos.map((p: any) => ({
         checkin_id: data.id,
-        photo_url: p.photo_url,
-        photo_type: p.photo_type || 'front',
+        photo_url: typeof p === 'string' ? p : p.photo_url,
+        photo_type: typeof p === 'string' ? 'progress' : (p.photo_type || 'front'),
       }))
-
       await supabase.from('checkin_photos').insert(photoRows)
     }
 
