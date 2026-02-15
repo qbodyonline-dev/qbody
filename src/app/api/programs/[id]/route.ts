@@ -74,6 +74,21 @@ function blocksToHtml(value: any): string | null {
   return parts.join('') || null
 }
 
+/**
+ * Normalize blocks: if value is a JSON string, parse it. If array, return as-is.
+ */
+function normalizeBlocks(value: any): any[] | null {
+  if (!value) return null
+  if (Array.isArray(value)) return value
+  if (typeof value === 'string') {
+    try {
+      const parsed = JSON.parse(value)
+      if (Array.isArray(parsed)) return parsed
+    } catch {}
+  }
+  return null
+}
+
 // GET — single program with days + clients
 // Supports both admin and client access
 export async function GET(
@@ -129,12 +144,16 @@ export async function GET(
         .eq('program_id', params.id)
         .maybeSingle()
 
+      // Normalize blocks: parse JSON strings into arrays
+      const fdBlocks = normalizeBlocks(data.full_description)
+      const fdBlocksRu = normalizeBlocks(data.full_description_ru)
+
       return NextResponse.json({
         ...data,
         full_description: blocksToText(data.full_description),
         full_description_ru: blocksToText(data.full_description_ru),
-        full_description_html: blocksToHtml(data.full_description),
-        full_description_ru_html: blocksToHtml(data.full_description_ru),
+        full_description_blocks: fdBlocks,
+        full_description_ru_blocks: fdBlocksRu,
         total_workouts: totalWorkouts,
         enrollment: enrollment || null,
       })
