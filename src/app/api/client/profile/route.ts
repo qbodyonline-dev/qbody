@@ -26,7 +26,7 @@ export async function GET(request: NextRequest) {
         .select('*')
         .eq('client_id', userId).maybeSingle(),
       supabase.from('client_programs')
-        .select('id, start_date, end_date, status, training_programs(name, name_ru, duration_weeks)')
+        .select('id, start_date, end_date, status, training_programs(name, name_secondary, duration_weeks)')
         .eq('client_id', userId).eq('status', 'active').maybeSingle(),
     ])
 
@@ -60,7 +60,7 @@ export async function GET(request: NextRequest) {
       questionnaire: questionnaire || null,
       program: cp ? {
         name: (cp.training_programs as any)?.name,
-        name_ru: (cp.training_programs as any)?.name_ru,
+        name_secondary: (cp.training_programs as any)?.name_secondary,
         duration_weeks: (cp.training_programs as any)?.duration_weeks,
         start_date: cp.start_date,
         status: cp.status,
