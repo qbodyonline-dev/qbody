@@ -431,7 +431,7 @@ function PageEditorInner() {
             <div className="flex items-center gap-2 text-xs text-zinc-400 mb-0.5">
               <button onClick={goBackToPages} className="hover:text-teal-500 transition-colors flex items-center gap-1"><ArrowLeft className="w-3 h-3" />{lang === 'ru' ? 'Страницы' : 'Pages'}</button>
               <span>/</span>
-              <span className="text-zinc-600 dark:text-zinc-300">{currentPage ? (lang === 'ru' ? currentPage.title_ru : currentPage.title) : pageSlug}</span>
+              <span className="text-zinc-600 dark:text-zinc-300">{currentPage ? (lang === 'ru' ? currentPage.title_secondary : currentPage.title) : pageSlug}</span>
             </div>
             <h1 className="text-xl font-bold text-zinc-900 dark:text-zinc-100">{lang === 'ru' ? 'Конструктор' : 'Page Builder'}</h1>
           </div>
