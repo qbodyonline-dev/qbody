@@ -21,12 +21,10 @@ function safe(s: Partial<FooterSectionData>): FooterSectionData {
 function ts(style?: TextStyle, defaultColor?: string): string {
   if (!style) return defaultColor ? `color:${defaultColor};` : ''
   const parts: string[] = []
-  if (style.color || defaultColor) parts.push(`color:${style.color || defaultColor}`)
-  if (style.fontSize) parts.push(`font-size:${style.fontSize}px`)
-  if (style.fontWeight) parts.push(`font-weight:${style.fontWeight}`)
-  if (style.fontFamily) parts.push(`font-family:${style.fontFamily}`)
-  if (style.letterSpacing) parts.push(`letter-spacing:${style.letterSpacing}em`)
-  if (style.textTransform) parts.push(`text-transform:${style.textTransform}`)
+  if (style.color) parts.push(`color:${style.color}`)
+  else if (defaultColor) parts.push(`color:${defaultColor}`)
+  if (style.size) parts.push(`font-size:${style.size}px`)
+  if (style.align) parts.push(`text-align:${style.align}`)
   return parts.join(';') + (parts.length ? ';' : '')
 }
 
