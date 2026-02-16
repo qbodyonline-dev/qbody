@@ -65,20 +65,86 @@ function NavColumnEditor({ col, onChange, onRemove, accentColor }: { col: Footer
   )
 }
 
+/* ─── Icon Picker Palette ─── */
+const SOCIAL_ICONS: { icon: string; label: string }[] = [
+  { icon: '📸', label: 'Instagram' },
+  { icon: '👤', label: 'Facebook' },
+  { icon: '▶️', label: 'YouTube' },
+  { icon: '✈️', label: 'Telegram' },
+  { icon: '💬', label: 'WhatsApp' },
+  { icon: '🐦', label: 'Twitter/X' },
+  { icon: '💼', label: 'LinkedIn' },
+  { icon: '🎵', label: 'TikTok' },
+  { icon: '📌', label: 'Pinterest' },
+  { icon: '👻', label: 'Snapchat' },
+  { icon: '💻', label: 'GitHub' },
+  { icon: '🎮', label: 'Discord' },
+  { icon: '🔗', label: 'Link' },
+  { icon: '🌐', label: 'Website' },
+  { icon: '📧', label: 'Email' },
+  { icon: '📱', label: 'Phone' },
+]
+
+const CONTACT_ICONS: { icon: string; label: string }[] = [
+  { icon: '📧', label: 'Email' },
+  { icon: '📱', label: 'Phone' },
+  { icon: '📍', label: 'Location' },
+  { icon: '🕐', label: 'Hours' },
+  { icon: '💬', label: 'Chat' },
+  { icon: '🌐', label: 'Website' },
+  { icon: '📠', label: 'Fax' },
+  { icon: '🏢', label: 'Office' },
+]
+
+function IconPicker({ current, icons, onPick }: { current: string; icons: { icon: string; label: string }[]; onPick: (icon: string, label: string) => void }) {
+  const [show, setShow] = useState(false)
+  return (
+    <div className="relative">
+      <button onClick={() => setShow(!show)}
+        className="w-9 h-9 rounded-lg border border-zinc-200 dark:border-zinc-600 bg-white dark:bg-zinc-800 flex items-center justify-center text-lg hover:border-teal-400 transition-colors flex-shrink-0"
+        title="Pick icon">
+        {current || '?'}
+      </button>
+      {show && (
+        <div className="absolute z-50 top-10 left-0 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-600 rounded-xl shadow-xl p-2 w-[220px]">
+          <div className="grid grid-cols-4 gap-1">
+            {icons.map(ic => (
+              <button key={ic.label} onClick={() => { onPick(ic.icon, ic.label); setShow(false) }}
+                className={`flex flex-col items-center gap-0.5 p-1.5 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors ${current === ic.icon ? 'bg-teal-50 dark:bg-teal-900/30 ring-1 ring-teal-400' : ''}`}
+                title={ic.label}>
+                <span className="text-lg">{ic.icon}</span>
+                <span className="text-[8px] text-zinc-400 leading-tight truncate w-full text-center">{ic.label}</span>
+              </button>
+            ))}
+          </div>
+          <div className="mt-1.5 pt-1.5 border-t border-zinc-100 dark:border-zinc-700">
+            <Input value={current} onChange={e => { onPick(e.target.value, ''); setShow(false) }}
+              placeholder="Custom emoji" className="text-center text-sm h-7" maxLength={2} />
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 /* ─── Social Link Editor ─── */
 function SocialEditor({ links, onChange, accentColor }: { links: FooterSocialLink[]; onChange: (l: FooterSocialLink[]) => void; accentColor: string }) {
   return (
-    <div className="space-y-1.5">
+    <div className="space-y-2">
       {links.map((s, i) => (
-        <div key={s.id} className="flex gap-1 items-center">
-          <Input value={s.icon} onChange={e => { const n = [...links]; n[i] = { ...n[i], icon: e.target.value }; onChange(n) }} className="text-center text-xs h-6 w-10" maxLength={2} />
-          <Input value={s.label} onChange={e => { const n = [...links]; n[i] = { ...n[i], label: e.target.value }; onChange(n) }} placeholder="Label" className="text-xs h-6 w-24" />
-          <Input value={s.url} onChange={e => { const n = [...links]; n[i] = { ...n[i], url: e.target.value }; onChange(n) }} placeholder="URL" className="text-xs h-6 flex-1" />
-          <button onClick={() => onChange(links.filter((_, j) => j !== i))} className="p-0.5"><Trash2 className="w-2.5 h-2.5 text-red-400" /></button>
+        <div key={s.id} className="flex gap-1.5 items-start p-2 bg-zinc-50 dark:bg-zinc-800/50 rounded-lg">
+          <IconPicker current={s.icon} icons={SOCIAL_ICONS} onPick={(icon, label) => {
+            const n = [...links]; n[i] = { ...n[i], icon, ...(label && !n[i].label ? { label } : {}) }; onChange(n)
+          }} />
+          <div className="flex-1 space-y-1">
+            <Input value={s.label} onChange={e => { const n = [...links]; n[i] = { ...n[i], label: e.target.value }; onChange(n) }} placeholder="Label" className="text-xs h-7" />
+            <Input value={s.url} onChange={e => { const n = [...links]; n[i] = { ...n[i], url: e.target.value }; onChange(n) }} placeholder="https://..." className="text-xs h-7" />
+          </div>
+          <button onClick={() => onChange(links.filter((_, j) => j !== i))} className="p-1 mt-1 text-red-400 hover:text-red-500"><Trash2 className="w-3.5 h-3.5" /></button>
         </div>
       ))}
-      <button onClick={() => onChange([...links, { id: `s_${Date.now()}`, icon: '🔗', label: 'Link', url: 'https://' }])}
-        className="text-[10px] font-medium flex items-center gap-1" style={{ color: accentColor }}><Plus className="w-3 h-3" /> Add Social</button>
+      <button onClick={() => onChange([...links, { id: `s_${Date.now()}`, icon: '🔗', label: '', url: 'https://' }])}
+        className="text-[11px] font-medium flex items-center gap-1" style={{ color: accentColor }}><Plus className="w-3.5 h-3.5" /> Add Social</button>
     </div>
   )
 }
@@ -86,18 +152,24 @@ function SocialEditor({ links, onChange, accentColor }: { links: FooterSocialLin
 /* ─── Contact Item Editor ─── */
 function ContactEditor({ items, onChange, accentColor }: { items: FooterContactItem[]; onChange: (i: FooterContactItem[]) => void; accentColor: string }) {
   return (
-    <div className="space-y-1.5">
+    <div className="space-y-2">
       {items.map((c, i) => (
-        <div key={c.id} className="flex gap-1 items-center">
-          <Input value={c.icon} onChange={e => { const n = [...items]; n[i] = { ...n[i], icon: e.target.value }; onChange(n) }} className="text-center text-xs h-6 w-10" maxLength={2} />
-          <Input value={c.text} onChange={e => { const n = [...items]; n[i] = { ...n[i], text: e.target.value }; onChange(n) }} placeholder="EN" className="text-xs h-6 flex-1" />
-          <Input value={c.textRu} onChange={e => { const n = [...items]; n[i] = { ...n[i], textRu: e.target.value }; onChange(n) }} placeholder="RU" className="text-xs h-6 flex-1" />
-          <Input value={c.link || ''} onChange={e => { const n = [...items]; n[i] = { ...n[i], link: e.target.value }; onChange(n) }} placeholder="Link" className="text-xs h-6 w-20" />
-          <button onClick={() => onChange(items.filter((_, j) => j !== i))} className="p-0.5"><Trash2 className="w-2.5 h-2.5 text-red-400" /></button>
+        <div key={c.id} className="flex gap-1.5 items-start p-2 bg-zinc-50 dark:bg-zinc-800/50 rounded-lg">
+          <IconPicker current={c.icon} icons={CONTACT_ICONS} onPick={(icon) => {
+            const n = [...items]; n[i] = { ...n[i], icon }; onChange(n)
+          }} />
+          <div className="flex-1 space-y-1">
+            <div className="grid grid-cols-2 gap-1">
+              <Input value={c.text} onChange={e => { const n = [...items]; n[i] = { ...n[i], text: e.target.value }; onChange(n) }} placeholder="Text EN" className="text-xs h-7" />
+              <Input value={c.textRu} onChange={e => { const n = [...items]; n[i] = { ...n[i], textRu: e.target.value }; onChange(n) }} placeholder="Text RU" className="text-xs h-7" />
+            </div>
+            <Input value={c.link || ''} onChange={e => { const n = [...items]; n[i] = { ...n[i], link: e.target.value }; onChange(n) }} placeholder="Link (optional)" className="text-xs h-7" />
+          </div>
+          <button onClick={() => onChange(items.filter((_, j) => j !== i))} className="p-1 mt-1 text-red-400 hover:text-red-500"><Trash2 className="w-3.5 h-3.5" /></button>
         </div>
       ))}
       <button onClick={() => onChange([...items, { id: `c_${Date.now()}`, icon: '📌', text: '', textRu: '' }])}
-        className="text-[10px] font-medium flex items-center gap-1" style={{ color: accentColor }}><Plus className="w-3 h-3" /> Add Contact</button>
+        className="text-[11px] font-medium flex items-center gap-1" style={{ color: accentColor }}><Plus className="w-3.5 h-3.5" /> Add Contact</button>
     </div>
   )
 }
