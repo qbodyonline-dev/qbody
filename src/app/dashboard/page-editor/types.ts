@@ -187,7 +187,7 @@ export type StructuredItems = CourseItem[] | ProgramItem[] | ResultItem[]
 // NOTE: CourseSectionData, HtmlBlockData, SliderData, HeroTemplateData also stored in block.data (cast with 'as any')
 export type SectionData = HeaderData | HeroData | AboutData
 
-export type BlockType = 'header' | 'hero' | 'programs' | 'courses' | 'courses2' | 'about' | 'about2' | 'cta2' | 'faq2' | 'contact2' | 'results' | 'footer' | 'custom' | 'htmlblock' | 'slider' | 'herotemplate'
+export type BlockType = 'header' | 'hero' | 'programs' | 'courses' | 'courses2' | 'about' | 'about2' | 'cta2' | 'faq2' | 'contact2' | 'results' | 'footer' | 'footer2' | 'custom' | 'htmlblock' | 'slider' | 'herotemplate'
 
 export interface PageBlock {
   id: string
@@ -327,6 +327,7 @@ export const BLOCK_ICONS: Record<BlockType, any> = {
   contact2: Mail,
   results: Trophy,
   footer: FileText,
+  footer2: FileText,
   custom: Settings2,
   htmlblock: Code2,
   slider: SlidersHorizontal,

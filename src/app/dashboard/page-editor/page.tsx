@@ -37,6 +37,8 @@ import { FaqSectionEditor, renderFaq2HTML, defaultFaqSectionData } from './faq'
 import type { FaqSectionData } from './faq'
 import { ContactSectionEditor, renderContact2HTML, defaultContactSectionData } from './contact'
 import type { ContactSectionData } from './contact'
+import { FooterSectionEditor, renderFooter2HTML, defaultFooterSectionData } from './footer'
+import type { FooterSectionData } from './footer'
 
 /* ═══════════ PAGE TYPE ═══════════ */
 interface PageSettings {
@@ -288,6 +290,9 @@ function PageEditorInner() {
       } else if (structType === 'contact2') {
         const sec = { ...defaultContactSectionData, fields: defaultContactSectionData.fields.map(f => ({ ...f })), infoItems: defaultContactSectionData.infoItems.map(i => ({ ...i })), socialLinks: defaultContactSectionData.socialLinks.map(s => ({ ...s })) }
         nb = { id: nid, type: 'contact2' as any, label: tpl.l, labelRu: tpl.lr, visible: true, contentEn: renderContact2HTML(sec, 'en'), contentRu: renderContact2HTML(sec, 'ru'), style: {}, data: { section: sec } as any }
+      } else if (structType === 'footer2') {
+        const sec = { ...defaultFooterSectionData, navColumns: defaultFooterSectionData.navColumns.map(c => ({ ...c, links: c.links.map(l => ({ ...l })) })), socialLinks: defaultFooterSectionData.socialLinks.map(s => ({ ...s })), contactItems: defaultFooterSectionData.contactItems.map(c => ({ ...c })) }
+        nb = { id: nid, type: 'footer2' as any, label: tpl.l, labelRu: tpl.lr, visible: true, contentEn: renderFooter2HTML(sec, 'en'), contentRu: renderFooter2HTML(sec, 'ru'), style: {}, data: { section: sec } as any }
       } else {
         nb = { id: nid, type: 'custom', label: tpl.l, labelRu: tpl.lr, visible: true, contentEn: '', contentRu: '', style: {} }
       }
@@ -365,6 +370,7 @@ function PageEditorInner() {
     else if ((b.type as any) === 'cta2' && b.data) { const dd = b.data as any; c = renderCta2HTML(dd.section || defaultCtaSectionData, lt) }
     else if ((b.type as any) === 'faq2' && b.data) { const dd = b.data as any; c = renderFaq2HTML(dd.section || defaultFaqSectionData, lt) }
     else if ((b.type as any) === 'contact2' && b.data) { const dd = b.data as any; c = renderContact2HTML(dd.section || defaultContactSectionData, lt) }
+    else if ((b.type as any) === 'footer2' && b.data) { const dd = b.data as any; c = renderFooter2HTML(dd.section || defaultFooterSectionData, lt) }
     else c = lt === 'ru' ? b.contentRu : b.contentEn
     const s = styleToCSS(b.style)
     const a = styleAttrs(b.style)
@@ -858,6 +864,24 @@ function PageEditorInner() {
                       <Eye className="w-3 h-3 text-teal-500" /><span className="text-[10px] font-bold text-teal-600 uppercase tracking-widest">{lang === 'ru' ? 'Превью' : 'Live Preview'}</span>
                     </div>
                     <div className="bg-zinc-950 max-h-[400px] overflow-y-auto"><div dangerouslySetInnerHTML={{ __html: renderContact2HTML(((ab.data as any)?.section as ContactSectionData) || defaultContactSectionData, lt) }} className="pointer-events-none" /></div>
+                  </CardContent></Card>
+                </>
+              ) : (ab.type as any) === 'footer2' ? (
+                <>
+                  <FooterSectionEditor
+                    section={((ab.data as any)?.section as FooterSectionData) || defaultFooterSectionData}
+                    onChangeSection={(sec) => {
+                      const contentEn = renderFooter2HTML(sec, 'en')
+                      const contentRu = renderFooter2HTML(sec, 'ru')
+                      upd(ab.id, { data: { section: sec } as any, contentEn, contentRu })
+                    }}
+                    lang={lt}
+                  />
+                  <Card className="overflow-hidden"><CardContent className="p-0">
+                    <div className="flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-teal-50 to-zinc-50 dark:from-teal-900/20 dark:to-zinc-800 border-b border-zinc-200 dark:border-zinc-700">
+                      <Eye className="w-3 h-3 text-teal-500" /><span className="text-[10px] font-bold text-teal-600 uppercase tracking-widest">{lang === 'ru' ? 'Превью' : 'Live Preview'}</span>
+                    </div>
+                    <div className="bg-zinc-950 max-h-[400px] overflow-y-auto"><div dangerouslySetInnerHTML={{ __html: renderFooter2HTML(((ab.data as any)?.section as FooterSectionData) || defaultFooterSectionData, lt) }} className="pointer-events-none" /></div>
                   </CardContent></Card>
                 </>
               ) : (

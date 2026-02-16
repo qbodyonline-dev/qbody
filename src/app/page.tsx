@@ -22,6 +22,8 @@ import { renderFaq2HTML } from '@/app/dashboard/page-editor/faq'
 import type { FaqSectionData } from '@/app/dashboard/page-editor/faq'
 import { renderContact2HTML } from '@/app/dashboard/page-editor/contact'
 import type { ContactSectionData } from '@/app/dashboard/page-editor/contact'
+import { renderFooter2HTML } from '@/app/dashboard/page-editor/footer'
+import type { FooterSectionData } from '@/app/dashboard/page-editor/footer'
 import type { AboutData, CourseItem, ProgramItem, ResultItem, HtmlBlockData, SliderData, HeroTemplateData } from '@/app/dashboard/page-editor/types'
 import { sanitizeHTML, sanitizeStyleObj } from '@/lib/sanitize-html'
 
@@ -411,6 +413,9 @@ function DynamicBlock({ block, lang, index }: { block: PageBlock; lang: 'en' | '
   } else if ((block.type as any) === 'contact2' && block.data) {
     const dd = block.data as any
     content = renderContact2HTML(dd.section || {}, lang)
+  } else if ((block.type as any) === 'footer2' && block.data) {
+    const dd = block.data as any
+    content = renderFooter2HTML(dd.section || {}, lang)
   } else {
     content = lang === 'ru' ? block.contentRu : block.contentEn
   }
@@ -461,7 +466,7 @@ function DynamicBlock({ block, lang, index }: { block: PageBlock; lang: 'en' | '
   }
 
   // For structured blocks rendered on-the-fly, skip section styles (renderer includes its own bg)
-  const isStructured = ['about', 'about2', 'cta2', 'faq2', 'contact2', 'courses', 'courses2', 'programs', 'results', 'htmlblock', 'slider', 'herotemplate'].includes(block.type) && (block.data || block.items)
+  const isStructured = ['about', 'about2', 'cta2', 'faq2', 'contact2', 'footer2', 'courses', 'courses2', 'programs', 'results', 'htmlblock', 'slider', 'herotemplate'].includes(block.type) && (block.data || block.items)
   // ✅ XSS PROTECTION: Sanitize style object (block javascript: in bgImage etc.)
   const safeStyle = sanitizeStyleObj(block.style || {})
   const sectionStyle = isStructured ? {} : styleToCSS(safeStyle as any)

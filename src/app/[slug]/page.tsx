@@ -12,6 +12,7 @@ import { renderAbout2HTML } from '@/app/dashboard/page-editor/about'
 import { renderCta2HTML } from '@/app/dashboard/page-editor/cta'
 import { renderFaq2HTML } from '@/app/dashboard/page-editor/faq'
 import { renderContact2HTML } from '@/app/dashboard/page-editor/contact'
+import { renderFooter2HTML } from '@/app/dashboard/page-editor/footer'
 import { Loader2 } from 'lucide-react'
 
 interface PageBlock {
@@ -72,13 +73,15 @@ function DynamicBlock({ block, lang, index, headerLangConfig }: { block: PageBlo
     const dd = block.data as any; content = renderFaq2HTML(dd.section || {}, lang)
   } else if (block.type === 'contact2' && block.data) {
     const dd = block.data as any; content = renderContact2HTML(dd.section || {}, lang)
+  } else if (block.type === 'footer2' && block.data) {
+    const dd = block.data as any; content = renderFooter2HTML(dd.section || {}, lang)
   } else {
     content = lang === 'ru' ? block.contentRu : block.contentEn
   }
   if (!content) return null
 
   const safeContent = sanitizeHTML(content)
-  const isStructured = ['header', 'hero', 'about', 'about2', 'cta2', 'faq2', 'contact2', 'courses', 'courses2', 'programs', 'results', 'htmlblock', 'slider', 'herotemplate'].includes(block.type) && (block.data || block.items)
+  const isStructured = ['header', 'hero', 'about', 'about2', 'cta2', 'faq2', 'contact2', 'footer2', 'courses', 'courses2', 'programs', 'results', 'htmlblock', 'slider', 'herotemplate'].includes(block.type) && (block.data || block.items)
   const safeStyle = sanitizeStyleObj(block.style || {})
   const sectionStyle = isStructured ? {} : styleToCSS(safeStyle as any)
 

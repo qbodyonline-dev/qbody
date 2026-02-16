@@ -1,10 +1,11 @@
 import {
   Square, Zap, LayoutGrid, Columns2, Play, MessageSquare,
-  Heart, Hash, Mail, Camera, Code2, SlidersHorizontal, Sparkles, PanelTop, GraduationCap, UserCircle
+  Heart, Hash, Mail, Camera, Code2, SlidersHorizontal, Sparkles, PanelTop, GraduationCap, UserCircle, PanelBottom
 } from 'lucide-react'
 import type { PageBlock, SectionStyle, CourseItem, ProgramItem, ResultItem, HeaderData, HeroData, AboutData } from './types'
 import { renderCoursesHTML, renderProgramsHTML, renderResultsHTML, renderHeaderHTML, renderHeroHTML, renderAboutHTML } from './renderers'
 import { renderHtmlBlockHTML, renderSliderHTML, renderHeroTemplateHTML, defaultHtmlBlockData, defaultSliderData, defaultHeroTemplateData } from './new-block-renderers'
+import { renderFooter2HTML, defaultFooterSectionData } from './footer'
 
 /* ═══════════ BLOCK CONTENT DATA ═══════════ */
 
@@ -58,6 +59,7 @@ export const TEMPLATES: BlockTemplate[] = [
   { id: 'cta2block', l: 'CTA Pro', lr: 'CTA Pro', icon: Zap, en: '__STRUCTURED__cta2', ru: '__STRUCTURED__cta2' },
   { id: 'faq2block', l: 'FAQ Pro', lr: 'FAQ Pro', icon: MessageSquare, en: '__STRUCTURED__faq2', ru: '__STRUCTURED__faq2' },
   { id: 'contact2block', l: 'Contact Pro', lr: 'Контакты Pro', icon: Mail, en: '__STRUCTURED__contact2', ru: '__STRUCTURED__contact2' },
+  { id: 'footer2block', l: 'Footer Pro', lr: 'Footer Pro', icon: PanelBottom, en: '__STRUCTURED__footer2', ru: '__STRUCTURED__footer2' },
   { id: 'htmlblock', l: 'HTML Block', lr: 'HTML Блок', icon: Code2, en: '__STRUCTURED__htmlblock', ru: '__STRUCTURED__htmlblock' },
   { id: 'slider', l: 'Slider', lr: 'Слайдер', icon: SlidersHorizontal, en: '__STRUCTURED__slider', ru: '__STRUCTURED__slider' },
   { id: 'heroblock', l: 'Hero Block', lr: 'Hero Блок', icon: Sparkles, en: '__STRUCTURED__herotemplate', ru: '__STRUCTURED__herotemplate' },
