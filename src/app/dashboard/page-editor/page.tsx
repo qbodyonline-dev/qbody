@@ -406,7 +406,7 @@ function PageEditorInner() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
-                    <span className="font-medium text-zinc-900 dark:text-zinc-100">{lang === 'ru' ? page.title_ru : page.title}</span>
+                    <span className="font-medium text-zinc-900 dark:text-zinc-100">{lang === 'ru' ? page.title_secondary : page.title}</span>
                     {page.is_homepage && <span className="text-[10px] font-bold uppercase text-teal-600 bg-teal-50 dark:bg-teal-900/30 px-1.5 py-0.5 rounded">{lang === 'ru' ? 'Главная' : 'Home'}</span>}
                     {!page.is_published && <span className="text-[10px] font-bold uppercase text-amber-600 bg-amber-50 dark:bg-amber-900/30 px-1.5 py-0.5 rounded">{lang === 'ru' ? 'Черновик' : 'Draft'}</span>}
                   </div>
