@@ -108,28 +108,28 @@ export default function SlugPage() {
   // Activate scroll reveal after blocks are loaded
   useEffect(() => {
     if (loading || blocks.length === 0) return
-    // Small delay to ensure DOM is rendered
+    let observer: IntersectionObserver | null = null
     const timer = setTimeout(() => {
       if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
         document.querySelectorAll('.reveal, .reveal-up, .reveal-left, .reveal-right, .reveal-scale')
           .forEach(el => el.classList.add('is-visible'))
         return
       }
-      const observer = new IntersectionObserver(
+      observer = new IntersectionObserver(
         (entries) => {
           entries.forEach((entry) => {
             if (entry.isIntersecting) {
               entry.target.classList.add('is-visible')
-              observer.unobserve(entry.target)
+              observer?.unobserve(entry.target)
             }
           })
         },
         { threshold: 0.12, rootMargin: '0px 0px -40px 0px' }
       )
       document.querySelectorAll('.reveal, .reveal-up, .reveal-left, .reveal-right, .reveal-scale')
-        .forEach(el => observer.observe(el))
+        .forEach(el => observer!.observe(el))
     }, 50)
-    return () => clearTimeout(timer)
+    return () => { clearTimeout(timer); observer?.disconnect() }
   }, [loading, blocks])
 
   const headerLangConfig: HeaderLangConfig = {

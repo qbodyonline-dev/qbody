@@ -5,8 +5,9 @@ import { Input } from '@/components/ui/input'
 import { Plus, Trash2, Upload, Loader2, X } from 'lucide-react'
 import { toast } from 'sonner'
 import { fetchWithAuthUpload } from '@/lib/api'
+import { useLanguageConfig } from '@/lib/useLanguageConfig'
 import { FOOTER_GRADIENTS } from './defaults'
-import type { FooterSectionData, FooterLayout, FooterBgType, FooterNavColumn, FooterNavLink, FooterSocialLink, FooterContactItem } from './types'
+import type { FooterSectionData, FooterLayout, FooterBgType, FooterNavColumn, FooterSocialLink, FooterContactItem } from './types'
 import { TextStyleEditor } from '../shared'
 import { SOCIAL_ICONS, CONTACT_ICONS, getIconSVG } from './icons'
 import type { FooterIcon } from './icons'
@@ -34,7 +35,7 @@ function Acc({ k, label, open, toggle, children }: { k: string; label: string; o
 }
 
 /* ─── Nav Column Editor ─── */
-function NavColumnEditor({ col, onChange, onRemove, accentColor }: { col: FooterNavColumn; onChange: (c: FooterNavColumn) => void; onRemove: () => void; accentColor: string }) {
+function NavColumnEditor({ col, onChange, onRemove, accentColor, L1, L2 }: { col: FooterNavColumn; onChange: (c: FooterNavColumn) => void; onRemove: () => void; accentColor: string; L1: string; L2: string }) {
   return (
     <div className="p-2.5 bg-zinc-50 dark:bg-zinc-800 rounded-lg space-y-2">
       <div className="flex items-center justify-between">
@@ -42,18 +43,18 @@ function NavColumnEditor({ col, onChange, onRemove, accentColor }: { col: Footer
         <button onClick={onRemove} className="p-0.5 text-red-400 hover:text-red-500"><Trash2 className="w-3 h-3" /></button>
       </div>
       <div className="grid grid-cols-2 gap-1.5">
-        <Input value={col.title} onChange={e => onChange({ ...col, title: e.target.value })} placeholder="Title EN" className="text-xs h-7" />
-        <Input value={col.titleRu} onChange={e => onChange({ ...col, titleRu: e.target.value })} placeholder="Title RU" className="text-xs h-7" />
+        <Input value={col.title} onChange={e => onChange({ ...col, title: e.target.value })} placeholder={`Title ${L1}`} className="text-xs h-7" />
+        <Input value={col.titleRu} onChange={e => onChange({ ...col, titleRu: e.target.value })} placeholder={`Title ${L2}`} className="text-xs h-7" />
       </div>
       {col.links.map((link, li) => (
         <div key={link.id} className="flex gap-1 items-center">
           <div className="flex-1 grid grid-cols-2 gap-1">
             <Input value={link.label} onChange={e => {
               const links = [...col.links]; links[li] = { ...links[li], label: e.target.value }; onChange({ ...col, links })
-            }} placeholder="EN" className="text-[10px] h-6" />
+            }} placeholder={L1} className="text-[10px] h-6" />
             <Input value={link.labelRu} onChange={e => {
               const links = [...col.links]; links[li] = { ...links[li], labelRu: e.target.value }; onChange({ ...col, links })
-            }} placeholder="RU" className="text-[10px] h-6" />
+            }} placeholder={L2} className="text-[10px] h-6" />
           </div>
           <Input value={link.href} onChange={e => {
             const links = [...col.links]; links[li] = { ...links[li], href: e.target.value }; onChange({ ...col, links })
@@ -118,7 +119,7 @@ function SocialEditor({ links, onChange, accentColor }: { links: FooterSocialLin
 }
 
 /* ─── Contact Item Editor ─── */
-function ContactEditor({ items, onChange, accentColor }: { items: FooterContactItem[]; onChange: (i: FooterContactItem[]) => void; accentColor: string }) {
+function ContactEditor({ items, onChange, accentColor, L1, L2 }: { items: FooterContactItem[]; onChange: (i: FooterContactItem[]) => void; accentColor: string; L1: string; L2: string }) {
   return (
     <div className="space-y-2">
       {items.map((c, i) => (
@@ -128,8 +129,8 @@ function ContactEditor({ items, onChange, accentColor }: { items: FooterContactI
           }} />
           <div className="flex-1 space-y-1">
             <div className="grid grid-cols-2 gap-1">
-              <Input value={c.text} onChange={e => { const n = [...items]; n[i] = { ...n[i], text: e.target.value }; onChange(n) }} placeholder="Text EN" className="text-xs h-7" />
-              <Input value={c.textRu} onChange={e => { const n = [...items]; n[i] = { ...n[i], textRu: e.target.value }; onChange(n) }} placeholder="Text RU" className="text-xs h-7" />
+              <Input value={c.text} onChange={e => { const n = [...items]; n[i] = { ...n[i], text: e.target.value }; onChange(n) }} placeholder={`Text ${L1}`} className="text-xs h-7" />
+              <Input value={c.textRu} onChange={e => { const n = [...items]; n[i] = { ...n[i], textRu: e.target.value }; onChange(n) }} placeholder={`Text ${L2}`} className="text-xs h-7" />
             </div>
             <Input value={c.link || ''} onChange={e => { const n = [...items]; n[i] = { ...n[i], link: e.target.value }; onChange(n) }} placeholder="Link (optional)" className="text-xs h-7" />
           </div>
@@ -153,6 +154,9 @@ export function FooterSectionEditor({ section: s, onChangeSection, lang }: Props
   const [open, setOpen] = useState<Record<string, boolean>>({ layout: true })
   const [logoUploading, setLogoUploading] = useState(false)
   const logoRef = useRef<HTMLInputElement>(null)
+  const { pCode, sCode, isBilingual: isBi } = useLanguageConfig()
+  const L1 = pCode || 'EN'
+  const L2 = sCode || 'RU'
 
   const upd = (key: keyof FooterSectionData, val: any) => onChangeSection({ ...s, [key]: val })
   const toggle = (k: string) => setOpen(p => ({ ...p, [k]: !p[k] }))
@@ -227,10 +231,14 @@ export function FooterSectionEditor({ section: s, onChangeSection, lang }: Props
           <input ref={logoRef} type="file" accept="image/*" className="hidden" onChange={handleLogoUpload} />
         </div>
         <TextStyleEditor label="Logo" value={s.logoStyle} onChange={v => upd('logoStyle', v)} defaultColor={s.textColor} />
-        <div className="grid grid-cols-2 gap-1.5">
-          <textarea value={s.description} onChange={e => upd('description', e.target.value)} placeholder="Description EN" className="w-full p-2 text-xs border border-zinc-200 dark:border-zinc-700 dark:bg-zinc-800 rounded-lg h-12 resize-none" />
-          <textarea value={s.descriptionRu} onChange={e => upd('descriptionRu', e.target.value)} placeholder="Description RU" className="w-full p-2 text-xs border border-zinc-200 dark:border-zinc-700 dark:bg-zinc-800 rounded-lg h-12 resize-none" />
-        </div>
+        {isBi ? (
+          <div className="grid grid-cols-2 gap-1.5">
+            <textarea value={s.description} onChange={e => upd('description', e.target.value)} placeholder={`Description ${L1}`} className="w-full p-2 text-xs border border-zinc-200 dark:border-zinc-700 dark:bg-zinc-800 rounded-lg h-12 resize-none" />
+            <textarea value={s.descriptionRu} onChange={e => upd('descriptionRu', e.target.value)} placeholder={`Description ${L2}`} className="w-full p-2 text-xs border border-zinc-200 dark:border-zinc-700 dark:bg-zinc-800 rounded-lg h-12 resize-none" />
+          </div>
+        ) : (
+          <textarea value={s.description} onChange={e => upd('description', e.target.value)} placeholder="Description" className="w-full p-2 text-xs border border-zinc-200 dark:border-zinc-700 dark:bg-zinc-800 rounded-lg h-12 resize-none" />
+        )}
         <TextStyleEditor label="Desc" value={s.descStyle} onChange={v => upd('descStyle', v)} defaultColor={s.mutedColor} />
       </Acc>
 
@@ -249,6 +257,7 @@ export function FooterSectionEditor({ section: s, onChangeSection, lang }: Props
                 onChange={c => { const n = [...s.navColumns]; n[i] = c; upd('navColumns', n) }}
                 onRemove={() => upd('navColumns', s.navColumns.filter((_, j) => j !== i))}
                 accentColor={s.accentColor}
+                L1={L1} L2={L2}
               />
             ))}
             <button onClick={() => upd('navColumns', [...s.navColumns, { id: `nc_${Date.now()}`, title: 'Links', titleRu: 'Ссылки', links: [] }])}
@@ -273,7 +282,7 @@ export function FooterSectionEditor({ section: s, onChangeSection, lang }: Props
           <input type="checkbox" checked={s.showContact} onChange={e => upd('showContact', e.target.checked)} className="rounded" />
           Show contact info
         </label>
-        {s.showContact && <ContactEditor items={s.contactItems} onChange={i => upd('contactItems', i)} accentColor={s.accentColor} />}
+        {s.showContact && <ContactEditor items={s.contactItems} onChange={i => upd('contactItems', i)} accentColor={s.accentColor} L1={L1} L2={L2} />}
       </Acc>
 
       {/* CTA */}
@@ -284,18 +293,30 @@ export function FooterSectionEditor({ section: s, onChangeSection, lang }: Props
         </label>
         {(s.showCta || s.layout === 'cta-footer') && (
           <div className="space-y-2">
-            <div className="grid grid-cols-2 gap-1.5">
-              <Input value={s.ctaTitle} onChange={e => upd('ctaTitle', e.target.value)} placeholder="CTA Title EN" className="text-xs h-7" />
-              <Input value={s.ctaTitleRu} onChange={e => upd('ctaTitleRu', e.target.value)} placeholder="CTA Title RU" className="text-xs h-7" />
-            </div>
-            <div className="grid grid-cols-2 gap-1.5">
-              <Input value={s.ctaSubtitle} onChange={e => upd('ctaSubtitle', e.target.value)} placeholder="Subtitle EN" className="text-xs h-7" />
-              <Input value={s.ctaSubtitleRu} onChange={e => upd('ctaSubtitleRu', e.target.value)} placeholder="Subtitle RU" className="text-xs h-7" />
-            </div>
-            <div className="grid grid-cols-2 gap-1.5">
-              <Input value={s.ctaBtnText} onChange={e => upd('ctaBtnText', e.target.value)} placeholder="Btn EN" className="text-xs h-7" />
-              <Input value={s.ctaBtnTextRu} onChange={e => upd('ctaBtnTextRu', e.target.value)} placeholder="Btn RU" className="text-xs h-7" />
-            </div>
+            {isBi ? (
+              <div className="grid grid-cols-2 gap-1.5">
+                <Input value={s.ctaTitle} onChange={e => upd('ctaTitle', e.target.value)} placeholder={`CTA Title ${L1}`} className="text-xs h-7" />
+                <Input value={s.ctaTitleRu} onChange={e => upd('ctaTitleRu', e.target.value)} placeholder={`CTA Title ${L2}`} className="text-xs h-7" />
+              </div>
+            ) : (
+              <Input value={s.ctaTitle} onChange={e => upd('ctaTitle', e.target.value)} placeholder="CTA Title" className="text-xs h-7" />
+            )}
+            {isBi ? (
+              <div className="grid grid-cols-2 gap-1.5">
+                <Input value={s.ctaSubtitle} onChange={e => upd('ctaSubtitle', e.target.value)} placeholder={`Subtitle ${L1}`} className="text-xs h-7" />
+                <Input value={s.ctaSubtitleRu} onChange={e => upd('ctaSubtitleRu', e.target.value)} placeholder={`Subtitle ${L2}`} className="text-xs h-7" />
+              </div>
+            ) : (
+              <Input value={s.ctaSubtitle} onChange={e => upd('ctaSubtitle', e.target.value)} placeholder="Subtitle" className="text-xs h-7" />
+            )}
+            {isBi ? (
+              <div className="grid grid-cols-2 gap-1.5">
+                <Input value={s.ctaBtnText} onChange={e => upd('ctaBtnText', e.target.value)} placeholder={`Btn ${L1}`} className="text-xs h-7" />
+                <Input value={s.ctaBtnTextRu} onChange={e => upd('ctaBtnTextRu', e.target.value)} placeholder={`Btn ${L2}`} className="text-xs h-7" />
+              </div>
+            ) : (
+              <Input value={s.ctaBtnText} onChange={e => upd('ctaBtnText', e.target.value)} placeholder="Button text" className="text-xs h-7" />
+            )}
             <Input value={s.ctaBtnLink} onChange={e => upd('ctaBtnLink', e.target.value)} placeholder="/link" className="text-xs h-7" />
           </div>
         )}
@@ -303,10 +324,14 @@ export function FooterSectionEditor({ section: s, onChangeSection, lang }: Props
 
       {/* Copyright */}
       <Acc k="copy" label="©️ Copyright" open={open} toggle={toggle}>
-        <div className="grid grid-cols-2 gap-1.5">
-          <Input value={s.copyrightText} onChange={e => upd('copyrightText', e.target.value)} placeholder="EN" className="text-xs h-7" />
-          <Input value={s.copyrightTextRu} onChange={e => upd('copyrightTextRu', e.target.value)} placeholder="RU" className="text-xs h-7" />
-        </div>
+        {isBi ? (
+          <div className="grid grid-cols-2 gap-1.5">
+            <Input value={s.copyrightText} onChange={e => upd('copyrightText', e.target.value)} placeholder={L1} className="text-xs h-7" />
+            <Input value={s.copyrightTextRu} onChange={e => upd('copyrightTextRu', e.target.value)} placeholder={L2} className="text-xs h-7" />
+          </div>
+        ) : (
+          <Input value={s.copyrightText} onChange={e => upd('copyrightText', e.target.value)} placeholder="Copyright text" className="text-xs h-7" />
+        )}
       </Acc>
 
       {/* Background */}
