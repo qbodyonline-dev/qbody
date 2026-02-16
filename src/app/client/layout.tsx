@@ -11,9 +11,9 @@ import { createClient } from '@/lib/supabase'
 import { cn } from '@/lib/utils'
 
 export default function ClientLayout({ children }: { children: React.ReactNode }) {
-  const { t, locale } = useTranslation()
+  const { t, locale, langConfig } = useTranslation()
   const { user, profile, signOut, session, loading: authLoading, isClient } = useAuth()
-  const ru = locale === 'ru'
+  const ru = locale === langConfig.secondaryLanguage
   const pathname = usePathname()
   const router = useRouter()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)

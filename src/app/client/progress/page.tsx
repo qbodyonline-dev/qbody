@@ -29,9 +29,9 @@ type CheckinEntry = {
 }
 
 export default function ProgressPage() {
-  const { t, locale } = useTranslation()
+  const { t, locale, langConfig } = useTranslation()
   const { user } = useAuth()
-  const ru = locale === 'ru'
+  const ru = locale === langConfig.secondaryLanguage
 
   const [courses, setCourses] = useState<CourseProgress[]>([])
   const [program, setProgram] = useState<any>(null)

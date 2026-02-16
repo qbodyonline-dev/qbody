@@ -64,10 +64,10 @@ const sectionColors: Record<string, string> = {
 }
 
 export default function ClientTrainingPage() {
-  const { locale } = useTranslation()
+  const { locale, langConfig } = useTranslation()
   const { user } = useAuth()
   const router = useRouter()
-  const ru = locale === 'ru'
+  const ru = locale === langConfig.secondaryLanguage
   const [starting, setStarting] = useState(false)
 
   const [program, setProgram] = useState<Program | null>(null)

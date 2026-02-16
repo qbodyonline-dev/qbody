@@ -2160,3 +2160,13 @@ export function useTranslation() {
   const { t, locale, langConfig, langConfigLoaded } = useLocale()
   return { t, locale, langConfig, langConfigLoaded }
 }
+
+/**
+ * Map current locale to renderer lang.
+ * Page Builder renderers use 'en' for primary content and 'ru' for secondary content.
+ * This helper maps the actual locale code to the correct renderer key.
+ */
+export function useRendererLang(): 'en' | 'ru' {
+  const { locale, langConfig } = useLocale()
+  return locale === langConfig.secondaryLanguage ? 'ru' : 'en'
+}

@@ -1,7 +1,7 @@
 'use client'
 
 import React from 'react'
-import { useLocale, type Locale } from '@/lib/i18n'
+import { useLocale } from '@/lib/i18n'
 import { Globe } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -11,12 +11,20 @@ interface LanguageSwitcherProps {
 }
 
 export function LanguageSwitcher({ variant = 'buttons', className }: LanguageSwitcherProps) {
-  const { locale, setLocale } = useLocale()
+  const { locale, setLocale, langConfig, langConfigLoaded } = useLocale()
   const [isOpen, setIsOpen] = React.useState(false)
 
-  const languages: { code: Locale; name: string; flag: string }[] = [
-    { code: 'en', name: 'English', flag: '🇺🇸' },
-    { code: 'ru', name: 'Русский', flag: '🇷🇺' },
+  // Hide switcher if monolingual or config not loaded yet
+  if (!langConfigLoaded || !langConfig.isBilingual) return null
+
+  // Build language list from config
+  const languages = [
+    langConfig.primaryLanguageInfo
+      ? { code: langConfig.primaryLanguageInfo.code, name: langConfig.primaryLanguageInfo.nativeName, flag: langConfig.primaryLanguageInfo.flag }
+      : { code: langConfig.primaryLanguage, name: langConfig.primaryLanguage.toUpperCase(), flag: '' },
+    langConfig.secondaryLanguageInfo
+      ? { code: langConfig.secondaryLanguageInfo.code, name: langConfig.secondaryLanguageInfo.nativeName, flag: langConfig.secondaryLanguageInfo.flag }
+      : { code: langConfig.secondaryLanguage!, name: langConfig.secondaryLanguage!.toUpperCase(), flag: '' },
   ]
 
   if (variant === 'buttons') {

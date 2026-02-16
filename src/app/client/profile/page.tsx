@@ -36,9 +36,9 @@ const locationLabels: Record<string, { en: string; ru: string }> = {
 }
 
 export default function ProfilePage() {
-  const { t, locale } = useTranslation()
+  const { t, locale, langConfig } = useTranslation()
   const { user, profile, signOut } = useAuth()
-  const ru = locale === 'ru'
+  const ru = locale === langConfig.secondaryLanguage
   const router = useRouter()
   const fileInputRef = useRef<HTMLInputElement>(null)
   

@@ -12,8 +12,8 @@ import { createClient } from '@/lib/supabase'
 import { useRecaptcha } from '@/lib/recaptcha'
 
 export default function ForgotPasswordPage() {
-  const { t, locale } = useTranslation()
-  const ru = locale === 'ru'
+  const { t, locale, langConfig } = useTranslation()
+  const ru = locale === langConfig.secondaryLanguage
   const [email, setEmail] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [isSent, setIsSent] = useState(false)

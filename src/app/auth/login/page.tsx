@@ -13,13 +13,13 @@ import { toast } from 'sonner'
 import { useRecaptcha } from '@/lib/recaptcha'
 
 function LoginForm() {
-  const { t, locale } = useTranslation()
+  const { t, locale, langConfig } = useTranslation()
   const searchParams = useSearchParams()
   const { signIn, user, profile, isClient, loading: authLoading } = useAuth()
   const [isLoading, setIsLoading] = useState(false)
   const [formData, setFormData] = useState({ email: '', password: '' })
 
-  const ru = locale === 'ru'
+  const ru = locale === langConfig.secondaryLanguage
 
   // Redirect already logged-in users
   useEffect(() => {

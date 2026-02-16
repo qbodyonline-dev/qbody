@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
-import { useTranslation } from '@/lib/i18n'
+import { useTranslation, useRendererLang } from '@/lib/i18n'
 import { sanitizeHTML, sanitizeStyleObj } from '@/lib/sanitize-html'
 import { renderAboutHTML, renderCoursesHTML, renderProgramsHTML, renderResultsHTML, renderHeaderHTML, renderHeroHTML } from '@/app/dashboard/page-editor/renderers'
 import { renderHtmlBlockHTML, renderSliderHTML, renderHeroTemplateHTML } from '@/app/dashboard/page-editor/new-block-renderers'
@@ -95,7 +95,7 @@ export default function SlugPage() {
   const params = useParams()
   const slug = params.slug as string
   const { locale } = useTranslation()
-  const lang = (locale || 'ru') as 'en' | 'ru'
+  const lang = useRendererLang()
   const [blocks, setBlocks] = useState<PageBlock[]>([])
   const [loading, setLoading] = useState(true)
   const [notFoundPage, setNotFoundPage] = useState(false)

@@ -39,8 +39,9 @@ export default function CoursesPage() {
 }
 
 function CoursesContent() {
-  const { t, locale } = useTranslation()
+  const { t, locale, langConfig } = useTranslation()
   const { user } = useAuth()
+  const ru = locale === langConfig.secondaryLanguage
   const searchParams = useSearchParams()
   const [purchasedCourses, setPurchasedCourses] = useState<CourseProgress[]>([])
   const [loading, setLoading] = useState(true)
@@ -116,7 +117,7 @@ function CoursesContent() {
                   </div>
                   <CardContent className="p-6">
                     <h3 className="text-xl font-bold text-zinc-900 dark:text-zinc-100 mb-2">
-                      {locale === 'ru' ? course.course_title_secondary : course.course_title}
+                      {ru ? course.course_title_secondary : course.course_title}
                     </h3>
                     <div className="flex items-center gap-4 text-sm text-zinc-500 mb-4">
                       <span className="flex items-center gap-1">
@@ -200,7 +201,7 @@ function CoursesContent() {
                     <Icon className="w-16 h-16 text-white/50" />
                   </div>
                   <CardContent className="p-6">
-                    <h3 className="text-xl font-bold text-zinc-900 dark:text-zinc-100 mb-2">{locale === 'ru' ? course.titleSecondary : course.title}</h3>
+                    <h3 className="text-xl font-bold text-zinc-900 dark:text-zinc-100 mb-2">{ru ? course.titleSecondary : course.title}</h3>
                     <div className="flex items-center gap-4 text-sm text-zinc-500 mb-4">
                       <span className="flex items-center gap-1"><BookOpen className="w-4 h-4" />{course.lessons} {t('client.courses.lessons')}</span>
                       <span className="flex items-center gap-1"><Clock className="w-4 h-4" />{course.weeks} {t('client.courses.weeks')}</span>

@@ -61,12 +61,12 @@ const sectionColors: Record<string, string> = {
 }
 
 export default function WorkoutExecutionPage() {
-  const { locale } = useTranslation()
+  const { locale, langConfig } = useTranslation()
   const { user } = useAuth()
   const params = useParams()
   const router = useRouter()
   const logId = params.logId as string
-  const ru = locale === 'ru'
+  const ru = locale === langConfig.secondaryLanguage
 
   const [log, setLog] = useState<WorkoutLog | null>(null)
   const [loading, setLoading] = useState(true)

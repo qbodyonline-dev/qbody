@@ -18,8 +18,8 @@ const iconMap: Record<string, any> = {
 }
 
 export default function CoursePage() {
-  const { locale } = useTranslation()
-  const ru = locale === 'ru'
+  const { locale, langConfig } = useTranslation()
+  const ru = locale === langConfig.secondaryLanguage
   const { user, session } = useAuth()
   const router = useRouter()
   const params = useParams()

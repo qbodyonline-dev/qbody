@@ -38,10 +38,11 @@ type CourseProgress = {
 }
 
 export default function CoursePage() {
-  const { t, locale } = useTranslation()
+  const { t, locale, langConfig } = useTranslation()
   const { user } = useAuth()
   const params = useParams()
   const courseSlug = params.courseId as string
+  const ru = locale === langConfig.secondaryLanguage
   
   const [course, setCourse] = useState<CourseProgress | null>(null)
   const [loading, setLoading] = useState(true)
@@ -132,7 +133,7 @@ export default function CoursePage() {
 
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold text-zinc-900 dark:text-zinc-100 mb-2">
-            {locale === 'ru' ? course.course_title_secondary : course.course_title}
+            {ru ? course.course_title_secondary : course.course_title}
           </h1>
         </div>
 
@@ -186,7 +187,7 @@ export default function CoursePage() {
         <div className="lg:col-span-2 space-y-6">
           <div>
             <h1 className="text-2xl sm:text-3xl font-bold text-zinc-900 dark:text-zinc-100 mb-2">
-              {locale === 'ru' ? course.course_title_secondary : course.course_title}
+              {ru ? course.course_title_secondary : course.course_title}
             </h1>
             <div className="flex items-center gap-4 text-sm text-zinc-500">
               <span className="flex items-center gap-1">
@@ -223,7 +224,7 @@ export default function CoursePage() {
                       )}
                       <div>
                         <p className="font-semibold text-zinc-900 dark:text-zinc-100">
-                          {locale === 'ru' ? module.title_secondary || module.title : module.title}
+                          {ru ? module.title_secondary || module.title : module.title}
                         </p>
                         <p className="text-sm text-zinc-500">
                           {completedInModule}/{module.lessons.length} {t('client.courses.lessons')} • {moduleProgress}%
@@ -268,7 +269,7 @@ export default function CoursePage() {
                                 </div>
                                 <div>
                                   <p className="font-medium text-zinc-900 dark:text-zinc-100">
-                                    {locale === 'ru' ? lesson.title_secondary || lesson.title : lesson.title}
+                                    {ru ? lesson.title_secondary || lesson.title : lesson.title}
                                   </p>
                                   <p className="text-sm text-zinc-500">
                                     {lesson.duration_minutes} {t('client.course.min')}

@@ -84,10 +84,10 @@ const STEPS: StepDef[] = [
    MAIN ONBOARDING COMPONENT
    ═══════════════════════════════ */
 export default function OnboardingPage() {
-  const { locale } = useTranslation()
+  const { locale, langConfig } = useTranslation()
   const { user, profile, loading: authLoading } = useAuth()
   const router = useRouter()
-  const ru = locale === 'ru'
+  const ru = locale === langConfig.secondaryLanguage
 
   // Check if this is edit mode (coming from profile page)
   const [isEditMode, setIsEditMode] = useState(false)

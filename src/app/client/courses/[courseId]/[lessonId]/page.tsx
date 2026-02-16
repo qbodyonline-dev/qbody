@@ -39,12 +39,13 @@ type CourseProgress = {
 }
 
 export default function LessonPage() {
-  const { t, locale } = useTranslation()
+  const { t, locale, langConfig } = useTranslation()
   const { user } = useAuth()
   const params = useParams()
   const router = useRouter()
   const courseSlug = params.courseId as string
   const lessonId = params.lessonId as string
+  const ru = locale === langConfig.secondaryLanguage
 
   const [course, setCourse] = useState<CourseProgress | null>(null)
   const [currentLesson, setCurrentLesson] = useState<Lesson | null>(null)
@@ -229,7 +230,7 @@ export default function LessonPage() {
               )}
             </div>
             <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100 mb-4">
-              {locale === 'ru' ? currentLesson.title_secondary || currentLesson.title : currentLesson.title}
+              {ru ? currentLesson.title_secondary || currentLesson.title : currentLesson.title}
             </h1>
           </div>
 
@@ -282,7 +283,7 @@ export default function LessonPage() {
           <Card>
             <CardContent className="p-6">
               <h3 className="font-semibold text-zinc-900 dark:text-zinc-100 mb-4">
-                {locale === 'ru' ? course.course_title_secondary : course.course_title}
+                {ru ? course.course_title_secondary : course.course_title}
               </h3>
               
               {/* Mini progress */}
@@ -292,7 +293,7 @@ export default function LessonPage() {
                   return (
                     <div key={module.id} className="text-sm">
                       <div className="flex justify-between text-zinc-600 dark:text-zinc-400 mb-1">
-                        <span className="truncate">{locale === 'ru' ? module.title_secondary || module.title : module.title}</span>
+                        <span className="truncate">{ru ? module.title_secondary || module.title : module.title}</span>
                         <span>{completedInModule}/{module.lessons.length}</span>
                       </div>
                       <div className="h-1.5 bg-zinc-200 dark:bg-zinc-700 rounded-full overflow-hidden">

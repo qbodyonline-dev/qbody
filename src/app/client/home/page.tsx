@@ -39,9 +39,9 @@ const DAY_FULL_EN = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Fr
 const DAY_FULL_RU = ['Воскресенье', 'Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота']
 
 export default function ClientHomePage() {
-  const { t, locale } = useTranslation()
+  const { t, locale, langConfig } = useTranslation()
   const { user, profile } = useAuth()
-  const ru = locale === 'ru'
+  const ru = locale === langConfig.secondaryLanguage
 
   const [courses, setCourses] = useState<CourseAccess[]>([])
   const [orders, setOrders] = useState<Order[]>([])

@@ -13,7 +13,7 @@ import { createClient } from '@/lib/supabase'
 import { useRecaptcha } from '@/lib/recaptcha'
 
 export default function ResetPasswordPage() {
-  const { locale } = useTranslation()
+  const { locale, langConfig } = useTranslation()
   const router = useRouter()
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
@@ -22,7 +22,7 @@ export default function ResetPasswordPage() {
   const [isVerifying, setIsVerifying] = useState(true)
   const [sessionError, setSessionError] = useState(false)
 
-  const ru = locale === 'ru'
+  const ru = locale === langConfig.secondaryLanguage
   const { execute: executeRecaptcha } = useRecaptcha()
 
   // Check for valid session on mount

@@ -17,7 +17,7 @@ export default function RegisterPage() {
 }
 
 function RegisterContent() {
-  const { t, locale } = useTranslation()
+  const { t, locale, langConfig } = useTranslation()
   const router = useRouter()
   const searchParams = useSearchParams()
   const courseId = searchParams.get('course')
@@ -25,7 +25,7 @@ function RegisterContent() {
   const [consent, setConsent] = useState(false)
   const [formData, setFormData] = useState({ name: '', email: '', phone: '', password: '', confirmPassword: '' })
 
-  const ru = locale === 'ru'
+  const ru = locale === langConfig.secondaryLanguage
 
   // Redirect already logged-in users
   React.useEffect(() => {

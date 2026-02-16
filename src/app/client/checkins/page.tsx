@@ -68,9 +68,9 @@ const defaultCheckinFields: FormField[] = [
 ]
 
 export default function ClientCheckinsPage() {
-  const { locale } = useTranslation()
+  const { locale, langConfig } = useTranslation()
   const { user } = useAuth()
-  const ru = locale === 'ru'
+  const ru = locale === langConfig.secondaryLanguage
 
   const [checkins, setCheckins] = useState<Checkin[]>([])
   const [loading, setLoading] = useState(true)

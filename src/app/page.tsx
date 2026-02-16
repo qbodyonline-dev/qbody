@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { useTranslation } from '@/lib/i18n'
+import { useTranslation, useRendererLang } from '@/lib/i18n'
 import { useAuth } from '@/lib/auth'
 import { Button } from '@/components/ui/button'
 import { LanguageSwitcher } from '@/components/ui/language-switcher'
@@ -529,7 +529,7 @@ function LoadingSkeleton() {
 /* ═══════════ MAIN PAGE ═══════════ */
 export default function HomePage() {
   const { locale } = useTranslation()
-  const lang = (locale || 'ru') as 'en' | 'ru'
+  const lang = useRendererLang()
   const [blocks, setBlocks] = useState<PageBlock[]>([])
   const [settings, setSettings] = useState<{ branding?: { heroImageUrl?: string; logoUrl?: string; primaryColor?: string } }>({})
   const [pageBgColor, setPageBgColor] = useState<string | undefined>(undefined)
