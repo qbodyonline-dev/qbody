@@ -22,13 +22,13 @@ export async function GET(request: NextRequest) {
       { data: courseAccess },
     ] = await Promise.all([
       supabase.from('workout_logs')
-        .select('id, workout_id, started_at, completed_at, duration_minutes, status, rpe, mood, workouts(name, name_ru, type)')
+        .select('id, workout_id, started_at, completed_at, duration_minutes, status, rpe, mood, workouts(name, name_secondary, type)')
         .eq('client_id', userId).order('started_at', { ascending: false }).limit(100),
       supabase.from('checkins')
         .select('id, checkin_date, weight, waist, hips, chest, arm, thigh, body_fat_pct, sleep_quality, energy_level, stress_level, appetite, soreness')
         .eq('client_id', userId).order('checkin_date', { ascending: true }),
       supabase.from('client_programs')
-        .select('id, start_date, training_programs(name, name_ru, duration_weeks)')
+        .select('id, start_date, training_programs(name, name_secondary, duration_weeks)')
         .eq('client_id', userId).eq('status', 'active').maybeSingle(),
       supabase.from('course_lesson_progress')
         .select('lesson_id, completed').eq('client_id', userId),
@@ -116,7 +116,7 @@ export async function GET(request: NextRequest) {
 
       programProgress = {
         name: prog.name,
-        name_ru: prog.name_ru,
+        name_secondary: prog.name_secondary,
         current_week: currentWeek,
         total_weeks: prog.duration_weeks,
         percent: Math.round((currentWeek / prog.duration_weeks) * 100),

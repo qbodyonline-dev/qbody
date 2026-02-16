@@ -12,8 +12,8 @@ import { BookOpen, Clock, Heart, Baby, ArrowRight, CheckCircle2, ShoppingBag, Lo
 import { toast } from 'sonner'
 
 const allCoursesStatic = [
-  { id: 'breast-augmentation-recovery', title: 'Breast Augmentation Recovery', titleRu: 'Восстановление после увеличения груди', icon: Heart, color: 'from-pink-500 to-rose-500', lessons: 18, weeks: 6, price: 99 },
-  { id: 'cesarean-recovery', title: 'C-Section Recovery', titleRu: 'Восстановление после кесарева сечения', icon: Baby, color: 'from-purple-500 to-violet-500', lessons: 24, weeks: 8, price: 99 },
+  { id: 'breast-augmentation-recovery', title: 'Breast Augmentation Recovery', titleSecondary: 'Восстановление после увеличения груди', icon: Heart, color: 'from-pink-500 to-rose-500', lessons: 18, weeks: 6, price: 99 },
+  { id: 'cesarean-recovery', title: 'C-Section Recovery', titleSecondary: 'Восстановление после кесарева сечения', icon: Baby, color: 'from-purple-500 to-violet-500', lessons: 24, weeks: 8, price: 99 },
 ]
 
 const coursesMeta: Record<string, { icon: any; color: string }> = {
@@ -24,7 +24,7 @@ const coursesMeta: Record<string, { icon: any; color: string }> = {
 type CourseProgress = {
   course_slug: string
   course_title: string
-  course_title_ru: string
+  course_title_secondary: string
   total_lessons: number
   completed_lessons: number
   progress_percent: number
@@ -116,7 +116,7 @@ function CoursesContent() {
                   </div>
                   <CardContent className="p-6">
                     <h3 className="text-xl font-bold text-zinc-900 dark:text-zinc-100 mb-2">
-                      {locale === 'ru' ? course.course_title_ru : course.course_title}
+                      {locale === 'ru' ? course.course_title_secondary : course.course_title}
                     </h3>
                     <div className="flex items-center gap-4 text-sm text-zinc-500 mb-4">
                       <span className="flex items-center gap-1">
@@ -200,7 +200,7 @@ function CoursesContent() {
                     <Icon className="w-16 h-16 text-white/50" />
                   </div>
                   <CardContent className="p-6">
-                    <h3 className="text-xl font-bold text-zinc-900 dark:text-zinc-100 mb-2">{locale === 'ru' ? course.titleRu : course.title}</h3>
+                    <h3 className="text-xl font-bold text-zinc-900 dark:text-zinc-100 mb-2">{locale === 'ru' ? course.titleSecondary : course.title}</h3>
                     <div className="flex items-center gap-4 text-sm text-zinc-500 mb-4">
                       <span className="flex items-center gap-1"><BookOpen className="w-4 h-4" />{course.lessons} {t('client.courses.lessons')}</span>
                       <span className="flex items-center gap-1"><Clock className="w-4 h-4" />{course.weeks} {t('client.courses.weeks')}</span>

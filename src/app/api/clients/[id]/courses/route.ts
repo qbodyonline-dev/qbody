@@ -36,7 +36,7 @@ export async function GET(
     // Get all courses for reference
     const { data: courses } = await supabase
       .from('courses')
-      .select('id, slug, title, title_ru')
+      .select('id, slug, title, title_secondary')
 
     // Get lesson progress for this user from course_lesson_progress table
     const { data: progressData } = await supabase
@@ -85,7 +85,7 @@ export async function GET(
       return {
         ...access,
         course_title: course?.title || access.course_slug,
-        course_title_ru: course?.title_ru || access.course_slug,
+        course_title_secondary: course?.title_secondary || access.course_slug,
         total_lessons: totalLessons,
         completed_lessons: completedCount,
         progress_percent: totalLessons > 0 ? Math.round((completedCount / totalLessons) * 100) : 0,

@@ -19,8 +19,8 @@ export async function GET(
       .select(`
         *,
         workout_exercises (
-          id, exercise_id, section, position, sets, reps, weight, tempo, rest_seconds, notes, notes_ru, superset_group,
-          exercises:exercise_id ( id, name, name_ru, muscle_groups, equipment, video_url, thumbnail_url )
+          id, exercise_id, section, position, sets, reps, weight, tempo, rest_seconds, notes, notes_secondary, superset_group,
+          exercises:exercise_id ( id, name, name_secondary, muscle_groups, equipment, video_url, thumbnail_url )
         )
       `)
       .eq('id', params.id)
@@ -57,14 +57,14 @@ export async function PUT(
   try {
     const supabase = createServerClient()
     const body = await request.json()
-    const { name, name_ru, description, description_ru, type, difficulty, estimated_duration, exercises } = body
+    const { name, name_secondary, description, description_secondary, type, difficulty, estimated_duration, exercises } = body
 
     // Update workout fields
     const updates: Record<string, any> = {}
     if (name !== undefined) updates.name = name
-    if (name_ru !== undefined) updates.name_ru = name_ru || null
+    if (name_secondary !== undefined) updates.name_secondary = name_secondary || null
     if (description !== undefined) updates.description = description || null
-    if (description_ru !== undefined) updates.description_ru = description_ru || null
+    if (description_secondary !== undefined) updates.description_secondary = description_secondary || null
     if (type !== undefined) updates.type = type
     if (difficulty !== undefined) updates.difficulty = difficulty
     if (estimated_duration !== undefined) updates.estimated_duration = estimated_duration
@@ -106,7 +106,7 @@ export async function PUT(
           tempo: ex.tempo || null,
           rest_seconds: ex.rest_seconds ?? 60,
           notes: ex.notes || null,
-          notes_ru: ex.notes_ru || null,
+          notes_secondary: ex.notes_secondary || null,
           superset_group: ex.superset_group || null,
         }))
 
@@ -123,7 +123,7 @@ export async function PUT(
     // Re-fetch
     const { data: full } = await supabase
       .from('workouts')
-      .select(`*, workout_exercises ( *, exercises:exercise_id ( id, name, name_ru, muscle_groups, equipment, video_url ) )`)
+      .select(`*, workout_exercises ( *, exercises:exercise_id ( id, name, name_secondary, muscle_groups, equipment, video_url ) )`)
       .eq('id', params.id)
       .single()
 

@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
       .select(`
         id, start_date, end_date, status,
         training_programs (
-          id, name, name_ru, description, description_ru,
+          id, name, name_secondary, description, description_secondary,
           goal, difficulty, duration_weeks
         )
       `)
@@ -46,11 +46,11 @@ export async function GET(request: NextRequest) {
       .select(`
         id, week_number, day_of_week, is_rest_day, notes,
         workouts (
-          id, name, name_ru, type, difficulty, estimated_duration,
+          id, name, name_secondary, type, difficulty, estimated_duration,
           workout_exercises (
             id, section, position, sets, reps, weight, rest_seconds, notes,
             exercises (
-              id, name, name_ru, muscle_groups, equipment, category,
+              id, name, name_secondary, muscle_groups, equipment, category,
               video_url
             )
           )

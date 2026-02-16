@@ -13,7 +13,7 @@ import { Play, CheckCircle2, Clock, ArrowLeft, BookOpen, Loader2, ChevronDown, C
 type Lesson = {
   id: string
   title: string
-  title_ru: string
+  title_secondary: string
   duration_minutes: number
   completed: boolean
   watched_seconds: number
@@ -22,7 +22,7 @@ type Lesson = {
 type Module = {
   id: string
   title: string
-  title_ru: string
+  title_secondary: string
   lessons: Lesson[]
 }
 
@@ -30,7 +30,7 @@ type CourseProgress = {
   course_slug: string
   course_id: string
   course_title: string
-  course_title_ru: string
+  course_title_secondary: string
   total_lessons: number
   completed_lessons: number
   progress_percent: number
@@ -132,7 +132,7 @@ export default function CoursePage() {
 
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold text-zinc-900 dark:text-zinc-100 mb-2">
-            {locale === 'ru' ? course.course_title_ru : course.course_title}
+            {locale === 'ru' ? course.course_title_secondary : course.course_title}
           </h1>
         </div>
 
@@ -186,7 +186,7 @@ export default function CoursePage() {
         <div className="lg:col-span-2 space-y-6">
           <div>
             <h1 className="text-2xl sm:text-3xl font-bold text-zinc-900 dark:text-zinc-100 mb-2">
-              {locale === 'ru' ? course.course_title_ru : course.course_title}
+              {locale === 'ru' ? course.course_title_secondary : course.course_title}
             </h1>
             <div className="flex items-center gap-4 text-sm text-zinc-500">
               <span className="flex items-center gap-1">
@@ -223,7 +223,7 @@ export default function CoursePage() {
                       )}
                       <div>
                         <p className="font-semibold text-zinc-900 dark:text-zinc-100">
-                          {locale === 'ru' ? module.title_ru || module.title : module.title}
+                          {locale === 'ru' ? module.title_secondary || module.title : module.title}
                         </p>
                         <p className="text-sm text-zinc-500">
                           {completedInModule}/{module.lessons.length} {t('client.courses.lessons')} • {moduleProgress}%
@@ -268,7 +268,7 @@ export default function CoursePage() {
                                 </div>
                                 <div>
                                   <p className="font-medium text-zinc-900 dark:text-zinc-100">
-                                    {locale === 'ru' ? lesson.title_ru || lesson.title : lesson.title}
+                                    {locale === 'ru' ? lesson.title_secondary || lesson.title : lesson.title}
                                   </p>
                                   <p className="text-sm text-zinc-500">
                                     {lesson.duration_minutes} {t('client.course.min')}

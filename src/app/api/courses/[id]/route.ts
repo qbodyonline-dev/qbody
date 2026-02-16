@@ -73,10 +73,10 @@ export async function PATCH(
     
     // Basic fields
     if (body.title !== undefined) updateData.title = s(body.title, 500)
-    if (body.title_ru !== undefined) updateData.title_ru = s(body.title_ru, 500)
+    if (body.title_secondary !== undefined) updateData.title_secondary = s(body.title_secondary, 500)
     if (body.slug !== undefined) updateData.slug = (body.slug || '').replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 200)
     if (body.description !== undefined) updateData.description = s(body.description, 5000)
-    if (body.description_ru !== undefined) updateData.description_ru = s(body.description_ru, 5000)
+    if (body.description_secondary !== undefined) updateData.description_secondary = s(body.description_secondary, 5000)
     if (body.price !== undefined) updateData.price = Math.round(Math.max(0, Number(body.price) || 0) * 100)
     if (body.original_price !== undefined) updateData.original_price = body.original_price ? Math.round(Math.max(0, Number(body.original_price)) * 100) : null
     if (body.duration_weeks !== undefined) updateData.duration_weeks = Math.max(1, Math.min(Number(body.duration_weeks) || 8, 104))
@@ -91,25 +91,25 @@ export async function PATCH(
     if (body.rating !== undefined) updateData.rating = Math.max(0, Math.min(parseFloat(body.rating) || 0, 5))
     if (body.reviews_count !== undefined) updateData.reviews_count = Math.max(0, parseInt(body.reviews_count) || 0)
     if (body.features !== undefined) updateData.features = body.features
-    if (body.features_ru !== undefined) updateData.features_ru = body.features_ru
+    if (body.features_secondary !== undefined) updateData.features_secondary = body.features_secondary
     if (body.tags !== undefined) updateData.tags = body.tags
-    if (body.tags_ru !== undefined) updateData.tags_ru = body.tags_ru
+    if (body.tags_secondary !== undefined) updateData.tags_secondary = body.tags_secondary
     if (body.instructor_name !== undefined) updateData.instructor_name = s(body.instructor_name || '', 200) || null
     if (body.instructor_title !== undefined) updateData.instructor_title = s(body.instructor_title || '', 200) || null
-    if (body.instructor_title_ru !== undefined) updateData.instructor_title_ru = s(body.instructor_title_ru || '', 200) || null
+    if (body.instructor_title_secondary !== undefined) updateData.instructor_title_secondary = s(body.instructor_title_secondary || '', 200) || null
     if (body.instructor_bio !== undefined) updateData.instructor_bio = s(body.instructor_bio || '', 5000) || null
-    if (body.instructor_bio_ru !== undefined) updateData.instructor_bio_ru = s(body.instructor_bio_ru || '', 5000) || null
+    if (body.instructor_bio_secondary !== undefined) updateData.instructor_bio_secondary = s(body.instructor_bio_secondary || '', 5000) || null
     if (body.instructor_image_url !== undefined) updateData.instructor_image_url = body.instructor_image_url || null
     if (body.cta_title !== undefined) updateData.cta_title = s(body.cta_title || '', 500) || null
-    if (body.cta_title_ru !== undefined) updateData.cta_title_ru = s(body.cta_title_ru || '', 500) || null
+    if (body.cta_title_secondary !== undefined) updateData.cta_title_secondary = s(body.cta_title_secondary || '', 500) || null
     if (body.cta_subtitle !== undefined) updateData.cta_subtitle = s(body.cta_subtitle || '', 1000) || null
-    if (body.cta_subtitle_ru !== undefined) updateData.cta_subtitle_ru = s(body.cta_subtitle_ru || '', 1000) || null
+    if (body.cta_subtitle_secondary !== undefined) updateData.cta_subtitle_secondary = s(body.cta_subtitle_secondary || '', 1000) || null
     if (body.cta_button_text !== undefined) updateData.cta_button_text = s(body.cta_button_text || '', 100) || null
-    if (body.cta_button_text_ru !== undefined) updateData.cta_button_text_ru = s(body.cta_button_text_ru || '', 100) || null
+    if (body.cta_button_text_secondary !== undefined) updateData.cta_button_text_secondary = s(body.cta_button_text_secondary || '', 100) || null
     if (body.guarantee_text !== undefined) updateData.guarantee_text = s(body.guarantee_text || '', 2000) || null
-    if (body.guarantee_text_ru !== undefined) updateData.guarantee_text_ru = s(body.guarantee_text_ru || '', 2000) || null
+    if (body.guarantee_text_secondary !== undefined) updateData.guarantee_text_secondary = s(body.guarantee_text_secondary || '', 2000) || null
     if (body.includes !== undefined) updateData.includes = body.includes
-    if (body.includes_ru !== undefined) updateData.includes_ru = body.includes_ru
+    if (body.includes_secondary !== undefined) updateData.includes_secondary = body.includes_secondary
     
     const { data, error } = await supabase
       .from('courses')

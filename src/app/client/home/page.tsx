@@ -14,9 +14,9 @@ import {
   Play, Moon, TrendingDown, TrendingUp, MessageCircle
 } from 'lucide-react'
 
-const coursesMeta: Record<string, { title: string; titleRu: string; icon: any; color: string; lessons: number }> = {
-  'breast-augmentation-recovery': { title: 'Breast Augmentation Recovery', titleRu: 'Восстановление после увеличения груди', icon: Heart, color: 'from-pink-500 to-rose-500', lessons: 18 },
-  'cesarean-recovery': { title: 'C-Section Recovery', titleRu: 'Восстановление после кесарева сечения', icon: Baby, color: 'from-purple-500 to-violet-500', lessons: 24 },
+const coursesMeta: Record<string, { title: string; titleSecondary: string; icon: any; color: string; lessons: number }> = {
+  'breast-augmentation-recovery': { title: 'Breast Augmentation Recovery', titleSecondary: 'Восстановление после увеличения груди', icon: Heart, color: 'from-pink-500 to-rose-500', lessons: 18 },
+  'cesarean-recovery': { title: 'C-Section Recovery', titleSecondary: 'Восстановление после кесарева сечения', icon: Baby, color: 'from-purple-500 to-violet-500', lessons: 24 },
 }
 
 type CourseAccess = { course_slug: string; granted_at: string }
@@ -24,10 +24,10 @@ type Order = { course_slug: string; status: string; amount: number; paid_at: str
 type TodayWorkout = {
   is_rest_day: boolean
   day_of_week: number
-  workouts: { id: string; name_en: string; name_ru: string; type: string; duration_minutes: number | null; workout_exercises: any[] } | null
+  workouts: { id: string; name: string; name_secondary: string; type: string; duration_minutes: number | null; workout_exercises: any[] } | null
 }
 type ProgramInfo = {
-  name_en: string; name_ru: string; goal: string; duration_weeks: number
+  name: string; name_secondary: string; goal: string; duration_weeks: number
   current_week: number; start_date: string; end_date: string
 }
 type LatestCheckin = {
@@ -185,7 +185,7 @@ export default function ClientHomePage() {
               ) : todayWorkout.workouts ? (
                 <div>
                   <h4 className="text-lg font-bold text-zinc-900 dark:text-zinc-100">
-                    {ru ? todayWorkout.workouts.name_ru || todayWorkout.workouts.name_en : todayWorkout.workouts.name_en}
+                    {ru ? todayWorkout.workouts.name_secondary || todayWorkout.workouts.name : todayWorkout.workouts.name}
                   </h4>
                   <div className="flex gap-4 text-sm text-zinc-500 mt-1 mb-4">
                     {todayWorkout.workouts.duration_minutes && (
@@ -207,7 +207,7 @@ export default function ClientHomePage() {
             {/* Program progress mini bar */}
             <div className="px-5 py-3 bg-zinc-50 dark:bg-zinc-800/50 border-t border-zinc-100 dark:border-zinc-800">
               <div className="flex items-center justify-between text-xs text-zinc-500 mb-1">
-                <span>{ru ? program.name_ru || program.name_en : program.name_en}</span>
+                <span>{ru ? program.name_secondary || program.name : program.name}</span>
                 <span>{progressPercent}%</span>
               </div>
               <div className="h-1.5 bg-zinc-200 dark:bg-zinc-700 rounded-full overflow-hidden">
@@ -304,7 +304,7 @@ export default function ClientHomePage() {
                       </Badge>
                     </div>
                     <CardContent className="p-4">
-                      <h3 className="font-bold text-zinc-900 dark:text-zinc-100">{ru ? meta.titleRu : meta.title}</h3>
+                      <h3 className="font-bold text-zinc-900 dark:text-zinc-100">{ru ? meta.titleSecondary : meta.title}</h3>
                       <div className="flex items-center gap-3 text-xs text-zinc-500 mt-2">
                         <span className="flex items-center gap-1"><BookOpen className="w-3.5 h-3.5" />{meta.lessons} {t('client.courses.lessons')}</span>
                         <span className="flex items-center gap-1"><Clock className="w-3.5 h-3.5" />{t('client.home.lifetimeAccess')}</span>

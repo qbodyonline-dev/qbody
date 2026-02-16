@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
       supabase.from('profiles').select('id, full_name, email, created_at', { count: 'exact' }).eq('role', 'client'),
       supabase.from('orders').select('id, user_id, course_slug, amount, status, paid_at, created_at').order('created_at', { ascending: false }),
       supabase.from('course_access').select('user_id, course_slug, granted_at, is_active'),
-      supabase.from('courses').select('id, slug, title, title_ru'),
+      supabase.from('courses').select('id, slug, title, title_secondary'),
       supabase.from('course_lesson_progress').select('client_id, lesson_id, completed'),
       supabase.from('course_lessons').select('id, module_id, is_published').eq('is_published', true),
     ])
@@ -106,7 +106,7 @@ export async function GET(request: NextRequest) {
       return {
         slug,
         title: course?.title || slug,
-        titleRu: course?.title_ru || slug,
+        titleSecondary: course?.title_secondary || slug,
         count: data.count,
         revenue: data.revenue,
       }
@@ -135,7 +135,7 @@ export async function GET(request: NextRequest) {
         id: o.id,
         clientName: p?.full_name || p?.email || 'Unknown',
         courseTitle: c?.title || o.course_slug,
-        courseTitleRu: c?.title_ru || o.course_slug,
+        courseTitleSecondary: c?.title_secondary || o.course_slug,
         amount: o.amount,
         paidAt: o.paid_at,
       }

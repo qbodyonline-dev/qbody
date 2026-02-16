@@ -16,9 +16,9 @@ import { toast } from 'sonner'
 
 /* ═══════════ TYPES ═══════════ */
 type Exercise = {
-  id: string; name_en: string; name_ru: string
+  id: string; name: string; name_secondary: string
   muscle_groups: string[]; equipment: string | null; category: string
-  video_url: string | null; instructions_en: string | null; instructions_ru: string | null
+  video_url: string | null; instructions: string | null; instructions_secondary: string | null
 }
 
 type WorkoutExercise = {
@@ -28,7 +28,7 @@ type WorkoutExercise = {
 }
 
 type Workout = {
-  id: string; name_en: string; name_ru: string
+  id: string; name: string; name_secondary: string
   type: string; difficulty: string; duration_minutes: number | null
   workout_exercises: WorkoutExercise[]
 }
@@ -39,8 +39,8 @@ type ScheduleDay = {
 }
 
 type Program = {
-  id: string; name_en: string; name_ru: string
-  description_en: string | null; description_ru: string | null
+  id: string; name: string; name_secondary: string
+  description: string | null; description_secondary: string | null
   goal: string; difficulty: string; duration_weeks: number
   client_program_id: string; start_date: string; end_date: string
   status: string; current_week: number; current_day_of_week: number
@@ -172,7 +172,7 @@ export default function ClientTrainingPage() {
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">{ru ? 'Мои тренировки' : 'My Training'}</h1>
-        <p className="text-zinc-500 mt-1">{ru ? program.name_ru || program.name_en : program.name_en}</p>
+        <p className="text-zinc-500 mt-1">{ru ? program.name_secondary || program.name : program.name}</p>
       </div>
 
       {/* Program overview */}
@@ -180,7 +180,7 @@ export default function ClientTrainingPage() {
         <div className="bg-gradient-to-r from-teal-500 to-emerald-500 p-6 text-white">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
-              <h2 className="text-xl font-bold">{ru ? program.name_ru || program.name_en : program.name_en}</h2>
+              <h2 className="text-xl font-bold">{ru ? program.name_secondary || program.name : program.name}</h2>
               <div className="flex flex-wrap gap-2 mt-2">
                 <Badge className="bg-white/20 text-white border-0">{goalLabels[program.goal] || program.goal}</Badge>
                 <Badge className="bg-white/20 text-white border-0">{program.difficulty}</Badge>
@@ -230,7 +230,7 @@ export default function ClientTrainingPage() {
             ) : todayWorkout.workouts ? (
               <div>
                 <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-1">
-                  {ru ? todayWorkout.workouts.name_ru || todayWorkout.workouts.name_en : todayWorkout.workouts.name_en}
+                  {ru ? todayWorkout.workouts.name_secondary || todayWorkout.workouts.name : todayWorkout.workouts.name}
                 </h3>
                 <div className="flex gap-3 text-sm text-zinc-500 mb-4">
                   {todayWorkout.workouts.duration_minutes && (
@@ -314,7 +314,7 @@ export default function ClientTrainingPage() {
                     <>
                       <Dumbbell className="w-5 h-5 text-blue-500" />
                       <p className="text-[10px] text-zinc-600 dark:text-zinc-400 leading-tight line-clamp-2">
-                        {ru ? day.workouts!.name_ru || day.workouts!.name_en : day.workouts!.name_en}
+                        {ru ? day.workouts!.name_secondary || day.workouts!.name : day.workouts!.name}
                       </p>
                     </>
                   ) : isRest ? (
@@ -371,8 +371,8 @@ export default function ClientTrainingPage() {
         title={selectedDay?.is_rest_day
           ? (ru ? 'День отдыха' : 'Rest Day')
           : (ru
-            ? selectedDay?.workouts?.name_ru || selectedDay?.workouts?.name_en || ''
-            : selectedDay?.workouts?.name_en || ''
+            ? selectedDay?.workouts?.name_secondary || selectedDay?.workouts?.name || ''
+            : selectedDay?.workouts?.name || ''
           )
         }
         size="lg"
@@ -428,7 +428,7 @@ export default function ClientTrainingPage() {
                             </span>
                             <div className="flex-1 min-w-0">
                               <p className="font-medium text-sm text-zinc-900 dark:text-zinc-100">
-                                {ru ? we.exercises.name_ru || we.exercises.name_en : we.exercises.name_en}
+                                {ru ? we.exercises.name_secondary || we.exercises.name : we.exercises.name}
                               </p>
                               <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-zinc-500 mt-1">
                                 {we.sets > 0 && <span>{we.sets} {ru ? 'подх.' : 'sets'}</span>}
@@ -454,13 +454,13 @@ export default function ClientTrainingPage() {
                                 </a>
                               )}
                               {/* Instructions */}
-                              {(ru ? we.exercises.instructions_ru : we.exercises.instructions_en) && (
+                              {(ru ? we.exercises.instructions_secondary : we.exercises.instructions) && (
                                 <details className="mt-2">
                                   <summary className="text-xs text-teal-600 cursor-pointer hover:underline">
                                     {ru ? 'Инструкция' : 'Instructions'}
                                   </summary>
                                   <p className="text-xs text-zinc-500 mt-1 whitespace-pre-line">
-                                    {ru ? we.exercises.instructions_ru : we.exercises.instructions_en}
+                                    {ru ? we.exercises.instructions_secondary : we.exercises.instructions}
                                   </p>
                                 </details>
                               )}

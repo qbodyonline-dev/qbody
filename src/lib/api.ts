@@ -102,8 +102,8 @@ export async function getClients() {
 // Courses — hardcoded from stripe.ts definitions
 export function getCourses() {
   return [
-    { id: 'breast-augmentation-recovery', title: 'Breast Augmentation Recovery', titleRu: 'Восстановление после увеличения груди', slug: 'breast-augmentation-recovery', price: 99, duration_weeks: 6, lessons: 18, is_published: true, created_at: '2025-01-01' },
-    { id: 'cesarean-recovery', title: 'C-Section Recovery', titleRu: 'Восстановление после кесарева сечения', slug: 'cesarean-recovery', price: 99, duration_weeks: 8, lessons: 24, is_published: true, created_at: '2025-01-01' },
+    { id: 'breast-augmentation-recovery', title: 'Breast Augmentation Recovery', titleSecondary: 'Восстановление после увеличения груди', slug: 'breast-augmentation-recovery', price: 99, duration_weeks: 6, lessons: 18, is_published: true, created_at: '2025-01-01' },
+    { id: 'cesarean-recovery', title: 'C-Section Recovery', titleSecondary: 'Восстановление после кесарева сечения', slug: 'cesarean-recovery', price: 99, duration_weeks: 8, lessons: 24, is_published: true, created_at: '2025-01-01' },
   ]
 }
 

@@ -19,14 +19,14 @@ export async function GET(request: NextRequest) {
       .select(`
         *,
         program_days (
-          id, week_number, day_of_week, workout_id, is_rest_day, notes, notes_ru,
-          workouts:workout_id ( id, name, name_ru, type, difficulty, estimated_duration )
+          id, week_number, day_of_week, workout_id, is_rest_day, notes, notes_secondary,
+          workouts:workout_id ( id, name, name_secondary, type, difficulty, estimated_duration )
         )
       `, { count: 'exact' })
       .order('created_at', { ascending: false })
 
     if (search) {
-      query = query.or(`name.ilike.%${search}%,name_ru.ilike.%${search}%`)
+      query = query.or(`name.ilike.%${search}%,name_secondary.ilike.%${search}%`)
     }
 
     const { data, error, count } = await query
@@ -72,7 +72,7 @@ export async function POST(request: NextRequest) {
   try {
     const supabase = createServerClient()
     const body = await request.json()
-    const { name, name_ru, slug, description, description_ru, full_description, full_description_ru, hero_image_url, duration_weeks, goal, difficulty, days } = body
+    const { name, name_secondary, slug, description, description_secondary, full_description, full_description_secondary, hero_image_url, duration_weeks, goal, difficulty, days } = body
 
     if (!name) {
       return NextResponse.json({ error: 'Name is required' }, { status: 400 })
@@ -86,12 +86,12 @@ export async function POST(request: NextRequest) {
       .from('training_programs')
       .insert({
         name,
-        name_ru: name_ru || null,
+        name_secondary: name_secondary || null,
         slug: programSlug,
         description: description || null,
-        description_ru: description_ru || null,
+        description_secondary: description_secondary || null,
         full_description: full_description || null,
-        full_description_ru: full_description_ru || null,
+        full_description_secondary: full_description_secondary || null,
         hero_image_url: hero_image_url || null,
         duration_weeks: duration_weeks || 8,
         goal: goal || 'general',
@@ -117,7 +117,7 @@ export async function POST(request: NextRequest) {
           workout_id: d.is_rest_day ? null : (d.workout_id || null),
           is_rest_day: d.is_rest_day || false,
           notes: d.notes || null,
-          notes_ru: d.notes_ru || null,
+          notes_secondary: d.notes_secondary || null,
         }))
 
       if (rows.length > 0) {
@@ -134,7 +134,7 @@ export async function POST(request: NextRequest) {
     // Re-fetch with days
     const { data: full } = await supabase
       .from('training_programs')
-      .select(`*, program_days ( *, workouts:workout_id ( id, name, name_ru, type, difficulty, estimated_duration ) )`)
+      .select(`*, program_days ( *, workouts:workout_id ( id, name, name_secondary, type, difficulty, estimated_duration ) )`)
       .eq('id', program.id)
       .single()
 

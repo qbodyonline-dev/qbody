@@ -9,7 +9,7 @@ import {
 } from 'lucide-react'
 
 type ProgressData = {
-  program: { name: string; name_ru: string; duration_weeks: number; start_date: string; end_date: string } | null
+  program: { name: string; name_secondary: string; duration_weeks: number; start_date: string; end_date: string } | null
   training: {
     totalWorkouts: number; completed: number; skipped: number; compliancePct: number
     avgRpe: number | null; avgDuration: number | null
@@ -125,7 +125,7 @@ export default function ClientProgress({ clientId, ru }: { clientId: string; ru:
                         : <Clock className="w-3.5 h-3.5 text-orange-400" />
                       }
                       <span className="text-xs text-zinc-700 dark:text-zinc-300">
-                        {l.workouts ? (ru ? l.workouts.name_ru || l.workouts.name : l.workouts.name) : ''}
+                        {l.workouts ? (ru ? l.workouts.name_secondary || l.workouts.name : l.workouts.name) : ''}
                       </span>
                     </div>
                     <div className="flex items-center gap-2">

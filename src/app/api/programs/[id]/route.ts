@@ -110,14 +110,14 @@ export async function GET(
       const { data, error } = await supabase
         .from('training_programs')
         .select(`
-          id, name, name_ru, description, description_ru,
-          full_description, full_description_ru,
+          id, name, name_secondary, description, description_secondary,
+          full_description, full_description_secondary,
           hero_image_url, duration_weeks, goal, difficulty,
-          price, original_price, features, features_ru, includes, includes_ru,
+          price, original_price, features, features_secondary, includes, includes_secondary,
           created_at,
           program_days (
             week_number, day_of_week, is_rest_day,
-            workouts:workout_id ( name, name_ru, type, estimated_duration )
+            workouts:workout_id ( name, name_secondary, type, estimated_duration )
           )
         `)
         .eq('id', params.id)
@@ -146,14 +146,14 @@ export async function GET(
 
       // Normalize blocks: parse JSON strings into arrays
       const fdBlocks = normalizeBlocks(data.full_description)
-      const fdBlocksRu = normalizeBlocks(data.full_description_ru)
+      const fdBlocksSecondary = normalizeBlocks(data.full_description_secondary)
 
       return NextResponse.json({
         ...data,
         full_description: blocksToText(data.full_description),
-        full_description_ru: blocksToText(data.full_description_ru),
+        full_description_secondary: blocksToText(data.full_description_secondary),
         full_description_blocks: fdBlocks,
-        full_description_ru_blocks: fdBlocksRu,
+        full_description_secondary_blocks: fdBlocksSecondary,
         total_workouts: totalWorkouts,
         enrollment: enrollment || null,
       })
@@ -172,8 +172,8 @@ export async function GET(
       .select(`
         *,
         program_days (
-          id, week_number, day_of_week, workout_id, is_rest_day, notes, notes_ru,
-          workouts:workout_id ( id, name, name_ru, type, difficulty, estimated_duration )
+          id, week_number, day_of_week, workout_id, is_rest_day, notes, notes_secondary,
+          workouts:workout_id ( id, name, name_secondary, type, difficulty, estimated_duration )
         )
       `)
       .eq('id', params.id)
@@ -219,17 +219,17 @@ export async function PUT(
   try {
     const supabase = createServerClient()
     const body = await request.json()
-    const { name, name_ru, slug, description, description_ru, full_description, full_description_ru, hero_image_url, duration_weeks, goal, difficulty, is_active, days } = body
+    const { name, name_secondary, slug, description, description_secondary, full_description, full_description_secondary, hero_image_url, duration_weeks, goal, difficulty, is_active, days } = body
 
     // Update program fields
     const updates: Record<string, any> = {}
     if (name !== undefined) updates.name = name
-    if (name_ru !== undefined) updates.name_ru = name_ru || null
+    if (name_secondary !== undefined) updates.name_secondary = name_secondary || null
     if (slug !== undefined) updates.slug = slug || null
     if (description !== undefined) updates.description = description || null
-    if (description_ru !== undefined) updates.description_ru = description_ru || null
+    if (description_secondary !== undefined) updates.description_secondary = description_secondary || null
     if (full_description !== undefined) updates.full_description = full_description
-    if (full_description_ru !== undefined) updates.full_description_ru = full_description_ru
+    if (full_description_secondary !== undefined) updates.full_description_secondary = full_description_secondary
     if (hero_image_url !== undefined) updates.hero_image_url = hero_image_url
     if (duration_weeks !== undefined) updates.duration_weeks = duration_weeks
     if (goal !== undefined) updates.goal = goal
@@ -264,7 +264,7 @@ export async function PUT(
             workout_id: d.is_rest_day ? null : (d.workout_id || null),
             is_rest_day: d.is_rest_day || false,
             notes: d.notes || null,
-            notes_ru: d.notes_ru || null,
+            notes_secondary: d.notes_secondary || null,
           }))
 
         if (rows.length > 0) {
@@ -277,7 +277,7 @@ export async function PUT(
     // Re-fetch
     const { data: full } = await supabase
       .from('training_programs')
-      .select(`*, program_days ( *, workouts:workout_id ( id, name, name_ru, type, difficulty, estimated_duration ) )`)
+      .select(`*, program_days ( *, workouts:workout_id ( id, name, name_secondary, type, difficulty, estimated_duration ) )`)
       .eq('id', params.id)
       .single()
 

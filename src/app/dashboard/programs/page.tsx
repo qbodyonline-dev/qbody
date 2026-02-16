@@ -17,11 +17,11 @@ import { toast } from 'sonner'
 import { useLanguageConfig } from '@/lib/useLanguageConfig'
 
 /* ═══════════ TYPES ═══════════ */
-type WorkoutRef = { id: string; name: string; name_ru: string | null; type: string; difficulty: string; estimated_duration: number }
-type ProgramDay = { id?: string; week_number: number; day_of_week: number; workout_id: string | null; is_rest_day: boolean; notes: string | null; notes_ru: string | null; workouts?: WorkoutRef | null }
+type WorkoutRef = { id: string; name: string; name_secondary: string | null; type: string; difficulty: string; estimated_duration: number }
+type ProgramDay = { id?: string; week_number: number; day_of_week: number; workout_id: string | null; is_rest_day: boolean; notes: string | null; notes_secondary: string | null; workouts?: WorkoutRef | null }
 type AssignedClient = { id: string; status: string; start_date: string; current_week: number; profiles: { id: string; full_name: string | null; email: string; avatar_url: string | null } }
 type Program = {
-  id: string; name: string; name_ru: string | null; description: string | null; description_ru: string | null
+  id: string; name: string; name_secondary: string | null; description: string | null; description_secondary: string | null
   duration_weeks: number; goal: string; difficulty: string; is_active: boolean
   program_days: ProgramDay[]; clients_count: number; assigned_clients?: AssignedClient[]; created_at: string
 }
@@ -55,12 +55,12 @@ export default function ProgramsPage() {
 
   // Form
   const [fName, setFName] = useState('')
-  const [fNameRu, setFNameRu] = useState('')
+  const [fNameSecondary, setFNameSecondary] = useState('')
   const [fSlug, setFSlug] = useState('')
   const [fDesc, setFDesc] = useState('')
-  const [fDescRu, setFDescRu] = useState('')
+  const [fDescSecondary, setFDescSecondary] = useState('')
   const [fFullDesc, setFFullDesc] = useState<Block[]>([])
-  const [fFullDescRu, setFFullDescRu] = useState<Block[]>([])
+  const [fFullDescSecondary, setFFullDescSecondary] = useState<Block[]>([])
   const [descTab, setDescTab] = useState<'en' | 'ru'>('ru')
   const [fHeroImage, setFHeroImage] = useState('')
   const [heroUploading, setHeroUploading] = useState(false)
@@ -135,7 +135,7 @@ export default function ProgramsPage() {
       if (!res.ok) throw new Error()
       const data = await res.json()
       setWorkoutsList((data.workouts || []).map((w: any) => ({
-        id: w.id, name: w.name, name_ru: w.name_ru, type: w.type, difficulty: w.difficulty, estimated_duration: w.estimated_duration
+        id: w.id, name: w.name, name_secondary: w.name_secondary, type: w.type, difficulty: w.difficulty, estimated_duration: w.estimated_duration
       })))
     } catch { /* ignore */ }
   }, [])
@@ -207,8 +207,8 @@ export default function ProgramsPage() {
 
   /* ─── MODAL ─── */
   const resetForm = () => {
-    setFName(''); setFNameRu(''); setFSlug(''); setFDesc(''); setFDescRu('')
-    setFFullDesc([]); setFFullDescRu([]); setDescTab('ru'); setFHeroImage('')
+    setFName(''); setFNameSecondary(''); setFSlug(''); setFDesc(''); setFDescSecondary('')
+    setFFullDesc([]); setFFullDescSecondary([]); setDescTab('ru'); setFHeroImage('')
     setFWeeks(8); setFGoal('general'); setFDiff('intermediate')
     setFSchedule(Array.from({ length: 8 }, () => emptyWeek()))
     setEditingId(null); setExpandedWeek(null)
@@ -218,8 +218,8 @@ export default function ProgramsPage() {
 
   const openEdit = (p: Program) => {
     setEditingId(p.id)
-    setFName(p.name); setFNameRu(p.name_ru || ''); setFSlug((p as any).slug || generateSlug(p.name)); setFDesc(p.description || ''); setFDescRu(p.description_ru || '')
-    setFFullDesc((p as any).full_description || []); setFFullDescRu((p as any).full_description_ru || []); setDescTab('ru')
+    setFName(p.name); setFNameSecondary(p.name_secondary || ''); setFSlug((p as any).slug || generateSlug(p.name)); setFDesc(p.description || ''); setFDescSecondary(p.description_secondary || '')
+    setFFullDesc((p as any).full_description || []); setFFullDescSecondary((p as any).full_description_secondary || []); setDescTab('ru')
     setFHeroImage((p as any).hero_image_url || '')
     setFWeeks(p.duration_weeks); setFGoal(p.goal); setFDiff(p.difficulty)
     setFSchedule(buildScheduleFromDays(p.program_days, p.duration_weeks))
@@ -244,12 +244,12 @@ export default function ProgramsPage() {
     const slug = fSlug.trim() || generateSlug(fName)
     const payload = {
       name: fName.trim(),
-      name_ru: fNameRu.trim() || null,
+      name_secondary: fNameSecondary.trim() || null,
       slug,
       description: fDesc.trim() || null,
-      description_ru: fDescRu.trim() || null,
+      description_secondary: fDescSecondary.trim() || null,
       full_description: fFullDesc.length > 0 ? fFullDesc : null,
-      full_description_ru: fFullDescRu.length > 0 ? fFullDescRu : null,
+      full_description_secondary: fFullDescSecondary.length > 0 ? fFullDescSecondary : null,
       hero_image_url: fHeroImage || null,
       duration_weeks: fWeeks,
       goal: fGoal,
@@ -335,11 +335,11 @@ export default function ProgramsPage() {
             <Card key={p.id} className={`card-hover ${!p.is_active ? 'opacity-60' : ''}`}>
               <CardContent className="p-5">
                 <div className="flex items-start justify-between mb-2">
-                  <h3 className="font-semibold text-zinc-900 dark:text-zinc-100 text-lg">{ru ? (p.name_ru || p.name) : p.name}</h3>
+                  <h3 className="font-semibold text-zinc-900 dark:text-zinc-100 text-lg">{ru ? (p.name_secondary || p.name) : p.name}</h3>
                   {!p.is_active && <Badge variant="secondary">{ru ? 'Неакт.' : 'Inactive'}</Badge>}
                 </div>
-                {(p.description || p.description_ru) && (
-                  <p className="text-sm text-zinc-500 mb-4 line-clamp-2">{ru ? (p.description_ru || p.description) : p.description}</p>
+                {(p.description || p.description_secondary) && (
+                  <p className="text-sm text-zinc-500 mb-4 line-clamp-2">{ru ? (p.description_secondary || p.description) : p.description}</p>
                 )}
 
                 <div className="space-y-2 mb-4">
@@ -392,11 +392,11 @@ export default function ProgramsPage() {
           {/* Basic */}
           <div className={`grid ${lang.isBilingual ? 'sm:grid-cols-2' : ''} gap-4`}>
             <Input label={`${lang.pl(ru ? 'Название' : 'Name')} *`} value={fName} onChange={e => setFName(e.target.value)} required />
-            {lang.isBilingual && <Input label={lang.sl(ru ? 'Название' : 'Name')} value={fNameRu} onChange={e => setFNameRu(e.target.value)} />}
+            {lang.isBilingual && <Input label={lang.sl(ru ? 'Название' : 'Name')} value={fNameSecondary} onChange={e => setFNameSecondary(e.target.value)} />}
           </div>
           <div className={`grid ${lang.isBilingual ? 'sm:grid-cols-2' : ''} gap-4`}>
             <Input label={lang.pl(ru ? 'Краткое описание' : 'Short Description')} value={fDesc} onChange={e => setFDesc(e.target.value)} />
-            {lang.isBilingual && <Input label={lang.sl(ru ? 'Краткое описание' : 'Short Description')} value={fDescRu} onChange={e => setFDescRu(e.target.value)} />}
+            {lang.isBilingual && <Input label={lang.sl(ru ? 'Краткое описание' : 'Short Description')} value={fDescSecondary} onChange={e => setFDescSecondary(e.target.value)} />}
           </div>
 
           {/* Slug / Link */}
@@ -471,7 +471,7 @@ export default function ProgramsPage() {
               )}
             </div>
             {descTab === 'ru' && lang.isBilingual ? (
-              <BlockEditor value={fFullDescRu} onChange={setFFullDescRu} locale="ru" uploadImage={uploadImageFile} />
+              <BlockEditor value={fFullDescSecondary} onChange={setFFullDescSecondary} locale="ru" uploadImage={uploadImageFile} />
             ) : (
               <BlockEditor value={fFullDesc} onChange={setFFullDesc} locale="en" uploadImage={uploadImageFile} />
             )}
@@ -536,7 +536,7 @@ export default function ProgramsPage() {
                               }`}>
                               <option value="">{ru ? 'Отдых' : 'Rest'}</option>
                               {workoutsList.map(w => (
-                                <option key={w.id} value={w.id}>{ru ? (w.name_ru || w.name) : w.name}</option>
+                                <option key={w.id} value={w.id}>{ru ? (w.name_secondary || w.name) : w.name}</option>
                               ))}
                             </select>
                           </div>

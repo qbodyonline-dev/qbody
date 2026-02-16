@@ -35,14 +35,14 @@ export async function GET(
     const { data, error } = await supabase
       .from('training_programs')
       .select(`
-        id, name, name_ru, description, description_ru,
-        full_description, full_description_ru,
+        id, name, name_secondary, description, description_secondary,
+        full_description, full_description_secondary,
         duration_weeks, goal, difficulty, slug, is_active, price, original_price,
-        features, features_ru, includes, includes_ru,
+        features, features_secondary, includes, includes_secondary,
         hero_image_url, created_at,
         program_days (
           week_number, day_of_week, is_rest_day,
-          workouts:workout_id ( name, name_ru, type, estimated_duration )
+          workouts:workout_id ( name, name_secondary, type, estimated_duration )
         )
       `)
       .eq('slug', slug)

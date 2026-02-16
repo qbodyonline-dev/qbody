@@ -38,9 +38,9 @@ export async function POST(
       .insert({
         course_id: params.id,
         title: sanitizeString(body.title || 'New Module', 500),
-        title_ru: sanitizeString(body.title_ru || 'Новый модуль', 500),
+        title_secondary: sanitizeString(body.title_secondary || '', 500) || null,
         description: sanitizeString(body.description || '', 5000) || null,
-        description_ru: sanitizeString(body.description_ru || '', 5000) || null,
+        description_secondary: sanitizeString(body.description_secondary || '', 5000) || null,
         sort_order: nextOrder,
         is_published: body.is_published ?? true,
       })

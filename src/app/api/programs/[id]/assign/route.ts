@@ -67,7 +67,7 @@ export async function POST(
       .select(`
         *,
         profiles:client_id ( id, full_name, email ),
-        training_programs:program_id ( id, name, name_ru )
+        training_programs:program_id ( id, name, name_secondary )
       `)
       .single()
 

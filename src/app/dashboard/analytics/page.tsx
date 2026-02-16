@@ -21,9 +21,9 @@ type BizMetrics = {
   clientsThisMonth: number; revenueThisMonth: number; paidOrdersCount: number
 }
 type ChartPoint = { month: string; value: number }
-type CourseSale = { slug: string; title: string; titleRu: string; count: number; revenue: number }
+type CourseSale = { slug: string; title: string; titleSecondary: string; count: number; revenue: number }
 type TopClient = { id: string; name: string; completionPct: number }
-type RecentOrder = { id: string; clientName: string; courseTitle: string; courseTitleRu: string; amount: number; paidAt: string | null }
+type RecentOrder = { id: string; clientName: string; courseTitle: string; courseTitleSecondary: string; amount: number; paidAt: string | null }
 type BizData = { metrics: BizMetrics; clientGrowth: ChartPoint[]; revenueByMonth: ChartPoint[]; courseSales: CourseSale[]; topClients: TopClient[]; recentOrders: RecentOrder[] }
 
 type TrainingMetrics = {
@@ -31,7 +31,7 @@ type TrainingMetrics = {
   avgCompliancePct: number; totalCheckins: number; newCheckins: number; flaggedCheckins: number
 }
 type ClientCompliance = {
-  id: string; name: string; programName: string; programNameRu: string
+  id: string; name: string; programName: string; programNameSecondary: string
   totalScheduled: number; completed: number; compliancePct: number
   avgRpe: number | null; avgDuration: number | null; lastWorkout: string | null
 }
@@ -49,7 +49,7 @@ type TrainingData = {
 /* Merged client view for the list */
 type ClientSummary = {
   id: string; name: string
-  compliancePct: number | null; programName: string; programNameRu: string
+  compliancePct: number | null; programName: string; programNameSecondary: string
   totalScheduled: number; completed: number; avgRpe: number | null; avgDuration: number | null; lastWorkout: string | null
   totalCheckins: number; checkins30d: number; latestWeight: number | null; weightChange: number | null
   lastCheckinDate: string | null; flaggedCheckins: number; reviewedPct: number
@@ -158,7 +158,7 @@ export default function AnalyticsPage() {
     for (const c of trainingData.clientCompliance) {
       map.set(c.id, {
         id: c.id, name: c.name,
-        compliancePct: c.compliancePct, programName: c.programName, programNameRu: c.programNameRu,
+        compliancePct: c.compliancePct, programName: c.programName, programNameSecondary: c.programNameSecondary,
         totalScheduled: c.totalScheduled, completed: c.completed, avgRpe: c.avgRpe, avgDuration: c.avgDuration, lastWorkout: c.lastWorkout,
         totalCheckins: 0, checkins30d: 0, latestWeight: null, weightChange: null,
         lastCheckinDate: null, flaggedCheckins: 0, reviewedPct: 0,
@@ -174,7 +174,7 @@ export default function AnalyticsPage() {
       } else {
         map.set(c.id, {
           id: c.id, name: c.name,
-          compliancePct: null, programName: '', programNameRu: '',
+          compliancePct: null, programName: '', programNameSecondary: '',
           totalScheduled: 0, completed: 0, avgRpe: null, avgDuration: null, lastWorkout: null,
           totalCheckins: c.totalCheckins, checkins30d: c.checkins30d,
           latestWeight: c.latestWeight, weightChange: c.weightChange,
@@ -258,7 +258,7 @@ export default function AnalyticsPage() {
           <Avatar fallback={getInitials(c.name)} size="md" />
           <div className="flex-1">
             <h1 className="text-xl font-bold text-zinc-900 dark:text-zinc-100">{c.name}</h1>
-            {c.programName && <p className="text-sm text-zinc-500">{ru ? c.programNameRu : c.programName}</p>}
+            {c.programName && <p className="text-sm text-zinc-500">{ru ? c.programNameSecondary : c.programName}</p>}
           </div>
           <Link href={`/dashboard/clients/${c.id}`}>
             <Button variant="outline" size="sm">{ru ? 'Профиль' : 'Profile'}</Button>
@@ -452,7 +452,7 @@ export default function AnalyticsPage() {
                           {c.alertType === 'danger' && <span className="w-2 h-2 rounded-full bg-red-500 flex-shrink-0" />}
                           {c.alertType === 'warning' && <span className="w-2 h-2 rounded-full bg-amber-500 flex-shrink-0" />}
                         </div>
-                        {c.programName && <p className="text-[11px] text-zinc-400 truncate">{ru ? c.programNameRu : c.programName}</p>}
+                        {c.programName && <p className="text-[11px] text-zinc-400 truncate">{ru ? c.programNameSecondary : c.programName}</p>}
                       </div>
                       {/* Compliance mini */}
                       {c.compliancePct !== null && (
@@ -532,7 +532,7 @@ export default function AnalyticsPage() {
                   <div className="space-y-3">{bizData.courseSales.map((c, i) => (
                     <div key={c.slug} className="flex items-center gap-3">
                       <span className="w-7 h-7 rounded-full bg-teal-500/10 text-teal-600 text-xs font-bold flex items-center justify-center flex-shrink-0">{i + 1}</span>
-                      <div className="flex-1 min-w-0"><p className="text-sm font-medium text-zinc-900 dark:text-zinc-100 truncate">{ru ? c.titleRu : c.title}</p><p className="text-xs text-zinc-500">{c.count} {ru ? 'продаж' : 'sales'}</p></div>
+                      <div className="flex-1 min-w-0"><p className="text-sm font-medium text-zinc-900 dark:text-zinc-100 truncate">{ru ? c.titleSecondary : c.title}</p><p className="text-xs text-zinc-500">{c.count} {ru ? 'продаж' : 'sales'}</p></div>
                       <span className="text-sm font-bold text-zinc-900 dark:text-zinc-100">{fmtMoney(c.revenue)}</span>
                     </div>
                   ))}</div>
@@ -559,7 +559,7 @@ export default function AnalyticsPage() {
                 {bizData.recentOrders.length === 0 ? <div className="text-center py-8 text-zinc-400">{ru ? 'Нет продаж' : 'No sales'}</div> : (
                   <div className="space-y-3">{bizData.recentOrders.map(o => (
                     <div key={o.id} className="flex items-center gap-3 text-sm">
-                      <div className="flex-1 min-w-0"><p className="font-medium text-zinc-900 dark:text-zinc-100 truncate">{o.clientName}</p><p className="text-xs text-zinc-500 truncate">{ru ? o.courseTitleRu : o.courseTitle}</p></div>
+                      <div className="flex-1 min-w-0"><p className="font-medium text-zinc-900 dark:text-zinc-100 truncate">{o.clientName}</p><p className="text-xs text-zinc-500 truncate">{ru ? o.courseTitleSecondary : o.courseTitle}</p></div>
                       <div className="text-right flex-shrink-0"><p className="font-bold text-zinc-900 dark:text-zinc-100">{fmtMoney(o.amount)}</p>{o.paidAt && <p className="text-xs text-zinc-400">{new Date(o.paidAt).toLocaleDateString(ru ? 'ru-RU' : 'en-US', { month: 'short', day: 'numeric' })}</p>}</div>
                     </div>
                   ))}</div>

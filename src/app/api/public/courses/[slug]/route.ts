@@ -38,13 +38,13 @@ export async function GET(
         course_modules (
           id,
           title,
-          title_ru,
+          title_secondary,
           sort_order,
           is_published,
           course_lessons (
             id,
             title,
-            title_ru,
+            title_secondary,
             type,
             duration_minutes,
             is_free,

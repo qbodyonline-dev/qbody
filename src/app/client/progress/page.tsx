@@ -19,7 +19,7 @@ const coursesMeta: Record<string, { icon: any; color: string }> = {
 }
 
 type CourseProgress = {
-  course_slug: string; course_title: string; course_title_ru: string
+  course_slug: string; course_title: string; course_title_secondary: string
   granted_at: string; is_active: boolean
   total_lessons: number; completed_lessons: number; progress_percent: number
 }
@@ -128,7 +128,7 @@ export default function ProgressPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-white/70">{ru ? 'Программа' : 'Program'}</p>
-                <h3 className="text-lg font-bold">{ru ? program.name_ru || program.name_en : program.name_en}</h3>
+                <h3 className="text-lg font-bold">{ru ? program.name_secondary || program.name : program.name}</h3>
               </div>
               <div className="text-right">
                 <p className="text-2xl font-bold">{ru ? 'Нед.' : 'Wk'} {program.current_week}</p>
@@ -207,7 +207,7 @@ export default function ProgressPage() {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
                           <h3 className="font-semibold text-zinc-900 dark:text-zinc-100 truncate">
-                            {ru ? course.course_title_ru : course.course_title}
+                            {ru ? course.course_title_secondary : course.course_title}
                           </h3>
                           {course.progress_percent === 100 && (
                             <Badge variant="success" className="flex-shrink-0 text-[10px]"><CheckCircle2 className="w-3 h-3 mr-0.5" />{ru ? 'Готово' : 'Done'}</Badge>

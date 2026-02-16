@@ -48,12 +48,12 @@ export async function PATCH(
     
     const updateData: any = {}
     if (body.title !== undefined) updateData.title = sanitizeString(body.title, 500)
-    if (body.title_ru !== undefined) updateData.title_ru = sanitizeString(body.title_ru, 500)
+    if (body.title_secondary !== undefined) updateData.title_secondary = sanitizeString(body.title_secondary, 500)
     if (body.type !== undefined && allowedTypes.includes(body.type)) updateData.type = body.type
     if (body.duration_minutes !== undefined) updateData.duration_minutes = Math.max(0, Math.min(Number(body.duration_minutes) || 0, 600))
     if (body.video_url !== undefined) updateData.video_url = body.video_url
     if (body.content !== undefined) updateData.content = body.content
-    if (body.content_ru !== undefined) updateData.content_ru = body.content_ru
+    if (body.content_secondary !== undefined) updateData.content_secondary = body.content_secondary
     if (body.is_free !== undefined) updateData.is_free = !!body.is_free
     if (body.is_published !== undefined) updateData.is_published = !!body.is_published
     if (body.sort_order !== undefined) updateData.sort_order = Number(body.sort_order) || 0

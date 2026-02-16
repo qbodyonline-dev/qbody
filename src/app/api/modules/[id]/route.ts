@@ -19,9 +19,9 @@ export async function PATCH(
     // ✅ SANITIZE: Clean input fields
     const updateData: any = {}
     if (body.title !== undefined) updateData.title = sanitizeString(body.title, 500)
-    if (body.title_ru !== undefined) updateData.title_ru = sanitizeString(body.title_ru, 500)
+    if (body.title_secondary !== undefined) updateData.title_secondary = sanitizeString(body.title_secondary, 500)
     if (body.description !== undefined) updateData.description = sanitizeString(body.description, 5000)
-    if (body.description_ru !== undefined) updateData.description_ru = sanitizeString(body.description_ru, 5000)
+    if (body.description_secondary !== undefined) updateData.description_secondary = sanitizeString(body.description_secondary, 5000)
     if (body.sort_order !== undefined) updateData.sort_order = Number(body.sort_order) || 0
     if (body.is_published !== undefined) updateData.is_published = !!body.is_published
     

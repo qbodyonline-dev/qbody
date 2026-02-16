@@ -41,9 +41,9 @@ const locationLabels: Record<string, { en: string; ru: string }> = {
   outdoor: { en: 'Outdoor', ru: 'Улица' },
 }
 
-const coursesMeta: Record<string, { title: string; titleRu: string; icon: any; color: string }> = {
-  'breast-augmentation-recovery': { title: 'Breast Augmentation Recovery', titleRu: 'Восстановление после увеличения груди', icon: Heart, color: 'from-pink-500 to-rose-500' },
-  'cesarean-recovery': { title: 'C-Section Recovery', titleRu: 'Восстановление после кесарева сечения', icon: Baby, color: 'from-purple-500 to-violet-500' },
+const coursesMeta: Record<string, { title: string; titleSecondary: string; icon: any; color: string }> = {
+  'breast-augmentation-recovery': { title: 'Breast Augmentation Recovery', titleSecondary: 'Восстановление после увеличения груди', icon: Heart, color: 'from-pink-500 to-rose-500' },
+  'cesarean-recovery': { title: 'C-Section Recovery', titleSecondary: 'Восстановление после кесарева сечения', icon: Baby, color: 'from-purple-500 to-violet-500' },
 }
 
 type CourseAccess = {
@@ -96,7 +96,7 @@ type AvailableCourse = {
   id: string
   slug: string
   title: string
-  title_ru: string
+  title_secondary: string
 }
 
 export default function ClientDetailPage() {
@@ -143,7 +143,7 @@ export default function ClientDetailPage() {
             id: c.id,
             slug: c.slug,
             title: c.title,
-            title_ru: c.title_ru,
+            title_secondary: c.title_secondary,
           })))
         }
         
@@ -511,7 +511,7 @@ export default function ClientDetailPage() {
                         </div>
                         <div>
                           <p className="font-semibold text-zinc-900 dark:text-zinc-100">
-                            {meta ? (ru ? meta.titleRu : meta.title) : access.course_slug}
+                            {meta ? (ru ? meta.titleSecondary : meta.title) : access.course_slug}
                           </p>
                           <p className="text-sm text-zinc-500">
                             {ru ? 'Доступ с' : 'Access since'}: {new Date(access.granted_at).toLocaleDateString(ru ? 'ru-RU' : 'en-US')}
@@ -612,7 +612,7 @@ export default function ClientDetailPage() {
                     return (
                       <tr key={order.id} className="border-b border-zinc-100 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-800/50">
                         <td className="py-3 px-4 text-sm text-zinc-900 dark:text-zinc-100">
-                          {meta ? (ru ? meta.titleRu : meta.title) : order.course_slug}
+                          {meta ? (ru ? meta.titleSecondary : meta.title) : order.course_slug}
                         </td>
                         <td className="py-3 px-4 text-sm font-medium text-zinc-900 dark:text-zinc-100">
                           ${(order.amount / 100).toFixed(2)}
@@ -759,7 +759,7 @@ export default function ClientDetailPage() {
                       </div>
                       <div>
                         <p className="font-semibold text-zinc-900 dark:text-zinc-100">
-                          {ru ? (course.title_ru || course.title) : course.title}
+                          {ru ? (course.title_secondary || course.title) : course.title}
                         </p>
                       </div>
                       {selectedCourse === course.slug && (
@@ -808,7 +808,7 @@ export default function ClientDetailPage() {
                 <div>
                   <p className="font-semibold text-zinc-900 dark:text-zinc-100">
                     {coursesMeta[selectedOrder.course_slug] 
-                      ? (ru ? coursesMeta[selectedOrder.course_slug].titleRu : coursesMeta[selectedOrder.course_slug].title) 
+                      ? (ru ? coursesMeta[selectedOrder.course_slug].titleSecondary : coursesMeta[selectedOrder.course_slug].title) 
                       : selectedOrder.course_slug}
                   </p>
                   <Badge variant={selectedOrder.status === 'paid' ? 'success' : selectedOrder.status === 'pending' ? 'warning' : 'secondary'}>

@@ -66,10 +66,10 @@ export default function CoursePage() {
   const Icon = visual.icon
   const price = course.price / 100
   const originalPrice = course.original_price ? course.original_price / 100 : null
-  const tags = ru ? (course.tags_ru || course.tags || []) : (course.tags || [])
-  const features = ru ? (course.features_ru || course.features || []) : (course.features || [])
-  const includes = ru ? (course.includes_ru || course.includes || []) : (course.includes || [])
-  const guarantee = ru ? (course.guarantee_text_ru || course.guarantee_text) : (course.guarantee_text || '30-day money-back guarantee')
+  const tags = ru ? (course.tags_secondary || course.tags || []) : (course.tags || [])
+  const features = ru ? (course.features_secondary || course.features || []) : (course.features || [])
+  const includes = ru ? (course.includes_secondary || course.includes || []) : (course.includes || [])
+  const guarantee = ru ? (course.guarantee_text_secondary || course.guarantee_text) : (course.guarantee_text || '30-day money-back guarantee')
 
   const handleBuy = async () => {
     if (!user) {
@@ -152,8 +152,8 @@ export default function CoursePage() {
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             <div>
               <Badge className="mb-4 bg-white/20 text-white border-0">{course.duration_weeks} {ru ? 'недель' : 'weeks'}</Badge>
-              <h1 className="text-4xl lg:text-5xl font-bold text-white mb-6 break-all">{ru && course.title_ru ? course.title_ru : course.title}</h1>
-              <p className="text-xl text-white/90 mb-6 break-all">{ru && course.description_ru ? course.description_ru : course.description}</p>
+              <h1 className="text-4xl lg:text-5xl font-bold text-white mb-6 break-all">{ru && course.title_secondary ? course.title_secondary : course.title}</h1>
+              <p className="text-xl text-white/90 mb-6 break-all">{ru && course.description_secondary ? course.description_secondary : course.description}</p>
               
               {course.rating && (
                 <div className="flex items-center gap-2 mb-6">
@@ -213,7 +213,7 @@ export default function CoursePage() {
                         <div key={mod.id} className="flex items-center justify-between gap-3 p-4 bg-zinc-50 rounded-xl">
                           <div className="flex items-center gap-3 min-w-0">
                             <div className="w-8 h-8 rounded-lg bg-teal-500 text-white flex items-center justify-center font-bold text-sm flex-shrink-0">{i + 1}</div>
-                            <span className="font-medium text-zinc-900 break-all">{ru && mod.title_ru ? mod.title_ru : mod.title}</span>
+                            <span className="font-medium text-zinc-900 break-all">{ru && mod.title_secondary ? mod.title_secondary : mod.title}</span>
                           </div>
                           <span className="text-sm text-zinc-500 flex-shrink-0">{mod.course_lessons?.length || 0} {ru ? 'уроков' : 'lessons'}</span>
                         </div>
@@ -238,11 +238,11 @@ export default function CoursePage() {
                       </div>
                       <div className="min-w-0">
                         <h3 className="font-semibold text-zinc-900 break-all">{course.instructor_name}</h3>
-                        {(course.instructor_title || course.instructor_title_ru) && (
-                          <p className="text-sm text-zinc-500 break-all">{ru && course.instructor_title_ru ? course.instructor_title_ru : course.instructor_title}</p>
+                        {(course.instructor_title || course.instructor_title_secondary) && (
+                          <p className="text-sm text-zinc-500 break-all">{ru && course.instructor_title_secondary ? course.instructor_title_secondary : course.instructor_title}</p>
                         )}
-                        {(course.instructor_bio || course.instructor_bio_ru) && (
-                          <p className="text-zinc-600 mt-2 break-all">{ru && course.instructor_bio_ru ? course.instructor_bio_ru : course.instructor_bio}</p>
+                        {(course.instructor_bio || course.instructor_bio_secondary) && (
+                          <p className="text-zinc-600 mt-2 break-all">{ru && course.instructor_bio_secondary ? course.instructor_bio_secondary : course.instructor_bio}</p>
                         )}
                       </div>
                     </div>
@@ -293,15 +293,15 @@ export default function CoursePage() {
       </section>
 
       {/* CTA Footer */}
-      {(course.cta_title || course.cta_title_ru) && (
+      {(course.cta_title || course.cta_title_secondary) && (
         <section className="py-16 bg-zinc-900 reveal-up">
           <div className="max-w-4xl mx-auto px-4 text-center">
-            <h2 className="text-3xl font-bold text-white mb-4 break-all">{ru && course.cta_title_ru ? course.cta_title_ru : course.cta_title}</h2>
-            {(course.cta_subtitle || course.cta_subtitle_ru) && (
-              <p className="text-zinc-400 mb-8 break-all">{ru && course.cta_subtitle_ru ? course.cta_subtitle_ru : course.cta_subtitle}</p>
+            <h2 className="text-3xl font-bold text-white mb-4 break-all">{ru && course.cta_title_secondary ? course.cta_title_secondary : course.cta_title}</h2>
+            {(course.cta_subtitle || course.cta_subtitle_secondary) && (
+              <p className="text-zinc-400 mb-8 break-all">{ru && course.cta_subtitle_secondary ? course.cta_subtitle_secondary : course.cta_subtitle}</p>
             )}
             <Button variant="gradient" size="lg" className="h-14 px-10 text-lg" onClick={handleBuy} disabled={isCheckoutLoading}>
-              {isCheckoutLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : (ru && course.cta_button_text_ru ? course.cta_button_text_ru : (course.cta_button_text || (ru ? 'Начать сейчас' : 'Start Now')))}
+              {isCheckoutLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : (ru && course.cta_button_text_secondary ? course.cta_button_text_secondary : (course.cta_button_text || (ru ? 'Начать сейчас' : 'Start Now')))}
             </Button>
           </div>
         </section>

@@ -21,19 +21,19 @@ type ContentBlock = {
   id: string
   type: 'heading' | 'text' | 'image' | 'video' | 'checklist'
   content: string
-  content_ru?: string
-  items?: { id: string; text: string; text_ru?: string }[]
+  content_secondary?: string
+  items?: { id: string; text: string; text_secondary?: string }[]
 }
 
 type Lesson = {
   id: string
   title: string
-  title_ru: string | null
+  title_secondary: string | null
   type: 'video' | 'text' | 'task'
   duration_minutes: number
   video_url: string | null
   content: ContentBlock[]
-  content_ru: ContentBlock[]
+  content_secondary: ContentBlock[]
   is_free: boolean
   is_published: boolean
   sort_order: number
@@ -42,7 +42,7 @@ type Lesson = {
 type Module = {
   id: string
   title: string
-  title_ru: string | null
+  title_secondary: string | null
   sort_order: number
   is_published: boolean
   course_lessons: Lesson[]
@@ -51,7 +51,7 @@ type Module = {
 type Course = {
   id: string
   title: string
-  title_ru: string | null
+  title_secondary: string | null
   slug: string
   is_published: boolean
   course_modules: Module[]
@@ -74,16 +74,16 @@ export default function CourseEditorPage() {
   // Module modal
   const [isModuleModalOpen, setIsModuleModalOpen] = useState(false)
   const [editingModule, setEditingModule] = useState<Module | null>(null)
-  const [moduleForm, setModuleForm] = useState({ title: '', title_ru: '' })
+  const [moduleForm, setModuleForm] = useState({ title: '', title_secondary: '' })
 
   // Lesson modal
   const [isLessonModalOpen, setIsLessonModalOpen] = useState(false)
   const [editingLesson, setEditingLesson] = useState<{ lesson: Lesson; moduleId: string } | null>(null)
   const [lessonForm, setLessonForm] = useState({
-    title: '', title_ru: '', type: 'video' as 'video' | 'text' | 'task',
+    title: '', title_secondary: '', type: 'video' as 'video' | 'text' | 'task',
     duration_minutes: '10', video_url: '', is_free: false,
     content: [] as ContentBlock[],
-    content_ru: [] as ContentBlock[]
+    content_secondary: [] as ContentBlock[]
   })
   const [addingToModuleId, setAddingToModuleId] = useState<string | null>(null)
   const [uploadingVideo, setUploadingVideo] = useState(false)
@@ -198,14 +198,14 @@ export default function CourseEditorPage() {
   const addChecklistItem = (blockId: string) => {
     const newContent = lessonForm.content.map(b => {
       if (b.id === blockId && b.items) {
-        return { ...b, items: [...b.items, { id: `item-${Date.now()}`, text: '', text_ru: '' }] }
+        return { ...b, items: [...b.items, { id: `item-${Date.now()}`, text: '', text_secondary: '' }] }
       }
       return b
     })
     setLessonForm({ ...lessonForm, content: newContent })
   }
 
-  const updateChecklistItem = (blockId: string, itemId: string, field: 'text' | 'text_ru', value: string) => {
+  const updateChecklistItem = (blockId: string, itemId: string, field: 'text' | 'text_secondary', value: string) => {
     const newContent = lessonForm.content.map(b => {
       if (b.id === blockId && b.items) {
         return {
@@ -233,13 +233,13 @@ export default function CourseEditorPage() {
   // === MODULE CRUD ===
   const openAddModule = () => {
     setEditingModule(null)
-    setModuleForm({ title: '', title_ru: '' })
+    setModuleForm({ title: '', title_secondary: '' })
     setIsModuleModalOpen(true)
   }
 
   const openEditModule = (mod: Module) => {
     setEditingModule(mod)
-    setModuleForm({ title: mod.title, title_ru: mod.title_ru || '' })
+    setModuleForm({ title: mod.title, title_secondary: mod.title_secondary || '' })
     setIsModuleModalOpen(true)
   }
 
@@ -291,9 +291,9 @@ export default function CourseEditorPage() {
     setEditingLesson(null)
     setAddingToModuleId(moduleId)
     setLessonForm({ 
-      title: '', title_ru: '', type, 
+      title: '', title_secondary: '', type, 
       duration_minutes: '10', video_url: '', is_free: false,
-      content: [], content_ru: []
+      content: [], content_secondary: []
     })
     setIsLessonModalOpen(true)
   }
@@ -303,13 +303,13 @@ export default function CourseEditorPage() {
     setAddingToModuleId(null)
     setLessonForm({
       title: lesson.title,
-      title_ru: lesson.title_ru || '',
+      title_secondary: lesson.title_secondary || '',
       type: lesson.type,
       duration_minutes: String(lesson.duration_minutes),
       video_url: lesson.video_url || '',
       is_free: lesson.is_free,
       content: Array.isArray(lesson.content) ? lesson.content : [],
-      content_ru: Array.isArray(lesson.content_ru) ? lesson.content_ru : []
+      content_secondary: Array.isArray(lesson.content_secondary) ? lesson.content_secondary : []
     })
     setIsLessonModalOpen(true)
   }
@@ -323,13 +323,13 @@ export default function CourseEditorPage() {
     try {
       const payload = {
         title: lessonForm.title,
-        title_ru: lessonForm.title_ru || null,
+        title_secondary: lessonForm.title_secondary || null,
         type: lessonForm.type,
         duration_minutes: parseInt(lessonForm.duration_minutes) || 10,
         video_url: lessonForm.video_url || null,
         is_free: lessonForm.is_free,
         content: lessonForm.content,
-        content_ru: lessonForm.content_ru,
+        content_secondary: lessonForm.content_secondary,
       }
 
       if (editingLesson) {
@@ -448,7 +448,7 @@ export default function CourseEditorPage() {
           <Link href="/dashboard/courses"><Button variant="ghost" size="icon"><ArrowLeft className="w-5 h-5" /></Button></Link>
           <div>
             <div className="flex items-center gap-3">
-              <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">{ru && course.title_ru ? course.title_ru : course.title}</h1>
+              <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">{ru && course.title_secondary ? course.title_secondary : course.title}</h1>
               <Badge variant={course.is_published ? 'success' : 'secondary'}>{course.is_published ? (ru ? 'Опубликован' : 'Published') : (ru ? 'Черновик' : 'Draft')}</Badge>
             </div>
             <p className="text-zinc-500 mt-1">{ru ? 'Редактор уроков' : 'Lesson Editor'}</p>
@@ -475,7 +475,7 @@ export default function CourseEditorPage() {
               </button>
               <BookOpen className="w-5 h-5 text-teal-500" />
               <div className="flex-1 min-w-0">
-                <h3 className="font-semibold">{ru ? 'Модуль' : 'Module'} {mi + 1}: {ru && mod.title_ru ? mod.title_ru : mod.title}</h3>
+                <h3 className="font-semibold">{ru ? 'Модуль' : 'Module'} {mi + 1}: {ru && mod.title_secondary ? mod.title_secondary : mod.title}</h3>
                 <p className="text-xs text-zinc-500">{mod.course_lessons?.length || 0} {ru ? 'уроков' : 'lessons'}</p>
               </div>
               <Button variant="ghost" size="sm" onClick={() => openEditModule(mod)}><Edit className="w-4 h-4" /></Button>
@@ -500,7 +500,7 @@ export default function CourseEditorPage() {
                       <span className="text-xs text-zinc-400 font-mono w-6">{li + 1}</span>
                       <div className={`w-8 h-8 rounded-lg ${typeColor(lesson.type)} flex items-center justify-center`}>{typeIcon(lesson.type)}</div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium truncate">{ru && lesson.title_ru ? lesson.title_ru : lesson.title}</p>
+                        <p className="text-sm font-medium truncate">{ru && lesson.title_secondary ? lesson.title_secondary : lesson.title}</p>
                         <div className="flex items-center gap-2 text-xs text-zinc-500">
                           <Clock className="w-3 h-3" />{lesson.duration_minutes} {ru ? 'мин' : 'min'}
                           {lesson.is_free && <Badge variant="outline" className="text-[10px] py-0 px-1.5">{ru ? 'Бесплатный' : 'Free'}</Badge>}
@@ -535,7 +535,7 @@ export default function CourseEditorPage() {
         <div className="space-y-4">
           <div className={`grid ${lang.isBilingual ? 'grid-cols-2' : ''} gap-4`}>
             <Input label={lang.pl(ru ? 'Название' : 'Title')} value={moduleForm.title} onChange={(e) => setModuleForm({ ...moduleForm, title: e.target.value })} />
-            {lang.isBilingual && <Input label={lang.sl(ru ? 'Название' : 'Title')} value={moduleForm.title_ru} onChange={(e) => setModuleForm({ ...moduleForm, title_ru: e.target.value })} />}
+            {lang.isBilingual && <Input label={lang.sl(ru ? 'Название' : 'Title')} value={moduleForm.title_secondary} onChange={(e) => setModuleForm({ ...moduleForm, title_secondary: e.target.value })} />}
           </div>
           <div className="flex justify-end gap-3 pt-4">
             <Button variant="outline" onClick={() => setIsModuleModalOpen(false)}>{ru ? 'Отмена' : 'Cancel'}</Button>
@@ -552,7 +552,7 @@ export default function CourseEditorPage() {
           {/* Basic Info */}
           <div className={`grid ${lang.isBilingual ? 'grid-cols-2' : ''} gap-4`}>
             <Input label={lang.pl(ru ? 'Название' : 'Title')} value={lessonForm.title} onChange={(e) => setLessonForm({ ...lessonForm, title: e.target.value })} />
-            {lang.isBilingual && <Input label={lang.sl(ru ? 'Название' : 'Title')} value={lessonForm.title_ru} onChange={(e) => setLessonForm({ ...lessonForm, title_ru: e.target.value })} />}
+            {lang.isBilingual && <Input label={lang.sl(ru ? 'Название' : 'Title')} value={lessonForm.title_secondary} onChange={(e) => setLessonForm({ ...lessonForm, title_secondary: e.target.value })} />}
           </div>
           <div className="grid grid-cols-3 gap-4">
             <div>
@@ -630,14 +630,14 @@ export default function CourseEditorPage() {
                     {block.type === 'heading' && (
                       <div className={`grid ${lang.isBilingual ? 'grid-cols-2' : ''} gap-3`}>
                         <Input placeholder={`Heading (${lang.pCode})`} value={block.content} onChange={(e) => updateContentBlock(block.id, 'content', e.target.value)} />
-                        {lang.isBilingual && <Input placeholder={`Heading (${lang.sCode})`} value={lessonForm.content_ru.find(b => b.id === block.id)?.content || ''} onChange={(e) => updateContentBlock(block.id, 'content_ru', e.target.value)} />}
+                        {lang.isBilingual && <Input placeholder={`Heading (${lang.sCode})`} value={lessonForm.content_secondary.find(b => b.id === block.id)?.content || ''} onChange={(e) => updateContentBlock(block.id, 'content_secondary', e.target.value)} />}
                       </div>
                     )}
 
                     {block.type === 'text' && (
                       <div className={`grid ${lang.isBilingual ? 'grid-cols-2' : ''} gap-3`}>
                         <textarea className="w-full h-24 px-4 py-3 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-sm resize-none" placeholder={`Text (${lang.pCode})`} value={block.content} onChange={(e) => updateContentBlock(block.id, 'content', e.target.value)} />
-                        {lang.isBilingual && <textarea className="w-full h-24 px-4 py-3 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-sm resize-none" placeholder={`Text (${lang.sCode})`} value={lessonForm.content_ru.find(b => b.id === block.id)?.content || ''} onChange={(e) => updateContentBlock(block.id, 'content_ru', e.target.value)} />}
+                        {lang.isBilingual && <textarea className="w-full h-24 px-4 py-3 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-sm resize-none" placeholder={`Text (${lang.sCode})`} value={lessonForm.content_secondary.find(b => b.id === block.id)?.content || ''} onChange={(e) => updateContentBlock(block.id, 'content_secondary', e.target.value)} />}
                       </div>
                     )}
 
@@ -670,7 +670,7 @@ export default function CourseEditorPage() {
                           <div key={item.id} className="flex items-center gap-2">
                             <Check className="w-4 h-4 text-zinc-400" />
                             <Input placeholder={`Item ${i + 1} (${lang.pCode})`} value={item.text} onChange={(e) => updateChecklistItem(block.id, item.id, 'text', e.target.value)} className="flex-1" />
-                            {lang.isBilingual && <Input placeholder={`Item ${i + 1} (${lang.sCode})`} value={item.text_ru || ''} onChange={(e) => updateChecklistItem(block.id, item.id, 'text_ru', e.target.value)} className="flex-1" />}
+                            {lang.isBilingual && <Input placeholder={`Item ${i + 1} (${lang.sCode})`} value={item.text_secondary || ''} onChange={(e) => updateChecklistItem(block.id, item.id, 'text_secondary', e.target.value)} className="flex-1" />}
                             <Button variant="ghost" size="sm" onClick={() => removeChecklistItem(block.id, item.id)} className="text-red-500"><X className="w-4 h-4" /></Button>
                           </div>
                         ))}

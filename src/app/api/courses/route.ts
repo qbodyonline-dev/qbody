@@ -18,7 +18,7 @@ export async function GET(request: Request) {
       .select(`
         *,
         course_modules (
-          id, title, title_ru, sort_order, is_published,
+          id, title, title_secondary, sort_order, is_published,
           course_lessons (count)
         )
       `)
@@ -69,9 +69,9 @@ export async function POST(request: Request) {
       .insert({
         slug: slug.slice(0, 200),
         title,
-        title_ru: sanitizeString(body.title_ru || '', 500) || null,
+        title_secondary: sanitizeString(body.title_secondary || '', 500) || null,
         description: sanitizeString(body.description || '', 5000) || null,
-        description_ru: sanitizeString(body.description_ru || '', 5000) || null,
+        description_secondary: sanitizeString(body.description_secondary || '', 5000) || null,
         price: Math.round((body.price || 99) * 100),
         original_price: body.original_price ? Math.round(body.original_price * 100) : null,
         duration_weeks: body.duration_weeks || 8,

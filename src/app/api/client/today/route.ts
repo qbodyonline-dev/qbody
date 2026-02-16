@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
     ] = await Promise.all([
       // Active program
       supabase.from('client_programs')
-        .select('id, start_date, end_date, status, training_programs(id, name, name_ru, duration_weeks, goal)')
+        .select('id, start_date, end_date, status, training_programs(id, name, name_secondary, duration_weeks, goal)')
         .eq('client_id', userId).eq('status', 'active').maybeSingle(),
       // Recent workout logs
       supabase.from('workout_logs')
@@ -60,7 +60,7 @@ export async function GET(request: NextRequest) {
       program = {
         id: prog.id,
         name: prog.name,
-        name_ru: prog.name_ru,
+        name_secondary: prog.name_secondary,
         duration_weeks: prog.duration_weeks,
         goal: prog.goal,
         current_week: currentWeek,
@@ -74,7 +74,7 @@ export async function GET(request: NextRequest) {
           .from('program_days')
           .select(`
             id, is_rest_day, notes,
-            workouts(id, name, name_ru, type, estimated_duration,
+            workouts(id, name, name_secondary, type, estimated_duration,
               workout_exercises(id, exercise_id, section))
           `)
           .eq('program_id', prog.id)
@@ -90,7 +90,7 @@ export async function GET(request: NextRequest) {
             workout: w ? {
               id: w.id,
               name: w.name,
-              name_ru: w.name_ru,
+              name_secondary: w.name_secondary,
               type: w.type,
               estimated_duration: w.estimated_duration,
               exercise_count: w.workout_exercises?.length || 0,

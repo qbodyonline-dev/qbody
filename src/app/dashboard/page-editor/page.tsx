@@ -44,7 +44,7 @@ interface PageSettings {
 }
 
 interface SitePage {
-  id: string; slug: string; title: string; title_ru: string
+  id: string; slug: string; title: string; title_secondary: string
   is_published: boolean; is_homepage: boolean; settings?: PageSettings
 }
 

@@ -83,8 +83,8 @@ export default function ProgramPage() {
   const gc = goalConfig[program.goal] || goalConfig.general
   const price = program.price ? program.price / 100 : null
   const originalPrice = program.original_price ? program.original_price / 100 : null
-  const features = ru ? (program.features_ru || program.features || []) : (program.features || [])
-  const includes = ru ? (program.includes_ru || program.includes || []) : (program.includes || [])
+  const features = ru ? (program.features_secondary || program.features || []) : (program.features || [])
+  const includes = ru ? (program.includes_secondary || program.includes || []) : (program.includes || [])
 
   // Group days by week
   const weekGroups: Record<number, any[]> = {}
@@ -204,9 +204,9 @@ export default function ProgramPage() {
               <Badge className="bg-white/20 text-white border-0"><Dumbbell className="w-3 h-3 mr-1" />{program.total_workouts} {ru ? 'тренировок' : 'workouts'}</Badge>
               <Badge className="bg-white/20 text-white border-0"><TrendingUp className="w-3 h-3 mr-1" />{diffLabels[program.difficulty]?.[ru ? 'ru' : 'en'] || program.difficulty}</Badge>
             </div>
-            <h1 className="text-4xl lg:text-5xl font-bold text-white mb-4">{ru && program.name_ru ? program.name_ru : program.name}</h1>
-            {(program.description || program.description_ru) && (
-              <p className="text-xl text-white/90 mb-6">{ru && program.description_ru ? program.description_ru : program.description}</p>
+            <h1 className="text-4xl lg:text-5xl font-bold text-white mb-4">{ru && program.name_secondary ? program.name_secondary : program.name}</h1>
+            {(program.description || program.description_secondary) && (
+              <p className="text-xl text-white/90 mb-6">{ru && program.description_secondary ? program.description_secondary : program.description}</p>
             )}
             <Badge className="bg-white/20 text-white border-0 text-base px-4 py-1">
               <Target className="w-4 h-4 mr-2" />{ru ? gc.labelRu : gc.label}
@@ -223,7 +223,7 @@ export default function ProgramPage() {
 
               {/* Full Description */}
               {(() => {
-                const fullDesc = ru ? (program.full_description_ru || program.full_description) : (program.full_description)
+                const fullDesc = ru ? (program.full_description_secondary || program.full_description) : (program.full_description)
                 return fullDesc && fullDesc.length > 0 ? (
                   <Card>
                     <CardContent className="p-6">
@@ -284,7 +284,7 @@ export default function ProgramPage() {
                                       </div>
                                     ) : (
                                       <div className="text-xs py-2 px-1 border border-teal-200 rounded-lg bg-teal-50 text-teal-700 font-medium">
-                                        {ru && day.workouts.name_ru ? day.workouts.name_ru : day.workouts.name}
+                                        {ru && day.workouts.name_secondary ? day.workouts.name_secondary : day.workouts.name}
                                         {day.workouts.estimated_duration && (
                                           <p className="text-[10px] text-teal-500 mt-0.5">{day.workouts.estimated_duration} {ru ? 'мин' : 'min'}</p>
                                         )}

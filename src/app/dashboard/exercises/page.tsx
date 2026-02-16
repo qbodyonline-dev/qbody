@@ -15,21 +15,21 @@ import { useLanguageConfig } from '@/lib/useLanguageConfig'
 type Exercise = {
   id: string
   name: string
-  name_ru: string | null
+  name_secondary: string | null
   description: string | null
-  description_ru: string | null
+  description_secondary: string | null
   muscle_groups: string[]
   equipment: string | null
   category: string | null
   difficulty: string | null
   instructions: string | null
-  instructions_ru: string | null
+  instructions_secondary: string | null
   common_mistakes: string | null
-  common_mistakes_ru: string | null
+  common_mistakes_secondary: string | null
   regressions: string | null
-  regressions_ru: string | null
+  regressions_secondary: string | null
   progressions: string | null
-  progressions_ru: string | null
+  progressions_secondary: string | null
   video_url: string | null
   thumbnail_url: string | null
   created_at: string
@@ -37,31 +37,31 @@ type Exercise = {
 
 type FormData = {
   name: string
-  name_ru: string
+  name_secondary: string
   description: string
-  description_ru: string
+  description_secondary: string
   muscle_groups: string[]
   equipment: string
   category: string
   difficulty: string
   instructions: string
-  instructions_ru: string
+  instructions_secondary: string
   common_mistakes: string
-  common_mistakes_ru: string
+  common_mistakes_secondary: string
   regressions: string
-  regressions_ru: string
+  regressions_secondary: string
   progressions: string
-  progressions_ru: string
+  progressions_secondary: string
   video_url: string
 }
 
 const EMPTY_FORM: FormData = {
-  name: '', name_ru: '', description: '', description_ru: '',
+  name: '', name_secondary: '', description: '', description_secondary: '',
   muscle_groups: [], equipment: 'bodyweight', category: 'strength', difficulty: 'intermediate',
-  instructions: '', instructions_ru: '',
-  common_mistakes: '', common_mistakes_ru: '',
-  regressions: '', regressions_ru: '',
-  progressions: '', progressions_ru: '',
+  instructions: '', instructions_secondary: '',
+  common_mistakes: '', common_mistakes_secondary: '',
+  regressions: '', regressions_secondary: '',
+  progressions: '', progressions_secondary: '',
   video_url: ''
 }
 
@@ -129,21 +129,21 @@ export default function ExercisesPage() {
     setEditingId(ex.id)
     setFormData({
       name: ex.name || '',
-      name_ru: ex.name_ru || '',
+      name_secondary: ex.name_secondary || '',
       description: ex.description || '',
-      description_ru: ex.description_ru || '',
+      description_secondary: ex.description_secondary || '',
       muscle_groups: ex.muscle_groups || [],
       equipment: ex.equipment || 'bodyweight',
       category: ex.category || 'strength',
       difficulty: ex.difficulty || 'intermediate',
       instructions: ex.instructions || '',
-      instructions_ru: ex.instructions_ru || '',
+      instructions_secondary: ex.instructions_secondary || '',
       common_mistakes: ex.common_mistakes || '',
-      common_mistakes_ru: ex.common_mistakes_ru || '',
+      common_mistakes_secondary: ex.common_mistakes_secondary || '',
       regressions: ex.regressions || '',
-      regressions_ru: ex.regressions_ru || '',
+      regressions_secondary: ex.regressions_secondary || '',
       progressions: ex.progressions || '',
-      progressions_ru: ex.progressions_ru || '',
+      progressions_secondary: ex.progressions_secondary || '',
       video_url: ex.video_url || '',
     })
     setActiveTab('basic')
@@ -162,21 +162,21 @@ export default function ExercisesPage() {
     try {
       const payload = {
         name: formData.name.trim(),
-        name_ru: formData.name_ru.trim() || null,
+        name_secondary: formData.name_secondary.trim() || null,
         description: formData.description.trim() || null,
-        description_ru: formData.description_ru.trim() || null,
+        description_secondary: formData.description_secondary.trim() || null,
         muscle_groups: formData.muscle_groups,
         equipment: formData.equipment,
         category: formData.category,
         difficulty: formData.difficulty,
         instructions: formData.instructions.trim() || null,
-        instructions_ru: formData.instructions_ru.trim() || null,
+        instructions_secondary: formData.instructions_secondary.trim() || null,
         common_mistakes: formData.common_mistakes.trim() || null,
-        common_mistakes_ru: formData.common_mistakes_ru.trim() || null,
+        common_mistakes_secondary: formData.common_mistakes_secondary.trim() || null,
         regressions: formData.regressions.trim() || null,
-        regressions_ru: formData.regressions_ru.trim() || null,
+        regressions_secondary: formData.regressions_secondary.trim() || null,
         progressions: formData.progressions.trim() || null,
-        progressions_ru: formData.progressions_ru.trim() || null,
+        progressions_secondary: formData.progressions_secondary.trim() || null,
         video_url: formData.video_url.trim() || null,
       }
 
@@ -318,8 +318,8 @@ export default function ExercisesPage() {
               <CardContent className="p-5">
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold text-zinc-900 dark:text-zinc-100 truncate">{ru ? (ex.name_ru || ex.name) : ex.name}</h3>
-                    <p className="text-sm text-zinc-500 mt-1 line-clamp-2">{ru ? (ex.description_ru || ex.description) : ex.description}</p>
+                    <h3 className="font-semibold text-zinc-900 dark:text-zinc-100 truncate">{ru ? (ex.name_secondary || ex.name) : ex.name}</h3>
+                    <p className="text-sm text-zinc-500 mt-1 line-clamp-2">{ru ? (ex.description_secondary || ex.description) : ex.description}</p>
                   </div>
                   {ex.video_url && (
                     <div className="w-10 h-10 rounded-full bg-teal-500/10 flex items-center justify-center flex-shrink-0 ml-3">
@@ -377,11 +377,11 @@ export default function ExercisesPage() {
             <div className="space-y-4">
               <div className={`grid ${lang.isBilingual ? 'sm:grid-cols-2' : ''} gap-4`}>
                 <Input label={`${lang.pl(ru ? 'Название' : 'Name')} *`} value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} required />
-                {lang.isBilingual && <Input label={lang.sl(ru ? 'Название' : 'Name')} value={formData.name_ru} onChange={(e) => setFormData({...formData, name_ru: e.target.value})} />}
+                {lang.isBilingual && <Input label={lang.sl(ru ? 'Название' : 'Name')} value={formData.name_secondary} onChange={(e) => setFormData({...formData, name_secondary: e.target.value})} />}
               </div>
               <div className={`grid ${lang.isBilingual ? 'sm:grid-cols-2' : ''} gap-4`}>
                 <Input label={lang.pl(ru ? 'Описание' : 'Description')} value={formData.description} onChange={(e) => setFormData({...formData, description: e.target.value})} />
-                {lang.isBilingual && <Input label={lang.sl(ru ? 'Описание' : 'Description')} value={formData.description_ru} onChange={(e) => setFormData({...formData, description_ru: e.target.value})} />}
+                {lang.isBilingual && <Input label={lang.sl(ru ? 'Описание' : 'Description')} value={formData.description_secondary} onChange={(e) => setFormData({...formData, description_secondary: e.target.value})} />}
               </div>
 
               {/* Muscle groups */}
@@ -431,7 +431,7 @@ export default function ExercisesPage() {
                 </div>
                 {lang.isBilingual && <div>
                   <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">{lang.sl(ru ? 'Инструкция' : 'Instructions')}</label>
-                  <textarea className="w-full px-3 py-2 rounded-lg border border-zinc-200 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 resize-none text-sm" rows={4} placeholder="Пошагово..." value={formData.instructions_ru} onChange={e => setFormData({...formData, instructions_ru: e.target.value})} />
+                  <textarea className="w-full px-3 py-2 rounded-lg border border-zinc-200 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 resize-none text-sm" rows={4} placeholder="Пошагово..." value={formData.instructions_secondary} onChange={e => setFormData({...formData, instructions_secondary: e.target.value})} />
                 </div>}
               </div>
               <div className={`grid ${lang.isBilingual ? 'sm:grid-cols-2' : ''} gap-4`}>
@@ -441,7 +441,7 @@ export default function ExercisesPage() {
                 </div>
                 {lang.isBilingual && <div>
                   <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">{lang.sl(ru ? 'Типичные ошибки' : 'Common Mistakes')}</label>
-                  <textarea className="w-full px-3 py-2 rounded-lg border border-zinc-200 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 resize-none text-sm" rows={3} value={formData.common_mistakes_ru} onChange={e => setFormData({...formData, common_mistakes_ru: e.target.value})} />
+                  <textarea className="w-full px-3 py-2 rounded-lg border border-zinc-200 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 resize-none text-sm" rows={3} value={formData.common_mistakes_secondary} onChange={e => setFormData({...formData, common_mistakes_secondary: e.target.value})} />
                 </div>}
               </div>
               <div className={`grid ${lang.isBilingual ? 'sm:grid-cols-2' : ''} gap-4`}>
@@ -451,7 +451,7 @@ export default function ExercisesPage() {
                 </div>
                 {lang.isBilingual && <div>
                   <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">{lang.sl(ru ? 'Регрессии (упрощения)' : 'Regressions')}</label>
-                  <textarea className="w-full px-3 py-2 rounded-lg border border-zinc-200 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 resize-none text-sm" rows={2} value={formData.regressions_ru} onChange={e => setFormData({...formData, regressions_ru: e.target.value})} />
+                  <textarea className="w-full px-3 py-2 rounded-lg border border-zinc-200 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 resize-none text-sm" rows={2} value={formData.regressions_secondary} onChange={e => setFormData({...formData, regressions_secondary: e.target.value})} />
                 </div>}
               </div>
               <div className={`grid ${lang.isBilingual ? 'sm:grid-cols-2' : ''} gap-4`}>
@@ -461,7 +461,7 @@ export default function ExercisesPage() {
                 </div>
                 {lang.isBilingual && <div>
                   <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">{lang.sl(ru ? 'Прогрессии (усложнения)' : 'Progressions')}</label>
-                  <textarea className="w-full px-3 py-2 rounded-lg border border-zinc-200 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 resize-none text-sm" rows={2} value={formData.progressions_ru} onChange={e => setFormData({...formData, progressions_ru: e.target.value})} />
+                  <textarea className="w-full px-3 py-2 rounded-lg border border-zinc-200 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 resize-none text-sm" rows={2} value={formData.progressions_secondary} onChange={e => setFormData({...formData, progressions_secondary: e.target.value})} />
                 </div>}
               </div>
             </div>

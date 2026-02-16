@@ -10,13 +10,13 @@ export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
 export const COURSES = {
   'breast-augmentation-recovery': {
     name: 'Recovery after Breast Augmentation',
-    nameRu: 'Восстановление после увеличения груди',
+    nameSecondary: 'Восстановление после увеличения груди',
     price: 9900, // cents
     currency: 'usd',
   },
   'cesarean-recovery': {
     name: 'Recovery after C-Section',
-    nameRu: 'Восстановление после кесарева сечения',
+    nameSecondary: 'Восстановление после кесарева сечения',
     price: 9900, // cents
     currency: 'usd',
   },

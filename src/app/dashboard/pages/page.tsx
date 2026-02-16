@@ -12,7 +12,7 @@ interface SitePage {
   id: string
   slug: string
   title: string
-  title_ru: string
+  title_secondary: string
   is_published: boolean
   is_homepage: boolean
   sort_order: number
@@ -27,7 +27,7 @@ export default function PagesPage() {
   const [pages, setPages] = useState<SitePage[]>([])
   const [loading, setLoading] = useState(true)
   const [newTitle, setNewTitle] = useState('')
-  const [newTitleRu, setNewTitleRu] = useState('')
+  const [newTitleSecondary, setNewTitleSecondary] = useState('')
   const [creating, setCreating] = useState(false)
   const [showForm, setShowForm] = useState(false)
   const [error, setError] = useState('')
@@ -55,11 +55,11 @@ export default function PagesPage() {
     try {
       const res = await fetchWithAuth('/api/pages', {
         method: 'POST',
-        body: JSON.stringify({ title: newTitle.trim(), titleRu: newTitleRu.trim() || newTitle.trim() })
+        body: JSON.stringify({ title: newTitle.trim(), titleSecondary: newTitleSecondary.trim() || newTitle.trim() })
       })
       if (res.ok) {
         setNewTitle('')
-        setNewTitleRu('')
+        setNewTitleSecondary('')
         setShowForm(false)
         await fetchPages()
       } else {
@@ -145,8 +145,8 @@ export default function PagesPage() {
             {lang.isBilingual && <div>
               <label className="text-xs text-zinc-500 mb-1 block">{lang.sl(ru ? 'Название' : 'Title')}</label>
               <Input
-                value={newTitleRu}
-                onChange={e => setNewTitleRu(e.target.value)}
+                value={newTitleSecondary}
+                onChange={e => setNewTitleSecondary(e.target.value)}
                 placeholder={ru ? 'Название' : 'Page title'}
                 onKeyDown={e => e.key === 'Enter' && createPage()}
               />
@@ -183,7 +183,7 @@ export default function PagesPage() {
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
                 <h3 className="font-semibold text-zinc-900 dark:text-zinc-100 truncate">
-                  {ru ? page.title_ru : page.title}
+                  {ru ? page.title_secondary : page.title}
                 </h3>
                 {page.is_homepage && (
                   <span className="text-[10px] bg-teal-100 dark:bg-teal-900/30 text-teal-600 dark:text-teal-400 px-1.5 py-0.5 rounded font-medium">

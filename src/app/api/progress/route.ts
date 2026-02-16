@@ -52,7 +52,7 @@ export async function GET(request: NextRequest) {
     const courseSlugs = accessData.map(a => a.course_slug)
     const { data: courses } = await supabase
       .from('courses')
-      .select('id, slug, title, title_ru')
+      .select('id, slug, title, title_secondary')
       .in('slug', courseSlugs)
 
     // Get all modules and lessons for these courses
@@ -63,12 +63,12 @@ export async function GET(request: NextRequest) {
         id,
         course_id,
         title,
-        title_ru,
+        title_secondary,
         sort_order,
         course_lessons (
           id,
           title,
-          title_ru,
+          title_secondary,
           duration_minutes,
           sort_order,
           is_published
@@ -93,14 +93,14 @@ export async function GET(request: NextRequest) {
 
     const courseMap = new Map(courses?.map(c => [c.slug, c]) || [])
     
-    const fallbackTitles: Record<string, { title: string; title_ru: string }> = {
+    const fallbackTitles: Record<string, { title: string; title_secondary: string }> = {
       'breast-augmentation-recovery': { 
         title: 'Breast Augmentation Recovery', 
-        title_ru: 'Восстановление после увеличения груди' 
+        title_secondary: 'Восстановление после увеличения груди' 
       },
       'cesarean-recovery': { 
         title: 'C-Section Recovery', 
-        title_ru: 'Восстановление после кесарева сечения' 
+        title_secondary: 'Восстановление после кесарева сечения' 
       },
     }
     
@@ -109,7 +109,7 @@ export async function GET(request: NextRequest) {
       const fallback = fallbackTitles[access.course_slug]
       
       const courseTitle = course?.title || fallback?.title || access.course_slug
-      const courseTitleRu = course?.title_ru || fallback?.title_ru || access.course_slug
+      const courseTitleSecondary = course?.title_secondary || fallback?.title_secondary || access.course_slug
 
       const courseModules = course ? (modules
         ?.filter(m => m.course_id === course.id)
@@ -117,7 +117,7 @@ export async function GET(request: NextRequest) {
         .map(m => ({
           id: m.id,
           title: m.title,
-          title_ru: m.title_ru,
+          title_secondary: m.title_secondary,
           lessons: (m.course_lessons || [])
             .filter((l: any) => l.is_published)
             .sort((a: any, b: any) => a.sort_order - b.sort_order)
@@ -126,7 +126,7 @@ export async function GET(request: NextRequest) {
               return {
                 id: l.id,
                 title: l.title,
-                title_ru: l.title_ru,
+                title_secondary: l.title_secondary,
                 duration_minutes: l.duration_minutes,
                 completed: progress?.completed || false,
                 watched_seconds: progress?.watched_seconds || 0,
@@ -144,7 +144,7 @@ export async function GET(request: NextRequest) {
         course_slug: access.course_slug,
         course_id: course?.id || null,
         course_title: courseTitle,
-        course_title_ru: courseTitleRu,
+        course_title_secondary: courseTitleSecondary,
         granted_at: access.granted_at,
         is_active: access.is_active !== false,
         total_lessons: totalLessons,

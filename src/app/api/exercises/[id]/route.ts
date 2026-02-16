@@ -41,12 +41,12 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
 
     // Only allow updating specific fields
     const allowedFields = [
-      'name', 'name_ru', 'description', 'description_ru',
+      'name', 'name_secondary', 'description', 'description_secondary',
       'muscle_groups', 'equipment', 'category', 'difficulty',
-      'instructions', 'instructions_ru',
-      'common_mistakes', 'common_mistakes_ru',
-      'regressions', 'regressions_ru',
-      'progressions', 'progressions_ru',
+      'instructions', 'instructions_secondary',
+      'common_mistakes', 'common_mistakes_secondary',
+      'regressions', 'regressions_secondary',
+      'progressions', 'progressions_secondary',
       'video_url', 'thumbnail_url'
     ]
 

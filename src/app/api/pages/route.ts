@@ -44,7 +44,7 @@ export async function GET(request: Request) {
       if (!data || data.length === 0) {
         const { data: seeded, error: seedErr } = await supabase
           .from('site_pages')
-          .insert({ slug: 'home', title: 'Home', title_ru: 'Главная', is_published: true, is_homepage: true, sort_order: 0 })
+          .insert({ slug: 'home', title: 'Home', title_secondary: null, is_published: true, is_homepage: true, sort_order: 0 })
           .select()
         if (seedErr) {
           console.error('Auto-seed home page error:', seedErr)
@@ -60,7 +60,7 @@ export async function GET(request: Request) {
     const supabase = getPublicSupabase()
     const { data, error } = await supabase
       .from('site_pages')
-      .select('id, slug, title, title_ru, is_homepage, sort_order, settings')
+      .select('id, slug, title, title_secondary, is_homepage, sort_order, settings')
       .eq('is_published', true)
       .order('sort_order', { ascending: true })
 
@@ -85,7 +85,7 @@ export async function POST(request: Request) {
   try {
     const supabase = getAdminSupabase()
     const body = await request.json()
-    const { title, titleRu, slug: rawSlug } = body
+    const { title, titleSecondary, slug: rawSlug } = body
 
     if (!title || typeof title !== 'string' || title.trim().length === 0) {
       return NextResponse.json({ error: 'Title is required' }, { status: 400 })
@@ -136,7 +136,7 @@ export async function POST(request: Request) {
       .insert({
         slug,
         title: title.trim().slice(0, 200),
-        title_ru: (titleRu || title).trim().slice(0, 200),
+        title_secondary: titleSecondary ? titleSecondary.trim().slice(0, 200) : null,
         is_published: false,
         is_homepage: false,
         sort_order: nextOrder,
@@ -166,7 +166,7 @@ export async function PATCH(request: Request) {
   try {
     const supabase = getAdminSupabase()
     const body = await request.json()
-    const { id, title, titleRu, is_published, sort_order, settings } = body
+    const { id, title, titleSecondary, is_published, sort_order, settings } = body
 
     if (!id) {
       return NextResponse.json({ error: 'Page ID is required' }, { status: 400 })
@@ -174,7 +174,7 @@ export async function PATCH(request: Request) {
 
     const updates: Record<string, any> = { updated_at: new Date().toISOString() }
     if (title !== undefined) updates.title = String(title).trim().slice(0, 200)
-    if (titleRu !== undefined) updates.title_ru = String(titleRu).trim().slice(0, 200)
+    if (titleSecondary !== undefined) updates.title_secondary = String(titleSecondary).trim().slice(0, 200)
     if (is_published !== undefined) updates.is_published = Boolean(is_published)
     if (sort_order !== undefined) updates.sort_order = Number(sort_order)
     if (settings !== undefined && typeof settings === 'object') updates.settings = settings

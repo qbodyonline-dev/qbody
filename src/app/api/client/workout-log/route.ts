@@ -98,7 +98,7 @@ export async function GET(request: NextRequest) {
     const supabase = createServerClient()
     let query = supabase
       .from('workout_logs')
-      .select('*, workouts(id, name, name_ru, type)')
+      .select('*, workouts(id, name, name_secondary, type)')
       .order('started_at', { ascending: false })
       .limit(50)
 

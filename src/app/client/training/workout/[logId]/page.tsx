@@ -17,10 +17,10 @@ import { toast } from 'sonner'
 
 /* ═══════════ TYPES ═══════════ */
 type Exercise = {
-  id: string; name: string; name_ru: string
+  id: string; name: string; name_secondary: string
   muscle_groups: string[]; equipment: string | null
   video_url: string | null
-  instructions: string | null; instructions_ru: string | null
+  instructions: string | null; instructions_secondary: string | null
 }
 
 type WorkoutExercise = {
@@ -43,15 +43,15 @@ type WorkoutLog = {
   duration_minutes: number | null; rpe: number | null; mood: string | null; comment: string | null
   exercise_logs: ExerciseLog[]
   workout: {
-    id: string; name: string; name_ru: string
+    id: string; name: string; name_secondary: string
     type: string; difficulty: string
     estimated_duration?: number | null
     workout_exercises: WorkoutExercise[]
   }
 }
 
-const eName = (ex: Exercise, ru: boolean) => ru ? (ex.name_ru || ex.name) : (ex.name || ex.name_ru)
-const wName = (w: any, ru: boolean) => ru ? (w.name_ru || w.name) : (w.name || w.name_ru)
+const eName = (ex: Exercise, ru: boolean) => ru ? (ex.name_secondary || ex.name) : (ex.name || ex.name_secondary)
+const wName = (w: any, ru: boolean) => ru ? (w.name_secondary || w.name) : (w.name || w.name_secondary)
 
 const sectionIcons: Record<string, any> = { warmup: Flame, main: Zap, cooldown: Snowflake }
 const sectionColors: Record<string, string> = {
@@ -360,10 +360,10 @@ export default function WorkoutExecutionPage() {
                       {isExpanded && (
                         <CardContent className="pt-0 pb-4 px-4">
                           {/* Instructions */}
-                          {(ru ? ex.instructions_ru : ex.instructions) && (
+                          {(ru ? ex.instructions_secondary : ex.instructions) && (
                             <details className="mb-3">
                               <summary className="text-xs text-teal-600 cursor-pointer">{ru ? 'Инструкция' : 'Instructions'}</summary>
-                              <p className="text-xs text-zinc-500 mt-1 whitespace-pre-line">{ru ? ex.instructions_ru || ex.instructions : ex.instructions}</p>
+                              <p className="text-xs text-zinc-500 mt-1 whitespace-pre-line">{ru ? ex.instructions_secondary || ex.instructions : ex.instructions}</p>
                             </details>
                           )}
 

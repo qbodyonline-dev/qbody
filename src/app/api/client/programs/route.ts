@@ -49,7 +49,7 @@ export async function GET(request: NextRequest) {
     // Get all programs
     const { data: programs, error } = await supabase
       .from('training_programs')
-      .select('id, name, name_ru, description, description_ru, full_description, full_description_ru, hero_image_url, duration_weeks, goal, difficulty, created_at')
+      .select('id, name, name_secondary, description, description_secondary, full_description, full_description_secondary, hero_image_url, duration_weeks, goal, difficulty, created_at')
       .order('created_at', { ascending: false })
 
     if (error) {
@@ -71,7 +71,7 @@ export async function GET(request: NextRequest) {
     const result = (programs || []).map((p: any) => ({
       ...p,
       full_description: blocksToText(p.full_description),
-      full_description_ru: blocksToText(p.full_description_ru),
+      full_description_secondary: blocksToText(p.full_description_secondary),
       is_active: p.id === activeProgramId,
     }))
 

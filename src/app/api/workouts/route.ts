@@ -20,14 +20,14 @@ export async function GET(request: NextRequest) {
       .select(`
         *,
         workout_exercises (
-          id, exercise_id, section, position, sets, reps, weight, tempo, rest_seconds, notes, notes_ru, superset_group,
-          exercises:exercise_id ( id, name, name_ru, muscle_groups, equipment, video_url, thumbnail_url )
+          id, exercise_id, section, position, sets, reps, weight, tempo, rest_seconds, notes, notes_secondary, superset_group,
+          exercises:exercise_id ( id, name, name_secondary, muscle_groups, equipment, video_url, thumbnail_url )
         )
       `, { count: 'exact' })
       .order('created_at', { ascending: false })
 
     if (search) {
-      query = query.or(`name.ilike.%${search}%,name_ru.ilike.%${search}%`)
+      query = query.or(`name.ilike.%${search}%,name_secondary.ilike.%${search}%`)
     }
     if (type) {
       query = query.eq('type', type)
@@ -68,7 +68,7 @@ export async function POST(request: NextRequest) {
     const supabase = createServerClient()
     const body = await request.json()
 
-    const { name, name_ru, description, description_ru, type, difficulty, estimated_duration, exercises } = body
+    const { name, name_secondary, description, description_secondary, type, difficulty, estimated_duration, exercises } = body
 
     if (!name) {
       return NextResponse.json({ error: 'Name is required' }, { status: 400 })
@@ -79,9 +79,9 @@ export async function POST(request: NextRequest) {
       .from('workouts')
       .insert({
         name,
-        name_ru: name_ru || null,
+        name_secondary: name_secondary || null,
         description: description || null,
-        description_ru: description_ru || null,
+        description_secondary: description_secondary || null,
         type: type || 'strength',
         difficulty: difficulty || 'intermediate',
         estimated_duration: estimated_duration || 45,
@@ -108,7 +108,7 @@ export async function POST(request: NextRequest) {
         tempo: ex.tempo || null,
         rest_seconds: ex.rest_seconds ?? 60,
         notes: ex.notes || null,
-        notes_ru: ex.notes_ru || null,
+        notes_secondary: ex.notes_secondary || null,
         superset_group: ex.superset_group || null,
       }))
 
@@ -125,7 +125,7 @@ export async function POST(request: NextRequest) {
     // Re-fetch with exercises
     const { data: full } = await supabase
       .from('workouts')
-      .select(`*, workout_exercises ( *, exercises:exercise_id ( id, name, name_ru, muscle_groups, equipment, video_url ) )`)
+      .select(`*, workout_exercises ( *, exercises:exercise_id ( id, name, name_secondary, muscle_groups, equipment, video_url ) )`)
       .eq('id', workout.id)
       .single()
 

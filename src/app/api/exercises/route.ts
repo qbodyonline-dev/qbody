@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
       .range(offset, offset + limit - 1)
 
     if (search) {
-      query = query.or(`name.ilike.%${search}%,name_ru.ilike.%${search}%`)
+      query = query.or(`name.ilike.%${search}%,name_secondary.ilike.%${search}%`)
     }
     if (muscle) {
       query = query.contains('muscle_groups', [muscle])
@@ -65,12 +65,12 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
 
     const {
-      name, name_ru, description, description_ru,
+      name, name_secondary, description, description_secondary,
       muscle_groups, equipment, category, difficulty,
-      instructions, instructions_ru,
-      common_mistakes, common_mistakes_ru,
-      regressions, regressions_ru,
-      progressions, progressions_ru,
+      instructions, instructions_secondary,
+      common_mistakes, common_mistakes_secondary,
+      regressions, regressions_secondary,
+      progressions, progressions_secondary,
       video_url, thumbnail_url
     } = body
 
@@ -82,21 +82,21 @@ export async function POST(request: NextRequest) {
       .from('exercises')
       .insert({
         name,
-        name_ru: name_ru || null,
+        name_secondary: name_secondary || null,
         description: description || null,
-        description_ru: description_ru || null,
+        description_secondary: description_secondary || null,
         muscle_groups: muscle_groups || [],
         equipment: equipment || 'bodyweight',
         category: category || 'strength',
         difficulty: difficulty || 'intermediate',
         instructions: instructions || null,
-        instructions_ru: instructions_ru || null,
+        instructions_secondary: instructions_secondary || null,
         common_mistakes: common_mistakes || null,
-        common_mistakes_ru: common_mistakes_ru || null,
+        common_mistakes_secondary: common_mistakes_secondary || null,
         regressions: regressions || null,
-        regressions_ru: regressions_ru || null,
+        regressions_secondary: regressions_secondary || null,
         progressions: progressions || null,
-        progressions_ru: progressions_ru || null,
+        progressions_secondary: progressions_secondary || null,
         video_url: video_url || null,
         thumbnail_url: thumbnail_url || null,
       })

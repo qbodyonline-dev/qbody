@@ -18,7 +18,7 @@ import { useLanguageConfig } from '@/lib/useLanguageConfig'
 type ExerciseRef = {
   id: string
   name: string
-  name_ru: string | null
+  name_secondary: string | null
   muscle_groups: string[]
   equipment: string | null
   video_url: string | null
@@ -36,16 +36,16 @@ type WorkoutExercise = {
   tempo: string
   rest_seconds: number
   notes: string
-  notes_ru: string
+  notes_secondary: string
   superset_group: string
 }
 
 type Workout = {
   id: string
   name: string
-  name_ru: string | null
+  name_secondary: string | null
   description: string | null
-  description_ru: string | null
+  description_secondary: string | null
   type: string
   difficulty: string
   estimated_duration: number
@@ -57,7 +57,7 @@ type FormExercise = {
   _key: string // local key for react
   exercise_id: string
   exercise_name: string
-  exercise_name_ru: string
+  exercise_name_secondary: string
   section: 'warmup' | 'main' | 'cooldown'
   position: number
   sets: number
@@ -66,7 +66,7 @@ type FormExercise = {
   tempo: string
   rest_seconds: number
   notes: string
-  notes_ru: string
+  notes_secondary: string
   superset_group: string
 }
 
@@ -100,9 +100,9 @@ export default function WorkoutsPage() {
 
   // Form
   const [formName, setFormName] = useState('')
-  const [formNameRu, setFormNameRu] = useState('')
+  const [formNameSecondary, setFormNameSecondary] = useState('')
   const [formDesc, setFormDesc] = useState('')
-  const [formDescRu, setFormDescRu] = useState('')
+  const [formDescSecondary, setFormDescSecondary] = useState('')
   const [formType, setFormType] = useState('strength')
   const [formDiff, setFormDiff] = useState('intermediate')
   const [formDuration, setFormDuration] = useState(45)
@@ -173,7 +173,7 @@ export default function WorkoutsPage() {
 
   /* ─── MODAL HELPERS ─── */
   const resetForm = () => {
-    setFormName(''); setFormNameRu(''); setFormDesc(''); setFormDescRu('')
+    setFormName(''); setFormNameSecondary(''); setFormDesc(''); setFormDescSecondary('')
     setFormType('strength'); setFormDiff('intermediate'); setFormDuration(45)
     setFormExercises([]); setEditingId(null)
   }
@@ -182,14 +182,14 @@ export default function WorkoutsPage() {
 
   const openEdit = (w: Workout) => {
     setEditingId(w.id)
-    setFormName(w.name); setFormNameRu(w.name_ru || '')
-    setFormDesc(w.description || ''); setFormDescRu(w.description_ru || '')
+    setFormName(w.name); setFormNameSecondary(w.name_secondary || '')
+    setFormDesc(w.description || ''); setFormDescSecondary(w.description_secondary || '')
     setFormType(w.type); setFormDiff(w.difficulty); setFormDuration(w.estimated_duration)
     setFormExercises((w.workout_exercises || []).map((we, i) => ({
       _key: `${we.exercise_id}-${i}-${Date.now()}`,
       exercise_id: we.exercise_id,
       exercise_name: we.exercises?.name || '',
-      exercise_name_ru: we.exercises?.name_ru || '',
+      exercise_name_secondary: we.exercises?.name_secondary || '',
       section: we.section as any || 'main',
       position: we.position ?? i,
       sets: we.sets ?? 3,
@@ -198,7 +198,7 @@ export default function WorkoutsPage() {
       tempo: we.tempo || '',
       rest_seconds: we.rest_seconds ?? 60,
       notes: we.notes || '',
-      notes_ru: we.notes_ru || '',
+      notes_secondary: we.notes_secondary || '',
       superset_group: we.superset_group || '',
     })))
     setIsModalOpen(true)
@@ -209,15 +209,15 @@ export default function WorkoutsPage() {
     try {
       const payload = {
         name: `${w.name} (copy)`,
-        name_ru: w.name_ru ? `${w.name_ru} (копия)` : null,
-        description: w.description, description_ru: w.description_ru,
+        name_secondary: w.name_secondary ? `${w.name_secondary} (копия)` : null,
+        description: w.description, description_secondary: w.description_secondary,
         type: w.type, difficulty: w.difficulty, estimated_duration: w.estimated_duration,
         exercises: (w.workout_exercises || []).map((we, i) => ({
           exercise_id: we.exercise_id,
           section: we.section, position: i,
           sets: we.sets, reps: we.reps, weight: we.weight,
           tempo: we.tempo, rest_seconds: we.rest_seconds,
-          notes: we.notes, notes_ru: we.notes_ru, superset_group: we.superset_group,
+          notes: we.notes, notes_secondary: we.notes_secondary, superset_group: we.superset_group,
         }))
       }
       const res = await fetchWithAuth('/api/workouts', { method: 'POST', body: JSON.stringify(payload) })
@@ -235,11 +235,11 @@ export default function WorkoutsPage() {
       _key: `${ex.id}-${Date.now()}`,
       exercise_id: ex.id,
       exercise_name: ex.name,
-      exercise_name_ru: ex.name_ru || '',
+      exercise_name_secondary: ex.name_secondary || '',
       section: pickerSection,
       position: sectionExercises.length,
       sets: 3, reps: '12', weight: '', tempo: '',
-      rest_seconds: 60, notes: '', notes_ru: '', superset_group: '',
+      rest_seconds: 60, notes: '', notes_secondary: '', superset_group: '',
     }
     setFormExercises(prev => [...prev, newEx])
   }
@@ -290,16 +290,16 @@ export default function WorkoutsPage() {
           tempo: fe.tempo || null,
           rest_seconds: fe.rest_seconds,
           notes: fe.notes || null,
-          notes_ru: fe.notes_ru || null,
+          notes_secondary: fe.notes_secondary || null,
           superset_group: fe.superset_group || null,
         }))
     )
 
     const payload = {
       name: formName.trim(),
-      name_ru: formNameRu.trim() || null,
+      name_secondary: formNameSecondary.trim() || null,
       description: formDesc.trim() || null,
-      description_ru: formDescRu.trim() || null,
+      description_secondary: formDescSecondary.trim() || null,
       type: formType,
       difficulty: formDiff,
       estimated_duration: formDuration,
@@ -378,9 +378,9 @@ export default function WorkoutsPage() {
               <CardContent className="p-5">
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold text-zinc-900 dark:text-zinc-100 text-lg">{ru ? (w.name_ru || w.name) : w.name}</h3>
-                    {(w.description || w.description_ru) && (
-                      <p className="text-sm text-zinc-500 mt-1 line-clamp-2">{ru ? (w.description_ru || w.description) : w.description}</p>
+                    <h3 className="font-semibold text-zinc-900 dark:text-zinc-100 text-lg">{ru ? (w.name_secondary || w.name) : w.name}</h3>
+                    {(w.description || w.description_secondary) && (
+                      <p className="text-sm text-zinc-500 mt-1 line-clamp-2">{ru ? (w.description_secondary || w.description) : w.description}</p>
                     )}
                   </div>
                   <span className={`text-xs px-2 py-1 rounded-full font-medium ml-3 whitespace-nowrap ${diffColors[w.difficulty] || 'bg-zinc-100 text-zinc-600'}`}>
@@ -414,7 +414,7 @@ export default function WorkoutsPage() {
                   <div className="mb-4 p-3 bg-zinc-50 dark:bg-zinc-800/50 rounded-xl">
                     <div className="flex flex-wrap gap-1">
                       {(w.workout_exercises || []).slice(0, 5).map((we, i) => (
-                        <Badge key={i} variant="secondary" className="text-xs">{ru ? (we.exercises?.name_ru || we.exercises?.name) : we.exercises?.name}</Badge>
+                        <Badge key={i} variant="secondary" className="text-xs">{ru ? (we.exercises?.name_secondary || we.exercises?.name) : we.exercises?.name}</Badge>
                       ))}
                       {totalExCount(w) > 5 && <Badge variant="secondary" className="text-xs">+{totalExCount(w) - 5}</Badge>}
                     </div>
@@ -445,11 +445,11 @@ export default function WorkoutsPage() {
           {/* Basic info */}
           <div className={`grid ${lang.isBilingual ? 'sm:grid-cols-2' : ''} gap-4`}>
             <Input label={`${lang.pl(ru ? 'Название' : 'Name')} *`} value={formName} onChange={e => setFormName(e.target.value)} required />
-            {lang.isBilingual && <Input label={lang.sl(ru ? 'Название' : 'Name')} value={formNameRu} onChange={e => setFormNameRu(e.target.value)} />}
+            {lang.isBilingual && <Input label={lang.sl(ru ? 'Название' : 'Name')} value={formNameSecondary} onChange={e => setFormNameSecondary(e.target.value)} />}
           </div>
           <div className={`grid ${lang.isBilingual ? 'sm:grid-cols-2' : ''} gap-4`}>
             <Input label={lang.pl(ru ? 'Описание' : 'Description')} value={formDesc} onChange={e => setFormDesc(e.target.value)} />
-            {lang.isBilingual && <Input label={lang.sl(ru ? 'Описание' : 'Description')} value={formDescRu} onChange={e => setFormDescRu(e.target.value)} />}
+            {lang.isBilingual && <Input label={lang.sl(ru ? 'Описание' : 'Description')} value={formDescSecondary} onChange={e => setFormDescSecondary(e.target.value)} />}
           </div>
           <div className="grid grid-cols-3 gap-4">
             <div>
@@ -504,7 +504,7 @@ export default function WorkoutsPage() {
                       </div>
 
                       {/* Name */}
-                      <span className="font-medium text-sm flex-1 min-w-0 truncate">{ru ? (fe.exercise_name_ru || fe.exercise_name) : fe.exercise_name}</span>
+                      <span className="font-medium text-sm flex-1 min-w-0 truncate">{ru ? (fe.exercise_name_secondary || fe.exercise_name) : fe.exercise_name}</span>
 
                       {/* Config */}
                       <div className="flex items-center gap-1.5 flex-shrink-0">
@@ -571,7 +571,7 @@ export default function WorkoutsPage() {
                   onClick={() => { addExercise(ex); /* keep picker open */ }}
                   className={`w-full text-left px-3 py-2.5 rounded-lg flex items-center justify-between transition-colors ${alreadyAdded ? 'opacity-40 cursor-not-allowed bg-zinc-50 dark:bg-zinc-800' : 'hover:bg-teal-50 dark:hover:bg-teal-900/20 hover:border-teal-200'} border border-zinc-100 dark:border-zinc-800`}>
                   <div className="min-w-0">
-                    <div className="font-medium text-sm">{ru ? (ex.name_ru || ex.name) : ex.name}</div>
+                    <div className="font-medium text-sm">{ru ? (ex.name_secondary || ex.name) : ex.name}</div>
                     <div className="flex gap-1 mt-1">
                       {ex.muscle_groups?.slice(0, 3).map(mg => <Badge key={mg} variant="secondary" className="text-[10px]">{mg}</Badge>)}
                       {ex.equipment && <Badge variant="outline" className="text-[10px]">{ex.equipment}</Badge>}

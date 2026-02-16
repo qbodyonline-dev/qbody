@@ -16,9 +16,9 @@ type Course = {
   id: string
   slug: string
   title: string
-  title_ru: string | null
+  title_secondary: string | null
   description: string | null
-  description_ru: string | null
+  description_secondary: string | null
   price: number
   original_price: number | null
   duration_weeks: number
@@ -41,8 +41,8 @@ export default function CoursesAdminPage() {
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null)
   const [saving, setSaving] = useState(false)
   const [form, setForm] = useState({
-    title: '', title_ru: '', slug: '',
-    description: '', description_ru: '',
+    title: '', title_secondary: '', slug: '',
+    description: '', description_secondary: '',
     price: '99', original_price: '', duration_weeks: '8',
     is_published: false
   })
@@ -70,8 +70,8 @@ export default function CoursesAdminPage() {
   }, [])
 
   const resetForm = () => setForm({
-    title: '', title_ru: '', slug: '',
-    description: '', description_ru: '',
+    title: '', title_secondary: '', slug: '',
+    description: '', description_secondary: '',
     price: '99', original_price: '', duration_weeks: '8',
     is_published: false
   })
@@ -92,10 +92,10 @@ export default function CoursesAdminPage() {
         method: 'POST',
         body: JSON.stringify({
           title: form.title,
-          title_ru: form.title_ru || null,
+          title_secondary: form.title_secondary || null,
           slug: form.slug || generateSlug(form.title),
           description: form.description || null,
-          description_ru: form.description_ru || null,
+          description_secondary: form.description_secondary || null,
           price: parseFloat(form.price) || 99,
           original_price: form.original_price ? parseFloat(form.original_price) : null,
           duration_weeks: parseInt(form.duration_weeks) || 8,
@@ -126,10 +126,10 @@ export default function CoursesAdminPage() {
         method: 'PATCH',
         body: JSON.stringify({
           title: form.title,
-          title_ru: form.title_ru || null,
+          title_secondary: form.title_secondary || null,
           slug: form.slug,
           description: form.description || null,
-          description_ru: form.description_ru || null,
+          description_secondary: form.description_secondary || null,
           price: parseFloat(form.price) || 99,
           original_price: form.original_price ? parseFloat(form.original_price) : null,
           duration_weeks: parseInt(form.duration_weeks) || 8,
@@ -170,10 +170,10 @@ export default function CoursesAdminPage() {
     setSelectedCourse(course)
     setForm({
       title: course.title,
-      title_ru: course.title_ru || '',
+      title_secondary: course.title_secondary || '',
       slug: course.slug,
       description: course.description || '',
-      description_ru: course.description_ru || '',
+      description_secondary: course.description_secondary || '',
       price: String(course.price / 100),
       original_price: course.original_price ? String(course.original_price / 100) : '',
       duration_weeks: String(course.duration_weeks || 8),
@@ -202,7 +202,7 @@ export default function CoursesAdminPage() {
     <form onSubmit={onSubmit} className="space-y-4">
       <div className={`grid ${lang.isBilingual ? 'grid-cols-2' : ''} gap-4`}>
         <Input label={`${lang.pl(ru ? 'Название' : 'Title')} *`} value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value, slug: form.slug || generateSlug(e.target.value) })} required />
-        {lang.isBilingual && <Input label={lang.sl(ru ? 'Название' : 'Title')} value={form.title_ru} onChange={(e) => setForm({ ...form, title_ru: e.target.value })} />}
+        {lang.isBilingual && <Input label={lang.sl(ru ? 'Название' : 'Title')} value={form.title_secondary} onChange={(e) => setForm({ ...form, title_secondary: e.target.value })} />}
       </div>
       <Input label="Slug (URL)" value={form.slug} onChange={(e) => setForm({ ...form, slug: e.target.value })} placeholder="course-url-slug" />
       <div className={`grid ${lang.isBilingual ? 'grid-cols-2' : ''} gap-4`}>
@@ -212,7 +212,7 @@ export default function CoursesAdminPage() {
         </div>
         {lang.isBilingual && <div>
           <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">{lang.sl(ru ? 'Описание' : 'Description')}</label>
-          <textarea className="w-full h-20 px-4 py-3 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-teal-500" value={form.description_ru} onChange={(e) => setForm({ ...form, description_ru: e.target.value })} />
+          <textarea className="w-full h-20 px-4 py-3 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-teal-500" value={form.description_secondary} onChange={(e) => setForm({ ...form, description_secondary: e.target.value })} />
         </div>}
       </div>
       <div className="grid grid-cols-3 gap-4">
@@ -281,11 +281,11 @@ export default function CoursesAdminPage() {
                     <div className="flex items-start justify-between mb-3">
                       <div>
                         <h3 className="text-xl font-bold text-zinc-900 dark:text-zinc-100">
-                          {ru && course.title_ru ? course.title_ru : course.title}
+                          {ru && course.title_secondary ? course.title_secondary : course.title}
                         </h3>
-                        {(ru ? course.description_ru : course.description) && (
+                        {(ru ? course.description_secondary : course.description) && (
                           <p className="text-sm text-zinc-500 mt-1 line-clamp-2">
-                            {ru ? course.description_ru : course.description}
+                            {ru ? course.description_secondary : course.description}
                           </p>
                         )}
                         <div className="flex items-center gap-4 mt-3 text-sm text-zinc-500">

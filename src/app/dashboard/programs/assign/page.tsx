@@ -21,10 +21,10 @@ const mockClients = [
 ]
 
 const mockPrograms = [
-  { id: 'p1', name: '8 Weeks: Weight Loss', nameRu: '8 недель: Похудение', weeks: 8, workoutsPerWeek: 4, color: 'from-pink-500 to-rose-500' },
-  { id: 'p2', name: '8 Weeks: Muscle Gain', nameRu: '8 недель: Набор массы', weeks: 8, workoutsPerWeek: 5, color: 'from-blue-500 to-indigo-500' },
-  { id: 'p3', name: '8 Weeks: Beginner', nameRu: '8 недель: Новичок', weeks: 8, workoutsPerWeek: 3, color: 'from-green-500 to-emerald-500' },
-  { id: 'p4', name: 'Recovery: Post-Surgery', nameRu: 'Восстановление: После операции', weeks: 12, workoutsPerWeek: 3, color: 'from-purple-500 to-violet-500' },
+  { id: 'p1', name: '8 Weeks: Weight Loss', nameSecondary: '8 недель: Похудение', weeks: 8, workoutsPerWeek: 4, color: 'from-pink-500 to-rose-500' },
+  { id: 'p2', name: '8 Weeks: Muscle Gain', nameSecondary: '8 недель: Набор массы', weeks: 8, workoutsPerWeek: 5, color: 'from-blue-500 to-indigo-500' },
+  { id: 'p3', name: '8 Weeks: Beginner', nameSecondary: '8 недель: Новичок', weeks: 8, workoutsPerWeek: 3, color: 'from-green-500 to-emerald-500' },
+  { id: 'p4', name: 'Recovery: Post-Surgery', nameSecondary: 'Восстановление: После операции', weeks: 12, workoutsPerWeek: 3, color: 'from-purple-500 to-violet-500' },
 ]
 
 const weekDays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
@@ -93,7 +93,7 @@ export default function AssignProgramPage() {
                     <Target className="w-5 h-5 text-white" />
                   </div>
                   <div className="flex-1">
-                    <p className="font-medium text-sm">{ru ? p.nameRu : p.name}</p>
+                    <p className="font-medium text-sm">{ru ? p.nameSecondary : p.name}</p>
                     <p className="text-xs text-zinc-400">{p.weeks} {ru ? 'недель' : 'weeks'} • {p.workoutsPerWeek}x/{ru ? 'нед' : 'wk'}</p>
                   </div>
                   {selectedProgram === p.id && <Check className="w-5 h-5 text-teal-500" />}

@@ -14,19 +14,19 @@ import { toast } from 'sonner'
 type Lesson = {
   id: string
   title: string
-  title_ru: string
+  title_secondary: string
   duration_minutes: number
   completed: boolean
   watched_seconds: number
   video_url?: string
   content?: any
-  content_ru?: any
+  content_secondary?: any
 }
 
 type Module = {
   id: string
   title: string
-  title_ru: string
+  title_secondary: string
   lessons: Lesson[]
 }
 
@@ -34,7 +34,7 @@ type CourseProgress = {
   course_slug: string
   course_id: string
   course_title: string
-  course_title_ru: string
+  course_title_secondary: string
   modules: Module[]
 }
 
@@ -229,7 +229,7 @@ export default function LessonPage() {
               )}
             </div>
             <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100 mb-4">
-              {locale === 'ru' ? currentLesson.title_ru || currentLesson.title : currentLesson.title}
+              {locale === 'ru' ? currentLesson.title_secondary || currentLesson.title : currentLesson.title}
             </h1>
           </div>
 
@@ -282,7 +282,7 @@ export default function LessonPage() {
           <Card>
             <CardContent className="p-6">
               <h3 className="font-semibold text-zinc-900 dark:text-zinc-100 mb-4">
-                {locale === 'ru' ? course.course_title_ru : course.course_title}
+                {locale === 'ru' ? course.course_title_secondary : course.course_title}
               </h3>
               
               {/* Mini progress */}
@@ -292,7 +292,7 @@ export default function LessonPage() {
                   return (
                     <div key={module.id} className="text-sm">
                       <div className="flex justify-between text-zinc-600 dark:text-zinc-400 mb-1">
-                        <span className="truncate">{locale === 'ru' ? module.title_ru || module.title : module.title}</span>
+                        <span className="truncate">{locale === 'ru' ? module.title_secondary || module.title : module.title}</span>
                         <span>{completedInModule}/{module.lessons.length}</span>
                       </div>
                       <div className="h-1.5 bg-zinc-200 dark:bg-zinc-700 rounded-full overflow-hidden">
