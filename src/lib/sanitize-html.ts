@@ -140,13 +140,26 @@ export function sanitizeHTML(html: string): string {
   if (typeof window === 'undefined') return html // SSR fallback — use server sanitizer
   
   try {
+    // Preserve <style> blocks: DOMParser moves them to <head>,
+    // losing them from body.innerHTML. Extract first, restore after.
+    const styleBlocks: string[] = []
+    const htmlNoStyles = html.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, (match) => {
+      // Basic sanitize: block expression(), javascript:, -moz-binding
+      const lower = match.toLowerCase()
+      if (lower.includes('expression(') || lower.includes('javascript:') || lower.includes('-moz-binding') || lower.includes('behavior:')) {
+        return ''
+      }
+      styleBlocks.push(match)
+      return ''
+    })
+
     const parser = new DOMParser()
-    const doc = parser.parseFromString(html, 'text/html')
+    const doc = parser.parseFromString(htmlNoStyles, 'text/html')
     
     // Sanitize body content
     walkAndSanitize(doc.body)
     
-    return doc.body.innerHTML
+    return styleBlocks.join('\n') + doc.body.innerHTML
   } catch {
     // If parsing fails, return escaped version
     return html

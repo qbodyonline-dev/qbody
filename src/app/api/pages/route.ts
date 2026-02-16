@@ -2,6 +2,38 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { requireAdmin } from '@/lib/api-auth'
 
+// Cyrillic → Latin transliteration for URL slugs
+const TRANSLIT: Record<string, string> = {
+  'а':'a','б':'b','в':'v','г':'g','д':'d','е':'e','ё':'yo','ж':'zh','з':'z','и':'i','й':'y',
+  'к':'k','л':'l','м':'m','н':'n','о':'o','п':'p','р':'r','с':'s','т':'t','у':'u','ф':'f',
+  'х':'kh','ц':'ts','ч':'ch','ш':'sh','щ':'shch','ъ':'','ы':'y','ь':'','э':'e','ю':'yu','я':'ya',
+  'і':'i','ї':'yi','є':'ye','ґ':'g',
+  'ă':'a','â':'a','î':'i','ș':'s','ț':'t',
+  'ä':'ae','ö':'oe','ü':'ue','ß':'ss',
+  'é':'e','è':'e','ê':'e','ë':'e','à':'a','ù':'u','û':'u','ô':'o','ç':'c','ñ':'n',
+}
+
+function transliterate(text: string): string {
+  return text.split('').map(ch => {
+    const lower = ch.toLowerCase()
+    if (TRANSLIT[lower] !== undefined) {
+      return ch === ch.toUpperCase() ? TRANSLIT[lower].charAt(0).toUpperCase() + TRANSLIT[lower].slice(1) : TRANSLIT[lower]
+    }
+    return ch
+  }).join('')
+}
+
+function generateSlug(input: string): string {
+  return transliterate(input)
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9\s-]/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '')
+    .slice(0, 50)
+}
+
 function getPublicSupabase() {
   return createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -92,13 +124,7 @@ export async function POST(request: Request) {
     }
 
     // Generate slug from title if not provided
-    const slug = (rawSlug || title)
-      .toLowerCase()
-      .trim()
-      .replace(/[^a-z0-9\s-]/g, '')
-      .replace(/\s+/g, '-')
-      .replace(/-+/g, '-')
-      .slice(0, 50)
+    const slug = generateSlug(rawSlug || title)
 
     if (!slug) {
       return NextResponse.json({ error: 'Invalid slug' }, { status: 400 })

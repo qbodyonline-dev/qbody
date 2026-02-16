@@ -20,6 +20,24 @@ interface SitePage {
   updated_at: string
 }
 
+// Slug preview with Cyrillic transliteration
+const TRANSLIT: Record<string, string> = {
+  'а':'a','б':'b','в':'v','г':'g','д':'d','е':'e','ё':'yo','ж':'zh','з':'z','и':'i','й':'y',
+  'к':'k','л':'l','м':'m','н':'n','о':'o','п':'p','р':'r','с':'s','т':'t','у':'u','ф':'f',
+  'х':'kh','ц':'ts','ч':'ch','ш':'sh','щ':'shch','ъ':'','ы':'y','ь':'','э':'e','ю':'yu','я':'ya',
+  'і':'i','ї':'yi','є':'ye','ґ':'g',
+  'ă':'a','â':'a','î':'i','ș':'s','ț':'t',
+  'ä':'ae','ö':'oe','ü':'ue','ß':'ss',
+  'é':'e','è':'e','ê':'e','ë':'e','à':'a','ù':'u','û':'u','ô':'o','ç':'c','ñ':'n',
+}
+function slugPreview(text: string): string {
+  const tr = text.split('').map(ch => {
+    const l = ch.toLowerCase()
+    return TRANSLIT[l] !== undefined ? TRANSLIT[l] : ch
+  }).join('')
+  return tr.toLowerCase().trim().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '').slice(0, 50)
+}
+
 export default function PagesPage() {
   const { locale } = useTranslation()
   const ru = locale === 'ru'
@@ -154,7 +172,7 @@ export default function PagesPage() {
           </div>
           {newTitle.trim() && (
             <p className="text-xs text-zinc-400 mb-3">
-              Slug: <span className="font-mono text-teal-500">/{newTitle.toLowerCase().trim().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-')}</span>
+              Slug: <span className="font-mono text-teal-500">/{slugPreview(newTitle)}</span>
             </p>
           )}
           {error && <p className="text-xs text-red-500 mb-3">{error}</p>}
