@@ -169,18 +169,18 @@ export default function CourseEditorPage() {
       id,
       type,
       content: '',
-      content_ru: '',
-      items: type === 'checklist' ? [{ id: `item-${Date.now()}`, text: '', text_ru: '' }] : undefined
+      content_secondary: '',
+      items: type === 'checklist' ? [{ id: `item-${Date.now()}`, text: '', text_secondary: '' }] : undefined
     }
     setLessonForm({
       ...lessonForm,
       content: [...lessonForm.content, newBlock],
-      content_ru: [...lessonForm.content_ru, { ...newBlock }]
+      content_secondary: [...lessonForm.content_secondary, { ...newBlock }]
     })
   }
 
-  const updateContentBlock = (blockId: string, field: 'content' | 'content_ru', value: string) => {
-    const targetArray = field === 'content' ? 'content' : 'content_ru'
+  const updateContentBlock = (blockId: string, field: 'content' | 'content_secondary', value: string) => {
+    const targetArray = field === 'content' ? 'content' : 'content_secondary'
     const newContent = lessonForm[targetArray].map(b => 
       b.id === blockId ? { ...b, content: value } : b
     )
@@ -191,7 +191,7 @@ export default function CourseEditorPage() {
     setLessonForm({
       ...lessonForm,
       content: lessonForm.content.filter(b => b.id !== blockId),
-      content_ru: lessonForm.content_ru.filter(b => b.id !== blockId)
+      content_secondary: lessonForm.content_secondary.filter(b => b.id !== blockId)
     })
   }
 
