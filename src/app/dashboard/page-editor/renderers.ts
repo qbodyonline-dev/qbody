@@ -219,7 +219,13 @@ export function renderResultsHTML(items: ResultItem[], lang: 'en' | 'ru'): strin
 }
 
 /* ─────────── HEADER RENDERER ─────────── */
-export function renderHeaderHTML(data: HeaderData, lang: 'en' | 'ru'): string {
+export interface HeaderLangConfig {
+  isBilingual: boolean
+  primaryLanguage: string
+  secondaryLanguage: string | null
+}
+
+export function renderHeaderHTML(data: HeaderData, lang: 'en' | 'ru', langConfig?: HeaderLangConfig): string {
   const id = 'hdr' + Math.random().toString(36).slice(2, 8)
   const v = data.variant || 'classic'
   const accent = data.accentColor || '#14b8a6'
@@ -253,7 +259,17 @@ export function renderHeaderHTML(data: HeaderData, lang: 'en' | 'ru'): string {
     <div><span style="font-weight:600;font-size:${lSz};color:${lCl};display:block;line-height:1.2;">${data.logoText}</span>${sub ? `<span style="font-size:12px;color:${accent};display:block;line-height:1.2;">${sub}</span>` : ''}</div>
   </div>`
 
+  // Language switcher
+  const lc = langConfig || { isBilingual: false, primaryLanguage: 'en', secondaryLanguage: null }
+  const langSwitcherHtml = lc.isBilingual && lc.secondaryLanguage
+    ? `<div class="${id}-langsw" style="display:flex;align-items:center;gap:2px;background:${txtCol}10;border-radius:8px;padding:2px;margin-right:4px;">
+        <span data-lang-switch="${lc.primaryLanguage}" style="padding:4px 10px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600;letter-spacing:0.05em;transition:all 0.2s;user-select:none;${lang === 'en' ? `background:${accent};color:#fff;` : `background:transparent;color:${txtCol}88;`}">${lc.primaryLanguage.toUpperCase()}</span>
+        <span data-lang-switch="${lc.secondaryLanguage}" style="padding:4px 10px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600;letter-spacing:0.05em;transition:all 0.2s;user-select:none;${lang === 'ru' ? `background:${accent};color:#fff;` : `background:transparent;color:${txtCol}88;`}">${lc.secondaryLanguage.toUpperCase()}</span>
+      </div>`
+    : ''
+
   const btnsHtml = `<div class="${id}-btns" style="display:flex;gap:8px;align-items:center;">
+    ${langSwitcherHtml}
     <a href="${data.loginLink}" style="padding:8px 18px;border-radius:10px;border:1px solid ${txtCol}30;font-size:13px;font-weight:500;color:${txtCol};text-decoration:none;transition:all 0.2s;">${loginText}</a>
     <a href="${data.ctaLink}" style="padding:8px 18px;border-radius:10px;background:${accent};color:#fff;font-size:13px;font-weight:600;text-decoration:none;transition:all 0.2s;">${ctaText}</a>
   </div>`
@@ -273,7 +289,8 @@ export function renderHeaderHTML(data: HeaderData, lang: 'en' | 'ru'): string {
 }
 </style>`
 
-  const mobBtn = `<div class="${id}-mob" style="display:none;align-items:center;gap:4px;">
+  const mobBtn = `<div class="${id}-mob" style="display:none;align-items:center;gap:8px;">
+    ${langSwitcherHtml}
     <span style="font-size:13px;color:${accent};font-weight:600;">Menu ≡</span>
   </div>`
 

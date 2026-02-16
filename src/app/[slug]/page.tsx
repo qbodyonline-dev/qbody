@@ -2,9 +2,10 @@
 
 import React, { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
-import { useTranslation, useRendererLang } from '@/lib/i18n'
+import { useLocale, useRendererLang } from '@/lib/i18n'
 import { sanitizeHTML, sanitizeStyleObj } from '@/lib/sanitize-html'
 import { renderAboutHTML, renderCoursesHTML, renderProgramsHTML, renderResultsHTML, renderHeaderHTML, renderHeroHTML } from '@/app/dashboard/page-editor/renderers'
+import type { HeaderLangConfig } from '@/app/dashboard/page-editor/renderers'
 import { renderHtmlBlockHTML, renderSliderHTML, renderHeroTemplateHTML } from '@/app/dashboard/page-editor/new-block-renderers'
 import { renderCourses2HTML } from '@/app/dashboard/page-editor/courses'
 import { renderAbout2HTML } from '@/app/dashboard/page-editor/about'
@@ -48,11 +49,11 @@ function styleToCSS(s: Record<string, any>): React.CSSProperties {
   return css
 }
 
-function DynamicBlock({ block, lang, index }: { block: PageBlock; lang: 'en' | 'ru'; index?: number }) {
+function DynamicBlock({ block, lang, index, headerLangConfig }: { block: PageBlock; lang: 'en' | 'ru'; index?: number; headerLangConfig?: HeaderLangConfig }) {
   if (!block.visible) return null
 
   let content: string
-  if (block.type === 'header' && block.data) content = renderHeaderHTML(block.data, lang)
+  if (block.type === 'header' && block.data) content = renderHeaderHTML(block.data, lang, headerLangConfig)
   else if (block.type === 'hero' && block.data) content = renderHeroHTML(block.data, lang)
   else if (block.type === 'about' && block.data) content = renderAboutHTML(block.data, lang)
   else if (block.type === 'courses' && block.items) content = renderCoursesHTML(block.items, lang)
@@ -94,12 +95,33 @@ function DynamicBlock({ block, lang, index }: { block: PageBlock; lang: 'en' | '
 export default function SlugPage() {
   const params = useParams()
   const slug = params.slug as string
-  const { locale } = useTranslation()
+  const { locale, langConfig: siteLC, setLocale } = useLocale()
   const lang = useRendererLang()
   const [blocks, setBlocks] = useState<PageBlock[]>([])
   const [loading, setLoading] = useState(true)
   const [notFoundPage, setNotFoundPage] = useState(false)
   const [pageBgColor, setPageBgColor] = useState<string | undefined>(undefined)
+
+  const headerLangConfig: HeaderLangConfig = {
+    isBilingual: siteLC.isBilingual,
+    primaryLanguage: siteLC.primaryLanguage,
+    secondaryLanguage: siteLC.secondaryLanguage,
+  }
+
+  // Event delegation for language switcher buttons
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      const btn = (e.target as HTMLElement).closest('[data-lang-switch]') as HTMLElement | null
+      if (btn) {
+        const newLang = btn.getAttribute('data-lang-switch')
+        if (newLang && newLang !== locale) {
+          setLocale(newLang)
+        }
+      }
+    }
+    document.addEventListener('click', handler)
+    return () => document.removeEventListener('click', handler)
+  }, [locale, setLocale])
 
   useEffect(() => {
     const loadData = async () => {
@@ -151,7 +173,7 @@ export default function SlugPage() {
   return (
     <main className="min-h-screen" style={{ backgroundColor: pageBgColor || '#09090b' }}>
       {blocks.map((block, i) => (
-        <DynamicBlock key={block.id} block={block} lang={lang} index={i} />
+        <DynamicBlock key={block.id} block={block} lang={lang} index={i} headerLangConfig={headerLangConfig} />
       ))}
     </main>
   )

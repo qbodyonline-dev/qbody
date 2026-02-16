@@ -215,7 +215,7 @@ function PageEditorInner() {
       return { ...block, items: defaultResultItems, contentEn: renderResultsHTML(defaultResultItems, 'en'), contentRu: renderResultsHTML(defaultResultItems, 'ru') }
     }
     if (block.type === 'header' && !block.data) {
-      return { ...block, data: defaultHeaderData, contentEn: renderHeaderHTML(defaultHeaderData, 'en'), contentRu: renderHeaderHTML(defaultHeaderData, 'ru') }
+      return { ...block, data: defaultHeaderData, contentEn: renderHeaderHTML(defaultHeaderData, 'en', headerLC), contentRu: renderHeaderHTML(defaultHeaderData, 'ru', headerLC) }
     }
     if (block.type === 'hero' && !block.data) {
       return { ...block, data: defaultHeroData, contentEn: renderHeroHTML(defaultHeroData, 'en'), contentRu: renderHeroHTML(defaultHeroData, 'ru') }
@@ -262,7 +262,7 @@ function PageEditorInner() {
       const structType = tpl.en.replace('__STRUCTURED__', '') as any
       if (structType === 'header') {
         const d = { ...defaultHeaderData }
-        nb = { id: nid, type: 'header', label: tpl.l, labelRu: tpl.lr, visible: true, contentEn: renderHeaderHTML(d, 'en'), contentRu: renderHeaderHTML(d, 'ru'), style: {}, data: d }
+        nb = { id: nid, type: 'header', label: tpl.l, labelRu: tpl.lr, visible: true, contentEn: renderHeaderHTML(d, 'en', headerLC), contentRu: renderHeaderHTML(d, 'ru', headerLC), style: {}, data: d }
       } else if (structType === 'htmlblock') {
         const d = defaultHtmlBlockData()
         nb = { id: nid, type: 'htmlblock', label: tpl.l, labelRu: tpl.lr, visible: true, contentEn: renderHtmlBlockHTML(d, 'en'), contentRu: renderHtmlBlockHTML(d, 'ru'), style: {}, data: d as any }
@@ -347,10 +347,13 @@ function PageEditorInner() {
     i.click()
   }
 
+  const headerLC = { isBilingual: langConfig.isBilingual, primaryLanguage: langConfig.primaryLanguage, secondaryLanguage: langConfig.secondaryLanguage || null }
+
   const ph = blocks.filter(b => b.visible).map(b => {
     // Structured blocks: always render from data/items for latest dark theme
     let c: string
-    if (b.type === 'about' && b.data) c = renderAboutHTML(b.data as AboutData, lt)
+    if (b.type === 'header' && b.data) c = renderHeaderHTML(b.data as HeaderData, lt, headerLC)
+    else if (b.type === 'about' && b.data) c = renderAboutHTML(b.data as AboutData, lt)
     else if (b.type === 'courses' && b.items) c = renderCoursesHTML(b.items as any[], lt)
     else if (b.type === 'programs' && b.items) c = renderProgramsHTML(b.items as any[], lt)
     else if (b.type === 'results' && b.items) c = renderResultsHTML(b.items as any[], lt)
@@ -644,8 +647,8 @@ function PageEditorInner() {
                   <HeaderEditor
                     data={(ab.data as HeaderData) || defaultHeaderData}
                     onChange={(data) => {
-                      const contentEn = renderHeaderHTML(data, 'en')
-                      const contentRu = renderHeaderHTML(data, 'ru')
+                      const contentEn = renderHeaderHTML(data, 'en', headerLC)
+                      const contentRu = renderHeaderHTML(data, 'ru', headerLC)
                       upd(ab.id, { data, contentEn, contentRu })
                     }}
                     lang={lt}
@@ -658,7 +661,7 @@ function PageEditorInner() {
                         <span className="text-[10px] font-bold text-teal-600 uppercase tracking-widest">{lang === 'ru' ? 'Превью' : 'Live Preview'}</span>
                       </div>
                       <div className="bg-zinc-950 max-h-[400px] overflow-y-auto">
-                        <div dangerouslySetInnerHTML={{ __html: renderHeaderHTML((ab.data as HeaderData) || defaultHeaderData, lt) }} className="pointer-events-none" />
+                        <div dangerouslySetInnerHTML={{ __html: renderHeaderHTML((ab.data as HeaderData) || defaultHeaderData, lt, headerLC) }} className="pointer-events-none" />
                       </div>
                     </CardContent>
                   </Card>

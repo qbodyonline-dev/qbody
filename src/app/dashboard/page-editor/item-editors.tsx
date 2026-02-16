@@ -13,6 +13,7 @@ import { COURSE_GRADIENTS, PROGRAM_GRADIENTS, EMOJI_ICONS, HERO_GRADIENTS, LOGO_
 import { fetchWithAuthUpload } from '@/lib/api'
 import { TextStyleEditor } from './shared'
 import type { TextStyle } from './shared'
+import { useLanguageConfig } from '@/lib/useLanguageConfig'
 
 /* ═══════════ SHARED COMPONENTS ═══════════ */
 
@@ -705,14 +706,17 @@ interface NavLinkEditorProps {
   onChange: (link: NavLink) => void
   onDelete: () => void
   lang: 'en' | 'ru'
+  isBilingual?: boolean
+  pCode?: string
+  sCode?: string
 }
 
-function NavLinkEditor({ link, onChange, onDelete, lang }: NavLinkEditorProps) {
+function NavLinkEditor({ link, onChange, onDelete, lang, isBilingual = true, pCode = 'EN', sCode = 'RU' }: NavLinkEditorProps) {
   return (
     <div className="flex gap-2 items-center p-2 bg-zinc-50 dark:bg-zinc-800 rounded-lg">
       <GripVertical className="w-4 h-4 text-zinc-300 cursor-grab flex-shrink-0" />
-      <Input value={link.label} onChange={e => onChange({ ...link, label: e.target.value })} placeholder="Label EN" className="text-xs h-7 flex-1" />
-      <Input value={link.labelRu} onChange={e => onChange({ ...link, labelRu: e.target.value })} placeholder="Label RU" className="text-xs h-7 flex-1" />
+      <Input value={link.label} onChange={e => onChange({ ...link, label: e.target.value })} placeholder={`Label${isBilingual ? ` ${pCode}` : ''}`} className="text-xs h-7 flex-1" />
+      {isBilingual && <Input value={link.labelRu} onChange={e => onChange({ ...link, labelRu: e.target.value })} placeholder={`Label ${sCode}`} className="text-xs h-7 flex-1" />}
       <Input value={link.href} onChange={e => onChange({ ...link, href: e.target.value })} placeholder="/link" className="text-xs h-7 w-24" />
       <button onClick={onDelete} className="p-1 rounded hover:bg-red-100"><Trash2 className="w-3.5 h-3.5 text-red-500" /></button>
     </div>
@@ -734,6 +738,8 @@ interface HeaderEditorProps {
 }
 
 export function HeaderEditor({ data, onChange, lang }: HeaderEditorProps) {
+  const langConfig = useLanguageConfig()
+  const { isBilingual, pCode, sCode, pl, sl } = langConfig
   const [showLogoPicker, setShowLogoPicker] = useState(false)
   const [logoUploading, setLogoUploading] = useState(false)
   const logoFileRef = useRef<HTMLInputElement>(null)
@@ -852,9 +858,9 @@ export function HeaderEditor({ data, onChange, lang }: HeaderEditorProps) {
             </div>
             <div className="flex-1 space-y-2">
               <Input value={data.logoText} onChange={e => onChange({ ...data, logoText: e.target.value })} placeholder={lang === 'ru' ? 'Название' : 'Brand name'} className="text-xs h-8" />
-              <div className="grid grid-cols-2 gap-2">
-                <Input value={data.logoSubtext || ''} onChange={e => onChange({ ...data, logoSubtext: e.target.value })} placeholder="Subtext EN" className="text-xs h-8" />
-                <Input value={data.logoSubtextRu || ''} onChange={e => onChange({ ...data, logoSubtextRu: e.target.value })} placeholder="Subtext RU" className="text-xs h-8" />
+              <div className={`grid grid-cols-1 ${isBilingual ? 'sm:grid-cols-2' : ''} gap-2`}>
+                <Input value={data.logoSubtext || ''} onChange={e => onChange({ ...data, logoSubtext: e.target.value })} placeholder={pl(lang === 'ru' ? 'Подзаголовок' : 'Subtext')} className="text-xs h-8" />
+                {isBilingual && <Input value={data.logoSubtextRu || ''} onChange={e => onChange({ ...data, logoSubtextRu: e.target.value })} placeholder={sl(lang === 'ru' ? 'Подзаголовок' : 'Subtext')} className="text-xs h-8" />}
               </div>
               <div className="flex gap-2">
                 <button onClick={() => logoFileRef.current?.click()} disabled={logoUploading}
@@ -905,7 +911,7 @@ export function HeaderEditor({ data, onChange, lang }: HeaderEditorProps) {
           </div>
           <div className="space-y-1.5 max-h-[200px] overflow-y-auto">
             {data.navLinks.map(link => (
-              <NavLinkEditor key={link.id} link={link} onChange={l => updateNavLink(link.id, l)} onDelete={() => removeNavLink(link.id)} lang={lang} />
+              <NavLinkEditor key={link.id} link={link} onChange={l => updateNavLink(link.id, l)} onDelete={() => removeNavLink(link.id)} lang={lang} isBilingual={isBilingual} pCode={pCode} sCode={sCode} />
             ))}
           </div>
           {data.navLinks.length === 0 && <p className="text-[11px] text-zinc-400 text-center py-2">{lang === 'ru' ? 'Нет ссылок' : 'No links yet'}</p>}
@@ -916,14 +922,14 @@ export function HeaderEditor({ data, onChange, lang }: HeaderEditorProps) {
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <label className="text-[11px] font-medium text-zinc-500 block">{lang === 'ru' ? 'Вход' : 'Login'}</label>
-              <Input value={data.loginText} onChange={e => onChange({ ...data, loginText: e.target.value })} placeholder="EN" className="text-xs h-7" />
-              <Input value={data.loginTextRu} onChange={e => onChange({ ...data, loginTextRu: e.target.value })} placeholder="RU" className="text-xs h-7" />
+              <Input value={data.loginText} onChange={e => onChange({ ...data, loginText: e.target.value })} placeholder={pl(lang === 'ru' ? 'Текст' : 'Text')} className="text-xs h-7" />
+              {isBilingual && <Input value={data.loginTextRu} onChange={e => onChange({ ...data, loginTextRu: e.target.value })} placeholder={sl(lang === 'ru' ? 'Текст' : 'Text')} className="text-xs h-7" />}
               <Input value={data.loginLink} onChange={e => onChange({ ...data, loginLink: e.target.value })} placeholder="/auth/login" className="text-xs h-7" />
             </div>
             <div className="space-y-1.5">
               <label className="text-[11px] font-medium text-zinc-500 block">CTA</label>
-              <Input value={data.ctaText} onChange={e => onChange({ ...data, ctaText: e.target.value })} placeholder="EN" className="text-xs h-7" />
-              <Input value={data.ctaTextRu} onChange={e => onChange({ ...data, ctaTextRu: e.target.value })} placeholder="RU" className="text-xs h-7" />
+              <Input value={data.ctaText} onChange={e => onChange({ ...data, ctaText: e.target.value })} placeholder={pl(lang === 'ru' ? 'Текст' : 'Text')} className="text-xs h-7" />
+              {isBilingual && <Input value={data.ctaTextRu} onChange={e => onChange({ ...data, ctaTextRu: e.target.value })} placeholder={sl(lang === 'ru' ? 'Текст' : 'Text')} className="text-xs h-7" />}
               <Input value={data.ctaLink} onChange={e => onChange({ ...data, ctaLink: e.target.value })} placeholder="/auth/register" className="text-xs h-7" />
             </div>
           </div>
@@ -984,8 +990,8 @@ export function HeaderEditor({ data, onChange, lang }: HeaderEditorProps) {
           </label>
           {data.topBar?.enabled && (
             <div className="space-y-2 mt-2">
-              <Input value={data.topBar?.text || ''} onChange={e => onChange({ ...data, topBar: { ...data.topBar, text: e.target.value } as HeaderTopBar })} placeholder="Promo text EN" className="text-xs h-7" />
-              <Input value={data.topBar?.textRu || ''} onChange={e => onChange({ ...data, topBar: { ...data.topBar, textRu: e.target.value } as HeaderTopBar })} placeholder="Promo text RU" className="text-xs h-7" />
+              <Input value={data.topBar?.text || ''} onChange={e => onChange({ ...data, topBar: { ...data.topBar, text: e.target.value } as HeaderTopBar })} placeholder={pl(lang === 'ru' ? 'Текст промо' : 'Promo text')} className="text-xs h-7" />
+              {isBilingual && <Input value={data.topBar?.textRu || ''} onChange={e => onChange({ ...data, topBar: { ...data.topBar, textRu: e.target.value } as HeaderTopBar })} placeholder={sl(lang === 'ru' ? 'Текст промо' : 'Promo text')} className="text-xs h-7" />}
               <Input value={data.topBar?.link || ''} onChange={e => onChange({ ...data, topBar: { ...data.topBar, link: e.target.value } as HeaderTopBar })} placeholder="Link URL" className="text-xs h-7" />
               <div className="flex gap-2">
                 <div className="flex-1 space-y-1">
