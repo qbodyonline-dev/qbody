@@ -12,6 +12,16 @@ import { TextStyleEditor } from '../shared'
 import { SOCIAL_ICONS, CONTACT_ICONS, getIconSVG } from './icons'
 import type { FooterIcon } from './icons'
 
+/* ─── Bilingual field labels ─── */
+function LangBadges({ L1, L2, label }: { L1: string; L2: string; label?: string }) {
+  return (
+    <div className="grid grid-cols-2 gap-1.5">
+      <span className="text-[9px] font-bold text-zinc-400 uppercase tracking-wider">{label ? `${label} ` : ''}{L1}</span>
+      <span className="text-[9px] font-bold text-zinc-400 uppercase tracking-wider">{label ? `${label} ` : ''}{L2}</span>
+    </div>
+  )
+}
+
 const LAYOUTS: { value: FooterLayout; label: string; desc: string }[] = [
   { value: 'simple', label: '▣ Simple', desc: 'Centered' },
   { value: 'columns', label: '▤ Columns', desc: 'Multi-column' },
@@ -42,10 +52,12 @@ function NavColumnEditor({ col, onChange, onRemove, accentColor, L1, L2 }: { col
         <span className="text-[10px] font-bold text-zinc-500">Column</span>
         <button onClick={onRemove} className="p-0.5 text-red-400 hover:text-red-500"><Trash2 className="w-3 h-3" /></button>
       </div>
+      <LangBadges L1={L1} L2={L2} label="Title" />
       <div className="grid grid-cols-2 gap-1.5">
-        <Input value={col.title} onChange={e => onChange({ ...col, title: e.target.value })} placeholder={`Title ${L1}`} className="text-xs h-7" />
-        <Input value={col.titleRu} onChange={e => onChange({ ...col, titleRu: e.target.value })} placeholder={`Title ${L2}`} className="text-xs h-7" />
+        <Input value={col.title} onChange={e => onChange({ ...col, title: e.target.value })} placeholder={L1} className="text-xs h-7" />
+        <Input value={col.titleRu} onChange={e => onChange({ ...col, titleRu: e.target.value })} placeholder={L2} className="text-xs h-7" />
       </div>
+      {col.links.length > 0 && <LangBadges L1={L1} L2={L2} label="Links" />}
       {col.links.map((link, li) => (
         <div key={link.id} className="flex gap-1 items-center">
           <div className="flex-1 grid grid-cols-2 gap-1">
@@ -128,9 +140,10 @@ function ContactEditor({ items, onChange, accentColor, L1, L2 }: { items: Footer
             const n = [...items]; n[i] = { ...n[i], icon: key }; onChange(n)
           }} />
           <div className="flex-1 space-y-1">
+            {i === 0 && <LangBadges L1={L1} L2={L2} />}
             <div className="grid grid-cols-2 gap-1">
-              <Input value={c.text} onChange={e => { const n = [...items]; n[i] = { ...n[i], text: e.target.value }; onChange(n) }} placeholder={`Text ${L1}`} className="text-xs h-7" />
-              <Input value={c.textRu} onChange={e => { const n = [...items]; n[i] = { ...n[i], textRu: e.target.value }; onChange(n) }} placeholder={`Text ${L2}`} className="text-xs h-7" />
+              <Input value={c.text} onChange={e => { const n = [...items]; n[i] = { ...n[i], text: e.target.value }; onChange(n) }} placeholder={L1} className="text-xs h-7" />
+              <Input value={c.textRu} onChange={e => { const n = [...items]; n[i] = { ...n[i], textRu: e.target.value }; onChange(n) }} placeholder={L2} className="text-xs h-7" />
             </div>
             <Input value={c.link || ''} onChange={e => { const n = [...items]; n[i] = { ...n[i], link: e.target.value }; onChange(n) }} placeholder="Link (optional)" className="text-xs h-7" />
           </div>
@@ -232,10 +245,13 @@ export function FooterSectionEditor({ section: s, onChangeSection, lang }: Props
         </div>
         <TextStyleEditor label="Logo" value={s.logoStyle} onChange={v => upd('logoStyle', v)} defaultColor={s.textColor} />
         {isBi ? (
-          <div className="grid grid-cols-2 gap-1.5">
-            <textarea value={s.description} onChange={e => upd('description', e.target.value)} placeholder={`Description ${L1}`} className="w-full p-2 text-xs border border-zinc-200 dark:border-zinc-700 dark:bg-zinc-800 rounded-lg h-12 resize-none" />
-            <textarea value={s.descriptionRu} onChange={e => upd('descriptionRu', e.target.value)} placeholder={`Description ${L2}`} className="w-full p-2 text-xs border border-zinc-200 dark:border-zinc-700 dark:bg-zinc-800 rounded-lg h-12 resize-none" />
-          </div>
+          <>
+            <LangBadges L1={L1} L2={L2} label="Description" />
+            <div className="grid grid-cols-2 gap-1.5">
+              <textarea value={s.description} onChange={e => upd('description', e.target.value)} placeholder={L1} className="w-full p-2 text-xs border border-zinc-200 dark:border-zinc-700 dark:bg-zinc-800 rounded-lg h-12 resize-none" />
+              <textarea value={s.descriptionRu} onChange={e => upd('descriptionRu', e.target.value)} placeholder={L2} className="w-full p-2 text-xs border border-zinc-200 dark:border-zinc-700 dark:bg-zinc-800 rounded-lg h-12 resize-none" />
+            </div>
+          </>
         ) : (
           <textarea value={s.description} onChange={e => upd('description', e.target.value)} placeholder="Description" className="w-full p-2 text-xs border border-zinc-200 dark:border-zinc-700 dark:bg-zinc-800 rounded-lg h-12 resize-none" />
         )}
@@ -294,28 +310,29 @@ export function FooterSectionEditor({ section: s, onChangeSection, lang }: Props
         {(s.showCta || s.layout === 'cta-footer') && (
           <div className="space-y-2">
             {isBi ? (
-              <div className="grid grid-cols-2 gap-1.5">
-                <Input value={s.ctaTitle} onChange={e => upd('ctaTitle', e.target.value)} placeholder={`CTA Title ${L1}`} className="text-xs h-7" />
-                <Input value={s.ctaTitleRu} onChange={e => upd('ctaTitleRu', e.target.value)} placeholder={`CTA Title ${L2}`} className="text-xs h-7" />
-              </div>
+              <>
+                <LangBadges L1={L1} L2={L2} label="Title" />
+                <div className="grid grid-cols-2 gap-1.5">
+                  <Input value={s.ctaTitle} onChange={e => upd('ctaTitle', e.target.value)} placeholder={L1} className="text-xs h-7" />
+                  <Input value={s.ctaTitleRu} onChange={e => upd('ctaTitleRu', e.target.value)} placeholder={L2} className="text-xs h-7" />
+                </div>
+                <LangBadges L1={L1} L2={L2} label="Subtitle" />
+                <div className="grid grid-cols-2 gap-1.5">
+                  <Input value={s.ctaSubtitle} onChange={e => upd('ctaSubtitle', e.target.value)} placeholder={L1} className="text-xs h-7" />
+                  <Input value={s.ctaSubtitleRu} onChange={e => upd('ctaSubtitleRu', e.target.value)} placeholder={L2} className="text-xs h-7" />
+                </div>
+                <LangBadges L1={L1} L2={L2} label="Button" />
+                <div className="grid grid-cols-2 gap-1.5">
+                  <Input value={s.ctaBtnText} onChange={e => upd('ctaBtnText', e.target.value)} placeholder={L1} className="text-xs h-7" />
+                  <Input value={s.ctaBtnTextRu} onChange={e => upd('ctaBtnTextRu', e.target.value)} placeholder={L2} className="text-xs h-7" />
+                </div>
+              </>
             ) : (
-              <Input value={s.ctaTitle} onChange={e => upd('ctaTitle', e.target.value)} placeholder="CTA Title" className="text-xs h-7" />
-            )}
-            {isBi ? (
-              <div className="grid grid-cols-2 gap-1.5">
-                <Input value={s.ctaSubtitle} onChange={e => upd('ctaSubtitle', e.target.value)} placeholder={`Subtitle ${L1}`} className="text-xs h-7" />
-                <Input value={s.ctaSubtitleRu} onChange={e => upd('ctaSubtitleRu', e.target.value)} placeholder={`Subtitle ${L2}`} className="text-xs h-7" />
-              </div>
-            ) : (
-              <Input value={s.ctaSubtitle} onChange={e => upd('ctaSubtitle', e.target.value)} placeholder="Subtitle" className="text-xs h-7" />
-            )}
-            {isBi ? (
-              <div className="grid grid-cols-2 gap-1.5">
-                <Input value={s.ctaBtnText} onChange={e => upd('ctaBtnText', e.target.value)} placeholder={`Btn ${L1}`} className="text-xs h-7" />
-                <Input value={s.ctaBtnTextRu} onChange={e => upd('ctaBtnTextRu', e.target.value)} placeholder={`Btn ${L2}`} className="text-xs h-7" />
-              </div>
-            ) : (
-              <Input value={s.ctaBtnText} onChange={e => upd('ctaBtnText', e.target.value)} placeholder="Button text" className="text-xs h-7" />
+              <>
+                <Input value={s.ctaTitle} onChange={e => upd('ctaTitle', e.target.value)} placeholder="CTA Title" className="text-xs h-7" />
+                <Input value={s.ctaSubtitle} onChange={e => upd('ctaSubtitle', e.target.value)} placeholder="Subtitle" className="text-xs h-7" />
+                <Input value={s.ctaBtnText} onChange={e => upd('ctaBtnText', e.target.value)} placeholder="Button text" className="text-xs h-7" />
+              </>
             )}
             <Input value={s.ctaBtnLink} onChange={e => upd('ctaBtnLink', e.target.value)} placeholder="/link" className="text-xs h-7" />
           </div>
@@ -325,10 +342,13 @@ export function FooterSectionEditor({ section: s, onChangeSection, lang }: Props
       {/* Copyright */}
       <Acc k="copy" label="©️ Copyright" open={open} toggle={toggle}>
         {isBi ? (
-          <div className="grid grid-cols-2 gap-1.5">
-            <Input value={s.copyrightText} onChange={e => upd('copyrightText', e.target.value)} placeholder={L1} className="text-xs h-7" />
-            <Input value={s.copyrightTextRu} onChange={e => upd('copyrightTextRu', e.target.value)} placeholder={L2} className="text-xs h-7" />
-          </div>
+          <>
+            <LangBadges L1={L1} L2={L2} />
+            <div className="grid grid-cols-2 gap-1.5">
+              <Input value={s.copyrightText} onChange={e => upd('copyrightText', e.target.value)} placeholder={L1} className="text-xs h-7" />
+              <Input value={s.copyrightTextRu} onChange={e => upd('copyrightTextRu', e.target.value)} placeholder={L2} className="text-xs h-7" />
+            </div>
+          </>
         ) : (
           <Input value={s.copyrightText} onChange={e => upd('copyrightText', e.target.value)} placeholder="Copyright text" className="text-xs h-7" />
         )}
