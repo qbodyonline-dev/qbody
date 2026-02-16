@@ -105,6 +105,33 @@ export default function SlugPage() {
   const [notFoundPage, setNotFoundPage] = useState(false)
   const [pageBgColor, setPageBgColor] = useState<string | undefined>(undefined)
 
+  // Activate scroll reveal after blocks are loaded
+  useEffect(() => {
+    if (loading || blocks.length === 0) return
+    // Small delay to ensure DOM is rendered
+    const timer = setTimeout(() => {
+      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        document.querySelectorAll('.reveal, .reveal-up, .reveal-left, .reveal-right, .reveal-scale')
+          .forEach(el => el.classList.add('is-visible'))
+        return
+      }
+      const observer = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((entry) => {
+            if (entry.isIntersecting) {
+              entry.target.classList.add('is-visible')
+              observer.unobserve(entry.target)
+            }
+          })
+        },
+        { threshold: 0.12, rootMargin: '0px 0px -40px 0px' }
+      )
+      document.querySelectorAll('.reveal, .reveal-up, .reveal-left, .reveal-right, .reveal-scale')
+        .forEach(el => observer.observe(el))
+    }, 50)
+    return () => clearTimeout(timer)
+  }, [loading, blocks])
+
   const headerLangConfig: HeaderLangConfig = {
     isBilingual: siteLC.isBilingual,
     primaryLanguage: siteLC.primaryLanguage,
