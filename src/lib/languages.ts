@@ -3,8 +3,8 @@
  * primary_language — main site language (always shown)
  * secondary_language — optional second language (null = monolingual)
  *
- * The "_ru" columns in DB (name_ru, description_ru, etc.) serve as
- * secondary-language storage regardless of which language is chosen as secondary.
+ * The "_secondary" columns in DB (name_secondary, description_secondary, etc.)
+ * store content for whichever language is chosen as secondary.
  */
 
 export interface LanguageOption {

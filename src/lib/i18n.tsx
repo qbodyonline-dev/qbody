@@ -1,14 +1,23 @@
 'use client'
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react'
+import type { LanguageOption } from '@/lib/languages'
 
-export type Locale = 'en' | 'ru'
+export type Locale = string
+
+export interface SiteLanguageConfig {
+  primaryLanguage: string
+  secondaryLanguage: string | null
+  isBilingual: boolean
+  primaryLanguageInfo: LanguageOption | null
+  secondaryLanguageInfo: LanguageOption | null
+}
 
 type Translations = {
   [key: string]: string | string[] | Translations
 }
 
-const translations: Record<Locale, Translations> = {
+const translations: Record<string, Translations> = {
   en: {
     // Common
     common: {
@@ -2043,28 +2052,72 @@ interface LocaleContextType {
   locale: Locale
   setLocale: (locale: Locale) => void
   t: (key: string) => any
+  /** Language config from API */
+  langConfig: SiteLanguageConfig
+  /** Whether config has loaded */
+  langConfigLoaded: boolean
 }
 
 const LocaleContext = createContext<LocaleContextType | null>(null)
 
+const defaultLangConfig: SiteLanguageConfig = {
+  primaryLanguage: 'en',
+  secondaryLanguage: null,
+  isBilingual: false,
+  primaryLanguageInfo: null,
+  secondaryLanguageInfo: null,
+}
+
 export function LocaleProvider({ children }: { children: ReactNode }) {
   const [locale, setLocale] = useState<Locale>('en')
+  const [langConfig, setLangConfig] = useState<SiteLanguageConfig>(defaultLangConfig)
+  const [langConfigLoaded, setLangConfigLoaded] = useState(false)
 
+  // Fetch language config from API on mount
   useEffect(() => {
-    const saved = localStorage.getItem('locale') as Locale
-    if (saved && (saved === 'en' || saved === 'ru')) {
-      setLocale(saved)
-    }
+    fetch('/api/languages')
+      .then(r => r.json())
+      .then(data => {
+        const config: SiteLanguageConfig = {
+          primaryLanguage: data.primaryLanguage || 'en',
+          secondaryLanguage: data.secondaryLanguage ?? null,
+          isBilingual: data.isBilingual ?? false,
+          primaryLanguageInfo: data.primaryLanguageInfo || null,
+          secondaryLanguageInfo: data.secondaryLanguageInfo || null,
+        }
+        setLangConfig(config)
+
+        // Set locale: use saved preference if it matches available languages, otherwise use primary
+        const saved = localStorage.getItem('locale')
+        const validLocales = [config.primaryLanguage, config.secondaryLanguage].filter(Boolean) as string[]
+        if (saved && validLocales.includes(saved)) {
+          setLocale(saved)
+        } else {
+          setLocale(config.primaryLanguage)
+        }
+        setLangConfigLoaded(true)
+      })
+      .catch(() => {
+        // Fallback: try localStorage, default to 'en'
+        const saved = localStorage.getItem('locale')
+        if (saved) setLocale(saved)
+        setLangConfigLoaded(true)
+      })
   }, [])
 
   const handleSetLocale = (newLocale: Locale) => {
+    // Only allow switching to configured languages
+    const validLocales = [langConfig.primaryLanguage, langConfig.secondaryLanguage].filter(Boolean) as string[]
+    if (validLocales.length > 0 && !validLocales.includes(newLocale)) return
     setLocale(newLocale)
     localStorage.setItem('locale', newLocale)
   }
 
   const t = (key: string): any => {
     const keys = key.split('.')
-    let value: any = translations[locale]
+    // Try current locale first
+    const localeKey = locale as keyof typeof translations
+    let value: any = translations[localeKey] || translations['en']
     
     for (const k of keys) {
       if (value && typeof value === 'object' && k in value) {
@@ -2089,7 +2142,7 @@ export function LocaleProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <LocaleContext.Provider value={{ locale, setLocale: handleSetLocale, t }}>
+    <LocaleContext.Provider value={{ locale, setLocale: handleSetLocale, t, langConfig, langConfigLoaded }}>
       {children}
     </LocaleContext.Provider>
   )
@@ -2104,6 +2157,6 @@ export function useLocale() {
 }
 
 export function useTranslation() {
-  const { t, locale } = useLocale()
-  return { t, locale }
+  const { t, locale, langConfig, langConfigLoaded } = useLocale()
+  return { t, locale, langConfig, langConfigLoaded }
 }
