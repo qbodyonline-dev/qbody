@@ -44,17 +44,17 @@ export const defaultFooterSectionData: FooterSectionData = {
   showNav: true,
   // Contact
   contactItems: [
-    { id: 'c1', icon: '📧', text: 'info@qbody.app', textRu: 'info@qbody.app', link: 'mailto:info@qbody.app' },
-    { id: 'c2', icon: '📍', text: 'Las Vegas, NV', textRu: 'Лас-Вегас, Невада' },
-    { id: 'c3', icon: '📞', text: '+1 (555) 123-4567', textRu: '+1 (555) 123-4567', link: 'tel:+15551234567' },
+    { id: 'c1', icon: 'email', text: 'info@qbody.app', textRu: 'info@qbody.app', link: 'mailto:info@qbody.app' },
+    { id: 'c2', icon: 'location', text: 'Las Vegas, NV', textRu: 'Лас-Вегас, Невада' },
+    { id: 'c3', icon: 'phone', text: '+1 (555) 123-4567', textRu: '+1 (555) 123-4567', link: 'tel:+15551234567' },
   ],
   showContact: true,
   // Social
   socialLinks: [
-    { id: 's1', icon: '📸', label: 'Instagram', url: 'https://instagram.com' },
-    { id: 's2', icon: '📘', label: 'Facebook', url: 'https://facebook.com' },
-    { id: 's3', icon: '▶️', label: 'YouTube', url: 'https://youtube.com' },
-    { id: 's4', icon: '💬', label: 'Telegram', url: 'https://t.me' },
+    { id: 's1', icon: 'instagram', label: 'Instagram', url: 'https://instagram.com' },
+    { id: 's2', icon: 'facebook', label: 'Facebook', url: 'https://facebook.com' },
+    { id: 's3', icon: 'youtube', label: 'YouTube', url: 'https://youtube.com' },
+    { id: 's4', icon: 'telegram', label: 'Telegram', url: 'https://t.me' },
   ],
   showSocial: true,
   // CTA

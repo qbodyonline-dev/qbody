@@ -1,6 +1,7 @@
 import type { FooterSectionData, FooterNavColumn, FooterSocialLink, FooterContactItem } from './types'
 import { defaultFooterSectionData } from './defaults'
 import type { TextStyle } from '../shared'
+import { getIconSVG } from './icons'
 
 /* ═══════════ FOOTER PRO RENDERER ═══════════ */
 
@@ -47,7 +48,7 @@ function logoHTML(s: FooterSectionData): string {
 function socialHTML(s: FooterSectionData): string {
   if (!s.showSocial || !s.socialLinks.length) return ''
   const items = s.socialLinks.map(sl =>
-    `<a href="${sl.url}" target="_blank" rel="noopener" title="${sl.label}" style="width:36px;height:36px;border-radius:10px;background:${s.borderColor};display:inline-flex;align-items:center;justify-content:center;text-decoration:none;font-size:16px;transition:background 0.2s;">${sl.icon}</a>`
+    `<a href="${sl.url}" target="_blank" rel="noopener" title="${sl.label}" style="width:36px;height:36px;border-radius:10px;background:${s.borderColor};display:inline-flex;align-items:center;justify-content:center;text-decoration:none;transition:background 0.2s;color:${s.mutedColor};">${getIconSVG(sl.icon, 18, s.mutedColor)}</a>`
   ).join('')
   return `<div style="display:flex;gap:8px;flex-wrap:wrap;">${items}</div>`
 }
@@ -56,9 +57,9 @@ function contactHTML(s: FooterSectionData, lang: 'en' | 'ru'): string {
   if (!s.showContact || !s.contactItems.length) return ''
   const items = s.contactItems.map(c => {
     const t = lang === 'ru' ? c.textRu : c.text
-    const inner = `<span style="margin-right:6px;">${c.icon}</span>${t}`
-    if (c.link) return `<a href="${c.link}" style="display:flex;align-items:center;color:${s.mutedColor};text-decoration:none;font-size:13px;line-height:1.8;transition:color 0.2s;">${inner}</a>`
-    return `<div style="display:flex;align-items:center;color:${s.mutedColor};font-size:13px;line-height:1.8;">${inner}</div>`
+    const iconHtml = `<span style="display:inline-flex;align-items:center;margin-right:8px;flex-shrink:0;">${getIconSVG(c.icon, 15, s.mutedColor)}</span>`
+    if (c.link) return `<a href="${c.link}" style="display:flex;align-items:center;color:${s.mutedColor};text-decoration:none;font-size:13px;line-height:1.8;transition:color 0.2s;">${iconHtml}${t}</a>`
+    return `<div style="display:flex;align-items:center;color:${s.mutedColor};font-size:13px;line-height:1.8;">${iconHtml}${t}</div>`
   }).join('')
   return `<div>${items}</div>`
 }
@@ -105,9 +106,10 @@ function renderSimple(s: FooterSectionData, lang: 'en' | 'ru'): string {
     ${s.showSocial ? `<div style="display:flex;justify-content:center;margin-bottom:8px;">${socialHTML(s)}</div>` : ''}
     ${s.showContact && s.contactItems?.length ? `<div style="display:flex;justify-content:center;flex-wrap:wrap;gap:16px;margin-top:16px;">${s.contactItems.map(c => {
       const t = lang === 'ru' ? c.textRu : c.text
+      const ic = getIconSVG(c.icon, 14, s.mutedColor)
       return c.link
-        ? `<a href="${c.link}" style="color:${s.mutedColor};text-decoration:none;font-size:13px;">${c.icon} ${t}</a>`
-        : `<span style="color:${s.mutedColor};font-size:13px;">${c.icon} ${t}</span>`
+        ? `<a href="${c.link}" style="display:inline-flex;align-items:center;gap:6px;color:${s.mutedColor};text-decoration:none;font-size:13px;">${ic} ${t}</a>`
+        : `<span style="display:inline-flex;align-items:center;gap:6px;color:${s.mutedColor};font-size:13px;">${ic} ${t}</span>`
     }).join('')}</div>` : ''}
     ${copyrightHTML(s, lang)}
   </div>`
