@@ -1,5 +1,5 @@
 'use client'
-import React, { useState, useRef } from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -712,12 +712,32 @@ interface NavLinkEditorProps {
 }
 
 function NavLinkEditor({ link, onChange, onDelete, lang, isBilingual = true, pCode = 'EN', sCode = 'RU' }: NavLinkEditorProps) {
+  const [local, setLocal] = useState(link)
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // Sync from parent when link.id changes (new link added / reorder)
+  useEffect(() => {
+    setLocal(link)
+  }, [link.id]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleChange = (field: keyof NavLink, value: string) => {
+    const updated = { ...local, [field]: value }
+    setLocal(updated)
+    if (timerRef.current) clearTimeout(timerRef.current)
+    timerRef.current = setTimeout(() => onChange(updated), 400)
+  }
+
+  const handleBlur = () => {
+    if (timerRef.current) clearTimeout(timerRef.current)
+    onChange(local)
+  }
+
   return (
     <div className="flex gap-2 items-center p-2 bg-zinc-50 dark:bg-zinc-800 rounded-lg">
       <GripVertical className="w-4 h-4 text-zinc-300 cursor-grab flex-shrink-0" />
-      <Input value={link.label} onChange={e => onChange({ ...link, label: e.target.value })} placeholder={`Label${isBilingual ? ` ${pCode}` : ''}`} className="text-xs h-7 flex-1" />
-      {isBilingual && <Input value={link.labelRu} onChange={e => onChange({ ...link, labelRu: e.target.value })} placeholder={`Label ${sCode}`} className="text-xs h-7 flex-1" />}
-      <Input value={link.href} onChange={e => onChange({ ...link, href: e.target.value })} placeholder="/link" className="text-xs h-7 w-24" />
+      <Input value={local.label} onChange={e => handleChange('label', e.target.value)} onBlur={handleBlur} placeholder={`Label${isBilingual ? ` ${pCode}` : ''}`} className="text-xs h-7 flex-1" />
+      {isBilingual && <Input value={local.labelRu} onChange={e => handleChange('labelRu', e.target.value)} onBlur={handleBlur} placeholder={`Label ${sCode}`} className="text-xs h-7 flex-1" />}
+      <Input value={local.href} onChange={e => handleChange('href', e.target.value)} onBlur={handleBlur} placeholder="/link" className="text-xs h-7 w-24" />
       <button onClick={onDelete} className="p-1 rounded hover:bg-red-100"><Trash2 className="w-3.5 h-3.5 text-red-500" /></button>
     </div>
   )
