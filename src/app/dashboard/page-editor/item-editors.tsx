@@ -705,17 +705,21 @@ interface NavLinkEditorProps {
   link: NavLink
   onChange: (link: NavLink) => void
   onDelete: () => void
+  onMoveUp?: () => void
+  onMoveDown?: () => void
+  isFirst?: boolean
+  isLast?: boolean
   lang: 'en' | 'ru'
   isBilingual?: boolean
   pCode?: string
   sCode?: string
 }
 
-function NavLinkEditor({ link, onChange, onDelete, lang, isBilingual = true, pCode = 'EN', sCode = 'RU' }: NavLinkEditorProps) {
+function NavLinkEditor({ link, onChange, onDelete, onMoveUp, onMoveDown, isFirst, isLast, lang, isBilingual = true, pCode = 'EN', sCode = 'RU' }: NavLinkEditorProps) {
   const [local, setLocal] = useState(link)
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  // Sync from parent when link.id changes (new link added / reorder)
+  // Sync from parent when link.id changes (new link added / component reused)
   useEffect(() => {
     setLocal(link)
   }, [link.id]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -738,6 +742,10 @@ function NavLinkEditor({ link, onChange, onDelete, lang, isBilingual = true, pCo
       <Input value={local.label} onChange={e => handleChange('label', e.target.value)} onBlur={handleBlur} placeholder={`Label${isBilingual ? ` ${pCode}` : ''}`} className="text-xs h-7 flex-1" />
       {isBilingual && <Input value={local.labelRu} onChange={e => handleChange('labelRu', e.target.value)} onBlur={handleBlur} placeholder={`Label ${sCode}`} className="text-xs h-7 flex-1" />}
       <Input value={local.href} onChange={e => handleChange('href', e.target.value)} onBlur={handleBlur} placeholder="/link" className="text-xs h-7 w-24" />
+      <div className="flex flex-col gap-0.5">
+        <button onClick={onMoveUp} disabled={isFirst} className={`p-0.5 rounded transition-colors ${isFirst ? 'opacity-20 cursor-not-allowed' : 'hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-500'}`}><ChevronUp className="w-3 h-3" /></button>
+        <button onClick={onMoveDown} disabled={isLast} className={`p-0.5 rounded transition-colors ${isLast ? 'opacity-20 cursor-not-allowed' : 'hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-500'}`}><ChevronDown className="w-3 h-3" /></button>
+      </div>
       <button onClick={onDelete} className="p-1 rounded hover:bg-red-100"><Trash2 className="w-3.5 h-3.5 text-red-500" /></button>
     </div>
   )
@@ -808,6 +816,15 @@ export function HeaderEditor({ data, onChange, lang }: HeaderEditorProps) {
 
   const removeNavLink = (id: string) => {
     onChange({ ...data, navLinks: data.navLinks.filter(l => l.id !== id) })
+  }
+
+  const moveNavLink = (id: string, dir: -1 | 1) => {
+    const arr = [...data.navLinks]
+    const idx = arr.findIndex(l => l.id === id)
+    const target = idx + dir
+    if (idx < 0 || target < 0 || target >= arr.length) return
+    ;[arr[idx], arr[target]] = [arr[target], arr[idx]]
+    onChange({ ...data, navLinks: arr })
   }
 
   const toggle = (s: string) => setOpenSection(openSection === s ? '' : s)
@@ -930,8 +947,11 @@ export function HeaderEditor({ data, onChange, lang }: HeaderEditorProps) {
             <button onClick={addNavLink} className="p-1 rounded-lg hover:bg-teal-50 dark:hover:bg-teal-900/30 text-teal-500"><Plus className="w-3.5 h-3.5" /></button>
           </div>
           <div className="space-y-1.5 max-h-[200px] overflow-y-auto">
-            {data.navLinks.map(link => (
-              <NavLinkEditor key={link.id} link={link} onChange={l => updateNavLink(link.id, l)} onDelete={() => removeNavLink(link.id)} lang={lang} isBilingual={isBilingual} pCode={pCode} sCode={sCode} />
+            {data.navLinks.map((link, i) => (
+              <NavLinkEditor key={link.id} link={link} onChange={l => updateNavLink(link.id, l)} onDelete={() => removeNavLink(link.id)}
+                onMoveUp={() => moveNavLink(link.id, -1)} onMoveDown={() => moveNavLink(link.id, 1)}
+                isFirst={i === 0} isLast={i === data.navLinks.length - 1}
+                lang={lang} isBilingual={isBilingual} pCode={pCode} sCode={sCode} />
             ))}
           </div>
           {data.navLinks.length === 0 && <p className="text-[11px] text-zinc-400 text-center py-2">{lang === 'ru' ? 'Нет ссылок' : 'No links yet'}</p>}
