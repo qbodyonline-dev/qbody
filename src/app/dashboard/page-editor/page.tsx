@@ -1,5 +1,5 @@
 'use client'
-import React, { useState, useEffect, useCallback, Suspense } from 'react'
+import React, { useState, useEffect, useCallback, useRef, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -251,6 +251,63 @@ function PageEditorInner() {
 
   const upd = (id: string, u: Partial<PageBlock>) => { const n = blocks.map(b => b.id === id ? { ...b, ...u } : b); push(n) }
   const updSilent = (id: string, u: Partial<PageBlock>) => setBlocks(p => p.map(b => b.id === id ? { ...b, ...u } : b)) // For typing — no history push
+
+  /* ── Debounced commit for structured editors ──
+     updSilent updates UI instantly (no history/no renderHTML),
+     then after 400ms of idle, renderHTML + push to history */
+  const blocksRef = useRef(blocks)
+  blocksRef.current = blocks
+  const historyRef = useRef(history)
+  historyRef.current = history
+  const histIdxRef = useRef(histIdx)
+  histIdxRef.current = histIdx
+  const commitTimers = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map())
+
+  const pushStable = (next: PageBlock[]) => {
+    const h = historyRef.current.slice(0, histIdxRef.current + 1)
+    h.push(next)
+    setHistory(h)
+    setHistIdx(h.length - 1)
+    setBlocks(next)
+  }
+
+  /** Flush all pending debounce timers — call before save to ensure contentEn/contentRu are fresh */
+  const pendingRenders = useRef<Map<string, (block: PageBlock) => Partial<PageBlock>>>(new Map())
+
+  const flushPendingCommits = () => {
+    commitTimers.current.forEach((timer) => clearTimeout(timer))
+    commitTimers.current.clear()
+    const fns = pendingRenders.current
+    if (fns.size === 0) return blocksRef.current
+    let cur = blocksRef.current
+    fns.forEach((renderFn, id) => {
+      const block = cur.find(b => b.id === id)
+      if (!block) return
+      const rendered = renderFn(block)
+      cur = cur.map(b => b.id === id ? { ...b, ...rendered } : b)
+    })
+    fns.clear()
+    pushStable(cur)
+    return cur
+  }
+
+  /** Update block data instantly (no re-render lag), debounce heavy renderHTML + history push */
+  const updStructured = (id: string, dataUpdate: Partial<PageBlock>, renderFn: (block: PageBlock) => Partial<PageBlock>) => {
+    updSilent(id, dataUpdate)
+    pendingRenders.current.set(id, renderFn)
+    const prev = commitTimers.current.get(id)
+    if (prev) clearTimeout(prev)
+    commitTimers.current.set(id, setTimeout(() => {
+      commitTimers.current.delete(id)
+      pendingRenders.current.delete(id)
+      const cur = blocksRef.current
+      const block = cur.find(b => b.id === id)
+      if (!block) return
+      const rendered = renderFn(block)
+      const next = cur.map(b => b.id === id ? { ...b, ...rendered } : b)
+      pushStable(next)
+    }, 400))
+  }
   const mv = (id: string, d: -1 | 1) => { const arr = [...blocks]; const i = arr.findIndex(b => b.id === id); const n = i + d; if (n < 0 || n >= arr.length) return;[arr[i], arr[n]] = [arr[n], arr[i]]; push(arr) }
   const rm = (id: string) => { const filtered = blocks.filter(b => b.id !== id); push(filtered); if (active === id) setActive(filtered[0]?.id || '') }
   const dup = (id: string) => { const i = blocks.findIndex(b => b.id === id); if (i < 0) return; const s = blocks[i]; const d: PageBlock = { ...s, id: `c_${Date.now()}`, label: s.label + ' ⊕', labelRu: s.labelRu + ' ⊕', style: { ...s.style } }; const a = [...blocks]; a.splice(i + 1, 0, d); push(a) }
@@ -474,7 +531,8 @@ function PageEditorInner() {
           }}>{lang === 'ru' ? 'Сброс' : 'Reset'}</Button>
           <Button variant="gradient" size="sm" onClick={async () => {
             try {
-              await saveBlocksToDB(blocks)
+              const fresh = flushPendingCommits()
+              await saveBlocksToDB(fresh)
               toast.success(lang === 'ru' ? 'Сохранено в базу!' : 'Saved to database!')
             } catch { toast.error(lang === 'ru' ? 'Ошибка сохранения' : 'Save failed') }
           }}><Save className="w-3.5 h-3.5 mr-1.5" />{lang === 'ru' ? 'Сохранить' : 'Save'}</Button>
@@ -581,9 +639,10 @@ function PageEditorInner() {
                   <CoursesBlockEditor
                     items={(ab.items as CourseItem[]) || defaultCourseItems}
                     onChange={(items) => {
-                      const contentEn = renderCoursesHTML(items, 'en')
-                      const contentRu = renderCoursesHTML(items, 'ru')
-                      upd(ab.id, { items, contentEn, contentRu, label: `Video Courses (${items.length})`, labelRu: `Видеокурсы (${items.length})` })
+                      updStructured(ab.id, { items, label: `Video Courses (${items.length})`, labelRu: `Видеокурсы (${items.length})` }, (b) => ({
+                        contentEn: renderCoursesHTML(b.items as any[], 'en'),
+                        contentRu: renderCoursesHTML(b.items as any[], 'ru')
+                      }))
                     }}
                     lang={lt}
                   />
@@ -605,9 +664,10 @@ function PageEditorInner() {
                   <ProgramsBlockEditor
                     items={(ab.items as ProgramItem[]) || defaultProgramItems}
                     onChange={(items) => {
-                      const contentEn = renderProgramsHTML(items, 'en')
-                      const contentRu = renderProgramsHTML(items, 'ru')
-                      upd(ab.id, { items, contentEn, contentRu, label: `Programs (${items.length})`, labelRu: `Программы (${items.length})` })
+                      updStructured(ab.id, { items, label: `Programs (${items.length})`, labelRu: `Программы (${items.length})` }, (b) => ({
+                        contentEn: renderProgramsHTML(b.items as any[], 'en'),
+                        contentRu: renderProgramsHTML(b.items as any[], 'ru')
+                      }))
                     }}
                     lang={lt}
                   />
@@ -629,9 +689,10 @@ function PageEditorInner() {
                   <ResultsBlockEditor
                     items={(ab.items as ResultItem[]) || defaultResultItems}
                     onChange={(items) => {
-                      const contentEn = renderResultsHTML(items, 'en')
-                      const contentRu = renderResultsHTML(items, 'ru')
-                      upd(ab.id, { items, contentEn, contentRu, label: `Results (${items.length})`, labelRu: `Результаты (${items.length})` })
+                      updStructured(ab.id, { items, label: `Results (${items.length})`, labelRu: `Результаты (${items.length})` }, (b) => ({
+                        contentEn: renderResultsHTML(b.items as any[], 'en'),
+                        contentRu: renderResultsHTML(b.items as any[], 'ru')
+                      }))
                     }}
                     lang={lt}
                   />
@@ -653,9 +714,10 @@ function PageEditorInner() {
                   <HeaderEditor
                     data={(ab.data as HeaderData) || defaultHeaderData}
                     onChange={(data) => {
-                      const contentEn = renderHeaderHTML(data, 'en', headerLC)
-                      const contentRu = renderHeaderHTML(data, 'ru', headerLC)
-                      upd(ab.id, { data, contentEn, contentRu })
+                      updStructured(ab.id, { data }, (b) => ({
+                        contentEn: renderHeaderHTML(b.data as HeaderData, 'en', headerLC),
+                        contentRu: renderHeaderHTML(b.data as HeaderData, 'ru', headerLC)
+                      }))
                     }}
                     lang={lt}
                   />
@@ -677,9 +739,10 @@ function PageEditorInner() {
                   <HeroEditor
                     data={(ab.data as HeroData) || defaultHeroData}
                     onChange={(data) => {
-                      const contentEn = renderHeroHTML(data, 'en')
-                      const contentRu = renderHeroHTML(data, 'ru')
-                      upd(ab.id, { data, contentEn, contentRu })
+                      updStructured(ab.id, { data }, (b) => ({
+                        contentEn: renderHeroHTML(b.data as HeroData, 'en'),
+                        contentRu: renderHeroHTML(b.data as HeroData, 'ru')
+                      }))
                     }}
                     lang={lt}
                   />
@@ -701,9 +764,10 @@ function PageEditorInner() {
                   <AboutEditor
                     data={(ab.data as AboutData) || defaultAboutData}
                     onChange={(data) => {
-                      const contentEn = renderAboutHTML(data, 'en')
-                      const contentRu = renderAboutHTML(data, 'ru')
-                      upd(ab.id, { data, contentEn, contentRu })
+                      updStructured(ab.id, { data }, (b) => ({
+                        contentEn: renderAboutHTML(b.data as AboutData, 'en'),
+                        contentRu: renderAboutHTML(b.data as AboutData, 'ru')
+                      }))
                     }}
                     lang={lt}
                   />
@@ -719,9 +783,10 @@ function PageEditorInner() {
                   <HtmlBlockEditor
                     data={(ab.data as any as HtmlBlockData) || defaultHtmlBlockData()}
                     onChange={(data) => {
-                      const contentEn = renderHtmlBlockHTML(data, 'en')
-                      const contentRu = renderHtmlBlockHTML(data, 'ru')
-                      upd(ab.id, { data: data as any, contentEn, contentRu })
+                      updStructured(ab.id, { data: data as any }, (b) => ({
+                        contentEn: renderHtmlBlockHTML(b.data as any as HtmlBlockData, 'en'),
+                        contentRu: renderHtmlBlockHTML(b.data as any as HtmlBlockData, 'ru')
+                      }))
                     }}
                     lang={lt}
                   />
@@ -737,9 +802,10 @@ function PageEditorInner() {
                   <SliderEditor
                     data={(ab.data as any as SliderData) || defaultSliderData()}
                     onChange={(data) => {
-                      const contentEn = renderSliderHTML(data, 'en')
-                      const contentRu = renderSliderHTML(data, 'ru')
-                      upd(ab.id, { data: data as any, contentEn, contentRu })
+                      updStructured(ab.id, { data: data as any }, (b) => ({
+                        contentEn: renderSliderHTML(b.data as any as SliderData, 'en'),
+                        contentRu: renderSliderHTML(b.data as any as SliderData, 'ru')
+                      }))
                     }}
                     lang={lt}
                   />
@@ -755,9 +821,10 @@ function PageEditorInner() {
                   <HeroTemplateEditor
                     data={(ab.data as any as HeroTemplateData) || defaultHeroTemplateData()}
                     onChange={(data) => {
-                      const contentEn = renderHeroTemplateHTML(data, 'en')
-                      const contentRu = renderHeroTemplateHTML(data, 'ru')
-                      upd(ab.id, { data: data as any, contentEn, contentRu })
+                      updStructured(ab.id, { data: data as any }, (b) => ({
+                        contentEn: renderHeroTemplateHTML(b.data as any as HeroTemplateData, 'en'),
+                        contentRu: renderHeroTemplateHTML(b.data as any as HeroTemplateData, 'ru')
+                      }))
                     }}
                     lang={lt}
                   />
@@ -775,15 +842,15 @@ function PageEditorInner() {
                     section={((ab.data as any)?.section as CourseSectionData) || defaultCourseSectionData}
                     onChangeItems={(items) => {
                       const sec = ((ab.data as any)?.section as CourseSectionData) || defaultCourseSectionData
-                      const contentEn = renderCourses2HTML(items, sec, 'en')
-                      const contentRu = renderCourses2HTML(items, sec, 'ru')
-                      upd(ab.id, { data: { section: sec, items } as any, contentEn, contentRu, label: `Courses (${items.length})`, labelRu: `Курсы (${items.length})` })
+                      updStructured(ab.id, { data: { section: sec, items } as any, label: `Courses (${items.length})`, labelRu: `Курсы (${items.length})` }, (b) => {
+                        const d = b.data as any; return { contentEn: renderCourses2HTML(d.items || [], d.section || defaultCourseSectionData, 'en'), contentRu: renderCourses2HTML(d.items || [], d.section || defaultCourseSectionData, 'ru') }
+                      })
                     }}
                     onChangeSection={(sec) => {
                       const items = ((ab.data as any)?.items as CourseItem2[]) || defaultCourseItems2
-                      const contentEn = renderCourses2HTML(items, sec, 'en')
-                      const contentRu = renderCourses2HTML(items, sec, 'ru')
-                      upd(ab.id, { data: { section: sec, items } as any, contentEn, contentRu })
+                      updStructured(ab.id, { data: { section: sec, items } as any }, (b) => {
+                        const d = b.data as any; return { contentEn: renderCourses2HTML(d.items || [], d.section || defaultCourseSectionData, 'en'), contentRu: renderCourses2HTML(d.items || [], d.section || defaultCourseSectionData, 'ru') }
+                      })
                     }}
                     lang={lt}
                   />
@@ -799,9 +866,10 @@ function PageEditorInner() {
                   <AboutSectionEditor
                     section={((ab.data as any)?.section as AboutSectionData) || defaultAboutSectionData}
                     onChangeSection={(sec) => {
-                      const contentEn = renderAbout2HTML(sec, 'en')
-                      const contentRu = renderAbout2HTML(sec, 'ru')
-                      upd(ab.id, { data: { section: sec } as any, contentEn, contentRu })
+                      updStructured(ab.id, { data: { section: sec } as any }, (b) => {
+                        const d = (b.data as any)?.section || defaultAboutSectionData
+                        return { contentEn: renderAbout2HTML(d, 'en'), contentRu: renderAbout2HTML(d, 'ru') }
+                      })
                     }}
                     lang={lt}
                   />
@@ -817,9 +885,10 @@ function PageEditorInner() {
                   <CtaSectionEditor
                     section={((ab.data as any)?.section as CtaSectionData) || defaultCtaSectionData}
                     onChangeSection={(sec) => {
-                      const contentEn = renderCta2HTML(sec, 'en')
-                      const contentRu = renderCta2HTML(sec, 'ru')
-                      upd(ab.id, { data: { section: sec } as any, contentEn, contentRu })
+                      updStructured(ab.id, { data: { section: sec } as any }, (b) => {
+                        const d = (b.data as any)?.section || defaultCtaSectionData
+                        return { contentEn: renderCta2HTML(d, 'en'), contentRu: renderCta2HTML(d, 'ru') }
+                      })
                     }}
                     lang={lt}
                   />
@@ -835,9 +904,10 @@ function PageEditorInner() {
                   <FaqSectionEditor
                     section={((ab.data as any)?.section as FaqSectionData) || defaultFaqSectionData}
                     onChangeSection={(sec) => {
-                      const contentEn = renderFaq2HTML(sec, 'en')
-                      const contentRu = renderFaq2HTML(sec, 'ru')
-                      upd(ab.id, { data: { section: sec } as any, contentEn, contentRu })
+                      updStructured(ab.id, { data: { section: sec } as any }, (b) => {
+                        const d = (b.data as any)?.section || defaultFaqSectionData
+                        return { contentEn: renderFaq2HTML(d, 'en'), contentRu: renderFaq2HTML(d, 'ru') }
+                      })
                     }}
                     lang={lt}
                   />
@@ -853,9 +923,10 @@ function PageEditorInner() {
                   <ContactSectionEditor
                     section={((ab.data as any)?.section as ContactSectionData) || defaultContactSectionData}
                     onChangeSection={(sec) => {
-                      const contentEn = renderContact2HTML(sec, 'en')
-                      const contentRu = renderContact2HTML(sec, 'ru')
-                      upd(ab.id, { data: { section: sec } as any, contentEn, contentRu })
+                      updStructured(ab.id, { data: { section: sec } as any }, (b) => {
+                        const d = (b.data as any)?.section || defaultContactSectionData
+                        return { contentEn: renderContact2HTML(d, 'en'), contentRu: renderContact2HTML(d, 'ru') }
+                      })
                     }}
                     lang={lt}
                   />
@@ -871,9 +942,10 @@ function PageEditorInner() {
                   <FooterSectionEditor
                     section={((ab.data as any)?.section as FooterSectionData) || defaultFooterSectionData}
                     onChangeSection={(sec) => {
-                      const contentEn = renderFooter2HTML(sec, 'en')
-                      const contentRu = renderFooter2HTML(sec, 'ru')
-                      upd(ab.id, { data: { section: sec } as any, contentEn, contentRu })
+                      updStructured(ab.id, { data: { section: sec } as any }, (b) => {
+                        const d = (b.data as any)?.section || defaultFooterSectionData
+                        return { contentEn: renderFooter2HTML(d, 'en'), contentRu: renderFooter2HTML(d, 'ru') }
+                      })
                     }}
                     lang={lt}
                   />
