@@ -1062,6 +1062,8 @@ export function HeroEditor({ data, onChange, lang }: HeroEditorProps) {
   const [showGradientPicker, setShowGradientPicker] = useState(false)
   const [uploading, setUploading] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const [badgeUploading, setBadgeUploading] = useState(false)
+  const badgeFileInputRef = useRef<HTMLInputElement>(null)
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -1110,6 +1112,35 @@ export function HeroEditor({ data, onChange, lang }: HeroEditorProps) {
   const removeImage = () => {
     onChange({ ...data, heroImage: undefined })
     toast.success(lang === 'ru' ? 'Изображение удалено' : 'Image removed')
+  }
+
+  const handleBadgeImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (!file.type.startsWith('image/')) { toast.error(lang === 'ru' ? 'Выберите изображение' : 'Please select an image file'); return }
+    if (file.size > 5 * 1024 * 1024) { toast.error(lang === 'ru' ? 'Файл слишком большой (макс. 5MB)' : 'File too large (max 5MB)'); return }
+    setBadgeUploading(true)
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+      formData.append('folder', 'hero')
+      const res = await fetchWithAuthUpload('/api/upload', { method: 'POST', body: formData })
+      if (!res.ok) { const err = await res.json().catch(() => ({ error: 'Upload failed' })); throw new Error(err.error || 'Upload failed') }
+      const { url } = await res.json()
+      onChange({ ...data, badgeImage: url })
+      toast.success(lang === 'ru' ? 'Фото загружено!' : 'Photo uploaded!')
+    } catch (err: any) {
+      console.error('Badge upload error:', err)
+      toast.error(err.message || (lang === 'ru' ? 'Ошибка загрузки' : 'Upload failed'))
+    } finally {
+      setBadgeUploading(false)
+      if (badgeFileInputRef.current) badgeFileInputRef.current.value = ''
+    }
+  }
+
+  const removeBadgeImage = () => {
+    onChange({ ...data, badgeImage: undefined, badgeImageMaxWidth: undefined, badgeImageMaxHeight: undefined, badgeImageBorderRadius: undefined, badgeImageObjectFit: undefined, badgeImagePaddingTop: undefined, badgeImagePaddingRight: undefined, badgeImagePaddingBottom: undefined, badgeImagePaddingLeft: undefined })
+    toast.success(lang === 'ru' ? 'Фото удалено' : 'Photo removed')
   }
 
   return (
@@ -1330,6 +1361,199 @@ export function HeroEditor({ data, onChange, lang }: HeroEditorProps) {
                     onChange={e => onChange({ ...data, imagePaddingLeft: e.target.value })}
                     placeholder="0"
                     className="text-xs h-7"
+                  />
+                </div>
+              </div>
+              <p className="text-[10px] text-zinc-400 mt-1">{lang === 'ru' ? 'Значения в px, %, rem' : 'Values in px, %, rem'}</p>
+            </div>
+          </div>
+        )}
+
+        {/* Badge Photo */}
+        <div className="p-3 bg-gradient-to-r from-purple-50 to-zinc-50 dark:from-purple-900/20 dark:to-zinc-800 rounded-lg space-y-3 border border-purple-200 dark:border-purple-800">
+          <label className="text-xs font-medium text-purple-700 dark:text-purple-400 block flex items-center gap-2">
+            <ImageIcon className="w-4 h-4" />
+            {lang === 'ru' ? 'Фото над бейджем' : 'Photo above badge'}
+          </label>
+          <p className="text-[11px] text-zinc-500 dark:text-zinc-400">
+            {lang === 'ru' 
+              ? 'Фото отображается над текстом бейджа в Hero-секции.' 
+              : 'Photo displayed above the badge text in the Hero section.'}
+          </p>
+          
+          {data.badgeImage ? (
+            <div className="flex gap-3 items-start">
+              <div className="relative group">
+                <img 
+                  src={data.badgeImage} 
+                  alt="Badge photo" 
+                  className="w-24 h-24 rounded-xl object-cover border-2 border-purple-200 dark:border-purple-700 shadow-md"
+                />
+                <button 
+                  onClick={removeBadgeImage}
+                  className="absolute -top-2 -right-2 p-1.5 rounded-full bg-red-500 text-white shadow-lg opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </div>
+              <div className="flex-1 space-y-2">
+                <Input 
+                  value={data.badgeImage} 
+                  onChange={e => onChange({ ...data, badgeImage: e.target.value })}
+                  placeholder={lang === 'ru' ? 'URL фото' : 'Photo URL'}
+                  className="text-xs h-8"
+                />
+                <div className="flex gap-2">
+                  <Button 
+                    variant="outline" size="sm" 
+                    onClick={() => badgeFileInputRef.current?.click()}
+                    disabled={badgeUploading}
+                    className="text-xs"
+                  >
+                    {badgeUploading ? <Loader2 className="w-3 h-3 mr-1.5 animate-spin" /> : <Upload className="w-3 h-3 mr-1.5" />}
+                    {lang === 'ru' ? 'Заменить' : 'Replace'}
+                  </Button>
+                  <Button 
+                    variant="outline" size="sm" 
+                    onClick={removeBadgeImage}
+                    className="text-xs text-red-500 hover:text-red-600 hover:bg-red-50"
+                  >
+                    <Trash2 className="w-3 h-3 mr-1.5" />
+                    {lang === 'ru' ? 'Удалить' : 'Remove'}
+                  </Button>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div 
+              onClick={() => !badgeUploading && badgeFileInputRef.current?.click()}
+              className={`border-2 border-dashed border-purple-300 dark:border-purple-700 rounded-xl p-4 text-center cursor-pointer transition-all ${badgeUploading ? 'opacity-50' : 'hover:border-purple-400 hover:bg-purple-50/50 dark:hover:bg-purple-900/30'}`}
+            >
+              {badgeUploading ? (
+                <div className="flex flex-col items-center gap-2">
+                  <Loader2 className="w-6 h-6 text-purple-500 animate-spin" />
+                  <p className="text-sm text-purple-600 dark:text-purple-400">{lang === 'ru' ? 'Загрузка...' : 'Uploading...'}</p>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center gap-2">
+                  <div className="w-10 h-10 rounded-xl bg-purple-100 dark:bg-purple-900/50 flex items-center justify-center">
+                    <Upload className="w-5 h-5 text-purple-500" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                      {lang === 'ru' ? 'Нажмите для загрузки' : 'Click to upload'}
+                    </p>
+                    <p className="text-xs text-zinc-500">PNG, JPG, WEBP (макс. 5MB)</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+          
+          <input
+            ref={badgeFileInputRef}
+            type="file"
+            accept="image/*"
+            onChange={handleBadgeImageUpload}
+            className="hidden"
+          />
+          
+          {!data.badgeImage && (
+            <div className="flex gap-2 items-center">
+              <span className="text-xs text-zinc-500">{lang === 'ru' ? 'или вставьте URL:' : 'or paste URL:'}</span>
+              <Input 
+                value={data.badgeImage || ''} 
+                onChange={e => onChange({ ...data, badgeImage: e.target.value || undefined })}
+                placeholder="https://..."
+                className="text-xs h-8 flex-1"
+              />
+            </div>
+          )}
+        </div>
+
+        {/* Badge Photo Settings */}
+        {data.badgeImage && (
+          <div className="p-3 bg-zinc-50 dark:bg-zinc-800 rounded-lg space-y-3">
+            <label className="text-xs font-medium text-zinc-600 dark:text-zinc-400 block flex items-center gap-2">
+              📐 {lang === 'ru' ? 'Настройки фото бейджа' : 'Badge Photo Settings'}
+            </label>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs text-zinc-500 block mb-1">{lang === 'ru' ? 'Макс. ширина' : 'Max Width'}</label>
+                <Input 
+                  value={data.badgeImageMaxWidth || '120px'} 
+                  onChange={e => onChange({ ...data, badgeImageMaxWidth: e.target.value })}
+                  placeholder="120px"
+                  className="text-xs h-8"
+                />
+              </div>
+              <div>
+                <label className="text-xs text-zinc-500 block mb-1">{lang === 'ru' ? 'Макс. высота' : 'Max Height'}</label>
+                <Input 
+                  value={data.badgeImageMaxHeight || '120px'} 
+                  onChange={e => onChange({ ...data, badgeImageMaxHeight: e.target.value })}
+                  placeholder="120px"
+                  className="text-xs h-8"
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs text-zinc-500 block mb-1">{lang === 'ru' ? 'Скругление углов' : 'Border Radius'}</label>
+                <Input 
+                  value={data.badgeImageBorderRadius || '50%'} 
+                  onChange={e => onChange({ ...data, badgeImageBorderRadius: e.target.value })}
+                  placeholder="50%"
+                  className="text-xs h-8"
+                />
+              </div>
+              <div>
+                <label className="text-xs text-zinc-500 block mb-1">{lang === 'ru' ? 'Заполнение' : 'Object Fit'}</label>
+                <select 
+                  value={data.badgeImageObjectFit || 'cover'} 
+                  onChange={e => onChange({ ...data, badgeImageObjectFit: e.target.value as any })}
+                  className="w-full h-8 px-2 text-xs border border-zinc-200 dark:border-zinc-700 dark:bg-zinc-900 rounded-lg"
+                >
+                  <option value="cover">Cover ({lang === 'ru' ? 'заполнить' : 'fill area'})</option>
+                  <option value="contain">Contain ({lang === 'ru' ? 'вписать' : 'fit inside'})</option>
+                  <option value="fill">Fill ({lang === 'ru' ? 'растянуть' : 'stretch'})</option>
+                  <option value="none">None ({lang === 'ru' ? 'оригинал' : 'original'})</option>
+                </select>
+              </div>
+            </div>
+            <div>
+              <label className="text-xs text-zinc-500 block mb-2">{lang === 'ru' ? 'Отступы (padding)' : 'Padding'}</label>
+              <div className="grid grid-cols-4 gap-2">
+                <div>
+                  <label className="text-[10px] text-zinc-400 block mb-0.5">{lang === 'ru' ? 'Верх' : 'Top'}</label>
+                  <Input 
+                    value={data.badgeImagePaddingTop || '0'} 
+                    onChange={e => onChange({ ...data, badgeImagePaddingTop: e.target.value })}
+                    placeholder="0" className="text-xs h-7"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] text-zinc-400 block mb-0.5">{lang === 'ru' ? 'Право' : 'Right'}</label>
+                  <Input 
+                    value={data.badgeImagePaddingRight || '0'} 
+                    onChange={e => onChange({ ...data, badgeImagePaddingRight: e.target.value })}
+                    placeholder="0" className="text-xs h-7"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] text-zinc-400 block mb-0.5">{lang === 'ru' ? 'Низ' : 'Bottom'}</label>
+                  <Input 
+                    value={data.badgeImagePaddingBottom || '0'} 
+                    onChange={e => onChange({ ...data, badgeImagePaddingBottom: e.target.value })}
+                    placeholder="0" className="text-xs h-7"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] text-zinc-400 block mb-0.5">{lang === 'ru' ? 'Лево' : 'Left'}</label>
+                  <Input 
+                    value={data.badgeImagePaddingLeft || '0'} 
+                    onChange={e => onChange({ ...data, badgeImagePaddingLeft: e.target.value })}
+                    placeholder="0" className="text-xs h-7"
                   />
                 </div>
               </div>

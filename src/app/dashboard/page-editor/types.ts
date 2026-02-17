@@ -151,6 +151,16 @@ export interface HeroData {
   imagePaddingRight?: string
   imageBorderRadius?: string  // e.g., "24px"
   imageObjectFit?: 'cover' | 'contain' | 'fill' | 'none'
+  // Badge photo (above badge text)
+  badgeImage?: string
+  badgeImageMaxWidth?: string
+  badgeImageMaxHeight?: string
+  badgeImageBorderRadius?: string
+  badgeImageObjectFit?: 'cover' | 'contain' | 'fill' | 'none'
+  badgeImagePaddingTop?: string
+  badgeImagePaddingRight?: string
+  badgeImagePaddingBottom?: string
+  badgeImagePaddingLeft?: string
 }
 
 export interface AboutStat {

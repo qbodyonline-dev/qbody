@@ -353,6 +353,22 @@ export function renderHeroHTML(data: HeroData, lang: 'en' | 'ru'): string {
 
   const featuresHtml = features.map(f => `✓ ${f}`).join('&nbsp;&nbsp;')
 
+  // Badge image helper
+  const addPx = (val: string) => /^\d+$/.test(val) ? val + 'px' : val
+  let badgeImageHtml = ''
+  if (data.badgeImage) {
+    const bMaxW = data.badgeImageMaxWidth || '120px'
+    const bMaxH = data.badgeImageMaxHeight || '120px'
+    const bRadius = data.badgeImageBorderRadius || '50%'
+    const bFit = data.badgeImageObjectFit || 'cover'
+    const bPadTop = data.badgeImagePaddingTop || '0'
+    const bPadRight = data.badgeImagePaddingRight || '0'
+    const bPadBottom = data.badgeImagePaddingBottom || '0'
+    const bPadLeft = data.badgeImagePaddingLeft || '0'
+    const bPadding = `${addPx(bPadTop)} ${addPx(bPadRight)} ${addPx(bPadBottom)} ${addPx(bPadLeft)}`
+    badgeImageHtml = `<div style="margin-bottom:16px;padding:${bPadding};"><img src="${data.badgeImage}" alt="" style="max-width:${bMaxW};max-height:${bMaxH};border-radius:${bRadius};object-fit:${bFit};display:block;" /></div>`
+  }
+
   // Two-column layout with image
   if (data.heroImage) {
     const heroId = `hero-${Date.now()}`
@@ -367,8 +383,6 @@ export function renderHeroHTML(data: HeroData, lang: 'en' | 'ru'): string {
     const imgPadBottom = data.imagePaddingBottom || '0'
     const imgPadLeft = data.imagePaddingLeft || '0'
     
-    // Add px if only number
-    const addPx = (val: string) => /^\d+$/.test(val) ? val + 'px' : val
     const imgPadding = `${addPx(imgPadTop)} ${addPx(imgPadRight)} ${addPx(imgPadBottom)} ${addPx(imgPadLeft)}`
     
     return `<div style="padding:60px 20px;background:${data.gradient};color:white;">
@@ -386,6 +400,7 @@ export function renderHeroHTML(data: HeroData, lang: 'en' | 'ru'): string {
       <div id="${heroId}">
         <div class="hero-grid" style="max-width:1200px;margin:0 auto;display:grid;grid-template-columns:1fr 1fr;gap:48px;align-items:center;">
           <div class="hero-text" style="text-align:left;">
+            ${badgeImageHtml}
             <p style="color:#2dd4bf;font-weight:600;font-size:14px;margin-bottom:16px;">${badge}</p>
             <h1 class="hero-title" style="font-size:42px;font-weight:800;margin-bottom:8px;line-height:1.1;">${title}</h1>
             <h1 class="hero-title" style="font-size:42px;font-weight:800;color:#2dd4bf;margin-bottom:24px;line-height:1.1;">${subtitle}</h1>
@@ -413,7 +428,7 @@ export function renderHeroHTML(data: HeroData, lang: 'en' | 'ru'): string {
       #${heroNoImgId} .hero-btns { flex-direction: column !important; align-items: center !important; }
     }
   </style>
-  <div id="${heroNoImgId}" style="text-align:center;padding:60px 20px;background:${data.gradient};color:white;"><p style="color:#2dd4bf;font-weight:600;font-size:14px;margin-bottom:16px;">${badge}</p><h1 style="font-size:48px;font-weight:800;margin-bottom:8px;">${title}</h1><h1 style="font-size:48px;font-weight:800;color:#2dd4bf;margin-bottom:24px;">${subtitle}</h1><p style="color:#d4d4d8;font-size:18px;max-width:600px;margin:0 auto 32px;">${description}</p><div class="hero-btns" style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-bottom:24px;"><a href="${data.primaryBtnLink}" style="padding:12px 32px;border-radius:16px;background:#14b8a6;color:white;font-weight:600;font-size:16px;text-decoration:none;">${primaryBtn}</a><a href="${data.secondaryBtnLink}" style="padding:12px 32px;border-radius:16px;border:1px solid rgba(255,255,255,0.3);color:white;font-size:16px;text-decoration:none;">${secondaryBtn}</a></div><p style="font-size:14px;color:#a1a1aa;">${featuresHtml}</p></div>`
+  <div id="${heroNoImgId}" style="text-align:center;padding:60px 20px;background:${data.gradient};color:white;">${badgeImageHtml}<p style="color:#2dd4bf;font-weight:600;font-size:14px;margin-bottom:16px;">${badge}</p><h1 style="font-size:48px;font-weight:800;margin-bottom:8px;">${title}</h1><h1 style="font-size:48px;font-weight:800;color:#2dd4bf;margin-bottom:24px;">${subtitle}</h1><p style="color:#d4d4d8;font-size:18px;max-width:600px;margin:0 auto 32px;">${description}</p><div class="hero-btns" style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-bottom:24px;"><a href="${data.primaryBtnLink}" style="padding:12px 32px;border-radius:16px;background:#14b8a6;color:white;font-weight:600;font-size:16px;text-decoration:none;">${primaryBtn}</a><a href="${data.secondaryBtnLink}" style="padding:12px 32px;border-radius:16px;border:1px solid rgba(255,255,255,0.3);color:white;font-size:16px;text-decoration:none;">${secondaryBtn}</a></div><p style="font-size:14px;color:#a1a1aa;">${featuresHtml}</p></div>`
 }
 
 /* ─────────── ABOUT RENDERER ─────────── */
