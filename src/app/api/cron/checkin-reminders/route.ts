@@ -65,7 +65,7 @@ export async function GET(request: NextRequest) {
     // 3. For each client check last checkin
     const overdueClients: { id: string; name: string; email: string; lastCheckin: string | null; daysSince: number }[] = []
 
-    for (const [clientId, profile] of clientMap) {
+    for (const [clientId, profile] of Array.from(clientMap.entries())) {
       // Find last checkin
       const { data: lastCheckin } = await supabase
         .from('checkins')
