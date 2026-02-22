@@ -96,6 +96,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [isDark, setIsDark] = useState(false)
   const [unreadMessages, setUnreadMessages] = useState(0)
   const [newCheckins, setNewCheckins] = useState(0)
+  const [unreadAlerts, setUnreadAlerts] = useState(0)
   const supabaseRef = useRef<ReturnType<typeof createClient> | null>(null)
 
   // Initialize Supabase client
@@ -182,6 +183,29 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     }
   }, [session?.access_token, fetchNewCheckinsCount])
 
+  // Fetch unread alerts count
+  const fetchUnreadAlerts = useCallback(async () => {
+    if (!session?.access_token) return
+    try {
+      const res = await fetch('/api/trainer-notifications?unread=1&limit=1', {
+        headers: { 'Authorization': `Bearer ${session.access_token}` }
+      })
+      if (res.ok) {
+        const data = await res.json()
+        setUnreadAlerts(data.unread ?? 0)
+      }
+    } catch {}
+  }, [session?.access_token])
+
+  useEffect(() => {
+    if (session?.access_token) {
+      fetchUnreadAlerts()
+      // Re-check every 5 minutes
+      const interval = setInterval(fetchUnreadAlerts, 5 * 60 * 1000)
+      return () => clearInterval(interval)
+    }
+  }, [session?.access_token, fetchUnreadAlerts])
+
   // Real-time subscription for check-ins
   useEffect(() => {
     if (!supabaseRef.current || !session?.access_token) return
@@ -257,7 +281,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       ]
     },
     { name: ru ? 'Конструктор форм' : 'Form Builder', href: '/dashboard/form-builder', icon: FormInput },
-    { name: ru ? 'Уведомления' : 'Notifications', href: '/dashboard/notifications', icon: BellRing },
+    { name: ru ? 'Оповещения' : 'Alerts', href: '/dashboard/alerts', icon: Bell, badge: unreadAlerts },
+    { name: ru ? 'Настр. увед.' : 'Notif. Settings', href: '/dashboard/notifications', icon: BellRing },
     { name: ru ? 'Кеш сайта' : 'Site Cache', href: '/dashboard/site-cache', icon: Database },
     { name: t('common.settings'), href: '/dashboard/settings', icon: Settings },
   ]
@@ -321,6 +346,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <DashboardSearch />
             <div className="flex items-center gap-2">
               <LanguageSwitcher variant="dropdown" />
+              <Link href="/dashboard/alerts" className="relative">
+                <Button variant="ghost" size="icon" title={ru ? 'Оповещения' : 'Alerts'}>
+                  <Bell className="w-5 h-5" />
+                  {unreadAlerts > 0 && (
+                    <span className="absolute -top-0.5 -right-0.5 w-5 h-5 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+                      {unreadAlerts > 9 ? '9+' : unreadAlerts}
+                    </span>
+                  )}
+                </Button>
+              </Link>
               <Button variant="ghost" size="icon" onClick={() => setIsDark(!isDark)} title={isDark ? 'Light mode' : 'Dark mode'}>
                 {isDark ? <Sun className="w-5 h-5 text-yellow-400" /> : <Moon className="w-5 h-5" />}
               </Button>
