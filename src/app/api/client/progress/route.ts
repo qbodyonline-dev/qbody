@@ -20,6 +20,7 @@ export async function GET(request: NextRequest) {
       { data: cp },
       { data: courseProgress },
       { data: courseAccess },
+      { data: checkinPhotos },
     ] = await Promise.all([
       supabase.from('workout_logs')
         .select('id, workout_id, started_at, completed_at, duration_minutes, status, rpe, mood, workouts(name, name_secondary, type)')
@@ -34,6 +35,10 @@ export async function GET(request: NextRequest) {
         .select('lesson_id, completed').eq('client_id', userId),
       supabase.from('course_access')
         .select('course_slug').eq('user_id', userId),
+      supabase.from('checkin_photos')
+        .select('id, photo_url, photo_type, checkin_id, checkins!inner(checkin_date, client_id)')
+        .eq('checkins.client_id', userId)
+        .order('created_at', { ascending: true }),
     ])
 
     const now = new Date()
@@ -132,6 +137,20 @@ export async function GET(request: NextRequest) {
     const totalMinutes = completed.reduce((sum, l) => sum + (l.duration_minutes || 0), 0)
     const streakDays = calculateStreak(completed.map(l => l.started_at))
 
+    // ═══ Progress photos (grouped by date) ═══
+    const photosByDate: Record<string, { date: string; front?: string; side?: string; back?: string }> = {}
+    for (const p of (checkinPhotos || [])) {
+      const date = (p.checkins as any)?.checkin_date
+      if (!date || !p.photo_url) continue
+      if (!photosByDate[date]) photosByDate[date] = { date }
+      const t = (p.photo_type || '').toLowerCase()
+      if (t === 'front') photosByDate[date].front = p.photo_url
+      else if (t === 'side') photosByDate[date].side = p.photo_url
+      else if (t === 'back') photosByDate[date].back = p.photo_url
+      else if (!photosByDate[date].front) photosByDate[date].front = p.photo_url
+    }
+    const progressPhotos = Object.values(photosByDate).sort((a, b) => a.date.localeCompare(b.date))
+
     return NextResponse.json({
       weight: { data: weightData, current: weightData.length > 0 ? weightData[weightData.length - 1].value : null },
       measurements,
@@ -158,6 +177,7 @@ export async function GET(request: NextRequest) {
         current_streak: streakDays,
         total_checkins: (checkins || []).length,
       },
+      photos: progressPhotos,
     })
   } catch (err: any) {
     console.error('GET /api/client/progress error:', err)
