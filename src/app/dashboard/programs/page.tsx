@@ -216,10 +216,19 @@ export default function ProgramsPage() {
 
   const openAdd = () => { resetForm(); setIsModalOpen(true) }
 
+  const parseBlocks = (val: any): Block[] => {
+    if (!val) return []
+    if (Array.isArray(val)) return val
+    if (typeof val === 'string') {
+      try { const parsed = JSON.parse(val); return Array.isArray(parsed) ? parsed : [] } catch { return [] }
+    }
+    return []
+  }
+
   const openEdit = (p: Program) => {
     setEditingId(p.id)
     setFName(p.name); setFNameSecondary(p.name_secondary || ''); setFSlug((p as any).slug || generateSlug(p.name)); setFDesc(p.description || ''); setFDescSecondary(p.description_secondary || '')
-    setFFullDesc((p as any).full_description || []); setFFullDescSecondary((p as any).full_description_secondary || []); setDescTab('ru')
+    setFFullDesc(parseBlocks((p as any).full_description)); setFFullDescSecondary(parseBlocks((p as any).full_description_secondary)); setDescTab('ru')
     setFHeroImage((p as any).hero_image_url || '')
     setFWeeks(p.duration_weeks); setFGoal(p.goal); setFDiff(p.difficulty)
     setFSchedule(buildScheduleFromDays(p.program_days, p.duration_weeks))

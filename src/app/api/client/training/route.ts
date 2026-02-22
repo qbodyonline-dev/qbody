@@ -14,8 +14,11 @@ export async function GET(request: NextRequest) {
   try {
     const supabase = createServerClient()
 
-    // 1. Get active client_program
-    const { data: cp, error: cpErr } = await supabase
+    // 1. Get client_program — by ID or active
+    const { searchParams } = new URL(request.url)
+    const requestedProgramId = searchParams.get('program_id')
+
+    let cpQuery = supabase
       .from('client_programs')
       .select(`
         id, start_date, end_date, status,
@@ -25,8 +28,14 @@ export async function GET(request: NextRequest) {
         )
       `)
       .eq('client_id', userId)
-      .eq('status', 'active')
-      .maybeSingle()
+
+    if (requestedProgramId) {
+      cpQuery = cpQuery.eq('id', requestedProgramId)
+    } else {
+      cpQuery = cpQuery.eq('status', 'active')
+    }
+
+    const { data: cp, error: cpErr } = await cpQuery.maybeSingle()
 
     if (cpErr) {
       console.error('Client program query error:', cpErr)
