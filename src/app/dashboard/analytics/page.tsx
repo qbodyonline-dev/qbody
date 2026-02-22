@@ -40,10 +40,24 @@ type CheckinCompliance = {
   latestWeight: number | null; weightChange: number | null
   lastCheckinDate: string | null; flagged: number; reviewedPct: number
 }
+type ComplianceDistribution = { high: number; medium: number; low: number }
+type ComplianceTrendPoint = { week: string; avgCompliance: number; clientCount: number }
+type RetentionMetrics = {
+  totalEverActive: number; currentlyActive: number; churned: number; retentionPct: number
+  renewed: number; completedPrograms: number; renewalPct: number
+}
+type CheckinRegularity = {
+  id: string; name: string; expectedPerMonth: number; actualPerMonth: number; regularityPct: number
+}
+
 type TrainingData = {
   metrics: TrainingMetrics; clientCompliance: ClientCompliance[]
   checkinCompliance: CheckinCompliance[]; workoutsPerWeek: { week: string; count: number }[]
   dayOfWeekCounts: number[]; moodCounts: Record<string, number>
+  complianceDistribution?: ComplianceDistribution
+  complianceTrend?: ComplianceTrendPoint[]
+  retentionMetrics?: RetentionMetrics
+  checkinRegularity?: CheckinRegularity[]
 }
 
 /* Merged client view for the list */
@@ -106,7 +120,7 @@ function StatCard({ icon: Icon, value, label, sub, color }: { icon: any; value: 
 export default function AnalyticsPage() {
   const { locale } = useTranslation()
   const ru = locale === 'ru'
-  const [tab, setTab] = useState<'business' | 'training'>('training')
+  const [tab, setTab] = useState<'business' | 'training' | 'compliance'>('training')
   const [bizData, setBizData] = useState<BizData | null>(null)
   const [trainingData, setTrainingData] = useState<TrainingData | null>(null)
   const [loading, setLoading] = useState(true)
@@ -131,8 +145,6 @@ export default function AnalyticsPage() {
   const fmtMoney = (cents: number) => `$${(cents / 100).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
   const fmtPct = (v: number) => `${v > 0 ? '+' : ''}${v}%`
   const dayLabels = ru ? ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'] : ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
-  const moodEmojis: Record<string, string> = { great: '🔥', good: '💪', ok: '😐', tired: '😴', bad: '😩' }
-
   const getInitials = (name: string) => name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2) || '??'
 
   const daysSince = (iso: string | null) => {
@@ -377,6 +389,7 @@ export default function AnalyticsPage() {
       <div className="flex gap-1 bg-zinc-100 dark:bg-zinc-800 rounded-xl p-1 w-fit">
         {([
           { key: 'training' as const, label: ru ? 'Тренировки' : 'Training', icon: Dumbbell },
+          { key: 'compliance' as const, label: ru ? 'Комплаенс' : 'Compliance', icon: Activity },
           { key: 'business' as const, label: ru ? 'Бизнес' : 'Business', icon: DollarSign },
         ]).map(t => (
           <button key={t.key} onClick={() => { setTab(t.key); setSelectedClientId(null) }}
@@ -486,6 +499,166 @@ export default function AnalyticsPage() {
             </CardContent>
           </Card>
         </div>
+      )}
+
+      {/* ═══════════ COMPLIANCE TAB ═══════════ */}
+      {tab === 'compliance' && trainingData && (() => {
+        const dist = trainingData.complianceDistribution || { high: 0, medium: 0, low: 0 }
+        const trend = trainingData.complianceTrend || []
+        const ret = trainingData.retentionMetrics || { totalEverActive: 0, currentlyActive: 0, churned: 0, retentionPct: 100, renewed: 0, completedPrograms: 0, renewalPct: 0 }
+        const ciReg = trainingData.checkinRegularity || []
+        const totalDist = dist.high + dist.medium + dist.low || 1
+        const dow = trainingData.dayOfWeekCounts || [0,0,0,0,0,0,0]
+        const moods = trainingData.moodCounts || {}
+        const moodTotal = Object.values(moods).reduce((a, b) => a + b, 0) || 1
+        const moodEmojisMap: Record<string, string> = { great: '🔥', good: '💪', ok: '😐', tired: '😴', bad: '😩' }
+        const moodLabelsMap: Record<string, string> = ru
+          ? { great: 'Отлично', good: 'Хорошо', ok: 'Нормально', tired: 'Устал', bad: 'Плохо' }
+          : { great: 'Great', good: 'Good', ok: 'OK', tired: 'Tired', bad: 'Bad' }
+
+        return (
+          <div className="space-y-6">
+            {/* Retention metrics */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+              <StatCard icon={Users} value={`${ret.retentionPct}%`}
+                label={ru ? 'Ретеншн' : 'Retention'}
+                sub={`${ret.currentlyActive} ${ru ? 'активных' : 'active'} / ${ret.totalEverActive} ${ru ? 'всего' : 'total'}`}
+                color={ret.retentionPct >= 80 ? 'bg-green-500/10 text-green-500' : ret.retentionPct >= 50 ? 'bg-yellow-500/10 text-yellow-500' : 'bg-red-500/10 text-red-500'} />
+              <StatCard icon={TrendingDown} value={String(ret.churned)}
+                label={ru ? 'Отток' : 'Churned'}
+                sub={ru ? 'без активной программы' : 'no active program'}
+                color={ret.churned === 0 ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'} />
+              <StatCard icon={TrendingUp} value={`${ret.renewalPct}%`}
+                label={ru ? 'Продления' : 'Renewal Rate'}
+                sub={`${ret.renewed} ${ru ? 'продлили' : 'renewed'}`}
+                color="bg-teal-500/10 text-teal-500" />
+              <StatCard icon={Activity} value={`${trainingData.metrics.avgCompliancePct}%`}
+                label={ru ? 'Ср. комплаенс' : 'Avg Compliance'}
+                sub={`${dist.high} ≥ 80% · ${dist.medium} 50-79% · ${dist.low} <50%`}
+                color="bg-blue-500/10 text-blue-500" />
+            </div>
+
+            {/* Compliance distribution + Compliance trend */}
+            <div className="grid lg:grid-cols-2 gap-6">
+              <Card>
+                <CardHeader><CardTitle className="text-base">{ru ? 'Распределение комплаенса' : 'Compliance Distribution'}</CardTitle></CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {[
+                      { label: ru ? 'Высокий (≥80%)' : 'High (≥80%)', count: dist.high, color: 'bg-green-500', pct: Math.round((dist.high / totalDist) * 100) },
+                      { label: ru ? 'Средний (50-79%)' : 'Medium (50-79%)', count: dist.medium, color: 'bg-yellow-500', pct: Math.round((dist.medium / totalDist) * 100) },
+                      { label: ru ? 'Низкий (<50%)' : 'Low (<50%)', count: dist.low, color: 'bg-red-500', pct: Math.round((dist.low / totalDist) * 100) },
+                    ].map(item => (
+                      <div key={item.label}>
+                        <div className="flex justify-between text-sm mb-1.5">
+                          <span className="text-zinc-600 dark:text-zinc-400">{item.label}</span>
+                          <span className="font-bold text-zinc-900 dark:text-zinc-100">{item.count} <span className="text-zinc-400 font-normal">({item.pct}%)</span></span>
+                        </div>
+                        <div className="h-3 bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden">
+                          <div className={`h-full ${item.color} rounded-full transition-all`} style={{ width: `${item.pct}%` }} />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader><CardTitle className="text-base">{ru ? 'Тренд комплаенса (8 недель)' : 'Compliance Trend (8 weeks)'}</CardTitle></CardHeader>
+                <CardContent>
+                  <BarChart data={trend.map(t => ({ label: t.week, value: t.avgCompliance }))} color="bg-blue-500" formatValue={v => `${v}%`} />
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Day of week + Mood */}
+            <div className="grid lg:grid-cols-2 gap-6">
+              <Card>
+                <CardHeader><CardTitle className="text-base">{ru ? 'Тренировки по дням недели' : 'Workouts by Day'}</CardTitle></CardHeader>
+                <CardContent>
+                  <BarChart data={dow.map((count, i) => ({ label: dayLabels[i], value: count }))} color="bg-teal-500" />
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader><CardTitle className="text-base">{ru ? 'Настроение клиентов' : 'Client Mood'}</CardTitle></CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    {Object.entries(moods).filter(([, v]) => v > 0).sort((a, b) => b[1] - a[1]).map(([mood, count]) => (
+                      <div key={mood} className="flex items-center gap-3">
+                        <span className="text-xl w-8">{moodEmojisMap[mood] || '❓'}</span>
+                        <span className="text-sm text-zinc-600 dark:text-zinc-400 w-20">{moodLabelsMap[mood] || mood}</span>
+                        <div className="flex-1 h-2.5 bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden">
+                          <div className="h-full bg-teal-500 rounded-full transition-all" style={{ width: `${(count / moodTotal) * 100}%` }} />
+                        </div>
+                        <span className="text-xs font-medium text-zinc-500 w-10 text-right">{count}</span>
+                        <span className="text-xs text-zinc-400 w-10 text-right">{Math.round((count / moodTotal) * 100)}%</span>
+                      </div>
+                    ))}
+                    {moodTotal <= 1 && <p className="text-sm text-zinc-400 text-center py-4">{ru ? 'Нет данных' : 'No mood data yet'}</p>}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Checkin regularity table */}
+            <Card>
+              <CardHeader><CardTitle className="text-base flex items-center gap-2"><Scale className="w-5 h-5 text-orange-500" />{ru ? 'Регулярность чек-инов' : 'Check-in Regularity'}</CardTitle></CardHeader>
+              <CardContent>
+                {ciReg.length === 0 ? (
+                  <p className="text-center py-8 text-zinc-400">{ru ? 'Нет данных' : 'No data'}</p>
+                ) : (
+                  <div className="space-y-2">
+                    {ciReg.map(cr => (
+                      <div key={cr.id} className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-800/50">
+                        <Avatar fallback={getInitials(cr.name)} size="sm" />
+                        <span className="text-sm font-medium text-zinc-900 dark:text-zinc-100 w-36 truncate">{cr.name}</span>
+                        <div className="flex-1">
+                          <ComplianceBar value={cr.regularityPct} size="sm" />
+                        </div>
+                        <span className={`text-xs font-bold w-10 text-right ${cr.regularityPct >= 80 ? 'text-green-600' : cr.regularityPct >= 50 ? 'text-yellow-600' : 'text-red-600'}`}>
+                          {cr.regularityPct}%
+                        </span>
+                        <span className="text-[11px] text-zinc-400 w-24 text-right">
+                          {cr.actualPerMonth}/{cr.expectedPerMonth} {ru ? '/мес' : '/mo'}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Retention funnel */}
+            <Card>
+              <CardHeader><CardTitle className="text-base">{ru ? 'Воронка удержания' : 'Retention Funnel'}</CardTitle></CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {[
+                    { label: ru ? 'Всего клиентов с программами' : 'Total clients with programs', value: ret.totalEverActive, pct: 100, color: 'bg-blue-500' },
+                    { label: ru ? 'Активные сейчас' : 'Currently active', value: ret.currentlyActive, pct: ret.totalEverActive > 0 ? Math.round((ret.currentlyActive / ret.totalEverActive) * 100) : 0, color: 'bg-green-500' },
+                    { label: ru ? 'Продлили программу' : 'Renewed program', value: ret.renewed, pct: ret.totalEverActive > 0 ? Math.round((ret.renewed / ret.totalEverActive) * 100) : 0, color: 'bg-teal-500' },
+                    { label: ru ? 'Отток (нет активной прогр.)' : 'Churned (no active program)', value: ret.churned, pct: ret.totalEverActive > 0 ? Math.round((ret.churned / ret.totalEverActive) * 100) : 0, color: 'bg-red-500' },
+                  ].map(item => (
+                    <div key={item.label}>
+                      <div className="flex justify-between text-sm mb-1">
+                        <span className="text-zinc-600 dark:text-zinc-400">{item.label}</span>
+                        <span className="font-bold text-zinc-900 dark:text-zinc-100">{item.value} <span className="text-zinc-400 font-normal">({item.pct}%)</span></span>
+                      </div>
+                      <div className="h-2.5 bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden">
+                        <div className={`h-full ${item.color} rounded-full transition-all`} style={{ width: `${item.pct}%` }} />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )
+      })()}
+
+      {tab === 'compliance' && !trainingData && (
+        <div className="text-center py-20"><Activity className="w-12 h-12 text-zinc-300 mx-auto mb-4" /><p className="text-zinc-500">{ru ? 'Нет данных' : 'No data available'}</p></div>
       )}
 
       {/* ═══════════ BUSINESS TAB ═══════════ */}

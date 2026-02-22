@@ -174,6 +174,119 @@ export async function GET(request: NextRequest) {
       })
     }
 
+    // ═══ Compliance distribution ═══
+    const complianceDistribution = {
+      high: clientCompliance.filter(c => c.compliancePct >= 80).length,
+      medium: clientCompliance.filter(c => c.compliancePct >= 50 && c.compliancePct < 80).length,
+      low: clientCompliance.filter(c => c.compliancePct < 50).length,
+    }
+
+    // ═══ Compliance trend — last 8 weeks ═══
+    const complianceTrend: { week: string; avgCompliance: number; clientCount: number }[] = []
+    for (let i = 7; i >= 0; i--) {
+      const weekStart = new Date(now.getTime() - (i + 1) * 7 * 24 * 60 * 60 * 1000)
+      const weekEnd = new Date(now.getTime() - i * 7 * 24 * 60 * 60 * 1000)
+      const weekStartStr = weekStart.toISOString()
+      const weekEndStr = weekEnd.toISOString()
+
+      // For each client with active program, count completed in this week vs scheduled per week
+      let totalPct = 0
+      let clientCount = 0
+      for (const cp of (clientPrograms || [])) {
+        const program = cp.training_programs as any
+        if (!program) continue
+        const cpStart = new Date(cp.start_date)
+        if (cpStart > weekEnd) continue // program hadn't started yet
+
+        const schedule = (programDays || []).filter(pd => pd.program_id === program.id && !pd.is_rest_day && pd.workout_id)
+        const expectedPerWeek = schedule.length / Math.max(program.duration_weeks || 1, 1)
+
+        const weekCompleted = completedLogs.filter(l =>
+          l.client_id === cp.client_id && l.started_at >= weekStartStr && l.started_at < weekEndStr
+        ).length
+
+        if (expectedPerWeek > 0) {
+          totalPct += Math.min((weekCompleted / expectedPerWeek) * 100, 100)
+          clientCount++
+        }
+      }
+
+      complianceTrend.push({
+        week: weekStart.toLocaleDateString('en', { month: 'short', day: 'numeric' }),
+        avgCompliance: clientCount > 0 ? Math.round(totalPct / clientCount) : 0,
+        clientCount,
+      })
+    }
+
+    // ═══ Retention & renewal metrics ═══
+    const { data: allClientPrograms } = await supabase
+      .from('client_programs')
+      .select('client_id, status, start_date, end_date')
+
+    const allCp = allClientPrograms || []
+    const uniqueClientsEver = new Set(allCp.map(cp => cp.client_id))
+    const activeClientSet = new Set((clientPrograms || []).map(cp => cp.client_id))
+    const completedPrograms = allCp.filter(cp => cp.status === 'completed')
+    const renewed = new Set<string>()
+
+    // A client "renewed" if they have >1 program (completed + active, or multiple completed)
+    const programCountByClient = new Map<string, number>()
+    for (const cp of allCp) {
+      programCountByClient.set(cp.client_id, (programCountByClient.get(cp.client_id) || 0) + 1)
+    }
+    for (const [cid, count] of Array.from(programCountByClient.entries())) {
+      if (count > 1) renewed.add(cid)
+    }
+
+    // Churned = had a completed/cancelled program, no active program now
+    const completedOrCancelledClients = new Set(
+      allCp.filter(cp => cp.status === 'completed' || cp.status === 'cancelled').map(cp => cp.client_id)
+    )
+    const churned = new Set(
+      Array.from(completedOrCancelledClients).filter(cid => !activeClientSet.has(cid))
+    )
+
+    const retentionMetrics = {
+      totalEverActive: uniqueClientsEver.size,
+      currentlyActive: activeClientSet.size,
+      churned: churned.size,
+      retentionPct: uniqueClientsEver.size > 0
+        ? Math.round(((uniqueClientsEver.size - churned.size) / uniqueClientsEver.size) * 100)
+        : 100,
+      renewed: renewed.size,
+      completedPrograms: completedPrograms.length,
+      renewalPct: completedOrCancelledClients.size > 0
+        ? Math.round((renewed.size / completedOrCancelledClients.size) * 100)
+        : 0,
+    }
+
+    // ═══ Checkin regularity ═══
+    const checkinRegularity: {
+      id: string; name: string
+      expectedPerMonth: number; actualPerMonth: number; regularityPct: number
+    }[] = []
+
+    for (const cp of (clientPrograms || [])) {
+      const profile = profileMap.get(cp.client_id)
+      if (!profile) continue
+      if (checkinRegularity.some(cr => cr.id === cp.client_id)) continue
+
+      const cpStart = new Date(cp.start_date)
+      const monthsActive = Math.max(1, Math.ceil((now.getTime() - cpStart.getTime()) / (30 * 24 * 60 * 60 * 1000)))
+      const clientCi = (checkins || []).filter(c => c.client_id === cp.client_id)
+      const actualPerMonth = Math.round((clientCi.length / monthsActive) * 10) / 10
+      const expectedPerMonth = 4 // ~1 per week
+
+      checkinRegularity.push({
+        id: cp.client_id,
+        name: profile.full_name || profile.email || 'Unknown',
+        expectedPerMonth,
+        actualPerMonth,
+        regularityPct: Math.min(Math.round((actualPerMonth / expectedPerMonth) * 100), 100),
+      })
+    }
+    checkinRegularity.sort((a, b) => a.regularityPct - b.regularityPct)
+
     return NextResponse.json({
       metrics: {
         activePrograms: (clientPrograms || []).length,
@@ -189,6 +302,10 @@ export async function GET(request: NextRequest) {
       workoutsPerWeek,
       dayOfWeekCounts,
       moodCounts,
+      complianceDistribution,
+      complianceTrend,
+      retentionMetrics,
+      checkinRegularity,
     })
   } catch (err: any) {
     console.error('GET /api/analytics/training error:', err)
