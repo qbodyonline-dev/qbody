@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase-server'
 import { authenticateRequest, requireAdmin } from '@/lib/api-auth'
 
+export const dynamic = 'force-dynamic'
+
 /**
  * GET /api/nutrition/targets
  * Trainer: all clients with targets + 7-day compliance.

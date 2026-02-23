@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase-server'
 import { authenticateRequest } from '@/lib/api-auth'
 
+export const dynamic = 'force-dynamic'
+
 /**
  * GET /api/nutrition/logs
  * Client: get own logs (default last 30 days).
