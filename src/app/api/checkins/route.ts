@@ -79,14 +79,14 @@ export async function GET(request: NextRequest) {
 
     // For each client group, sort by date asc and build prev-weight map
     const prevWeightMap = new Map<string, number | null>() // checkin.id -> previous weight
-    for (const [, group] of byClient) {
+    byClient.forEach((group) => {
       const sorted = [...group].sort((a, b) => a.checkin_date.localeCompare(b.checkin_date))
       let lastWeight: number | null = null
       for (const ci of sorted) {
         prevWeightMap.set(ci.id, lastWeight)
         if (ci.weight != null) lastWeight = ci.weight
       }
-    }
+    })
 
     const enriched = checkins.map((ci: any) => {
       const prevWeight = prevWeightMap.get(ci.id) ?? null
