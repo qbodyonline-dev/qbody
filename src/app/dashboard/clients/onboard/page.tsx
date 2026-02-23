@@ -170,7 +170,7 @@ export default function OnboardClientPage() {
           <Button variant="ghost" size="icon"><ArrowLeft className="w-5 h-5" /></Button>
         </Link>
         <div>
-          <h1 className="text-2xl font-bold text-zinc-900">{ru ? 'Новый клиент' : 'New Client'}</h1>
+          <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">{ru ? 'Новый клиент' : 'New Client'}</h1>
           <p className="text-zinc-500 mt-1">{ru ? 'Создание аккаунта клиента' : 'Create a client account'}</p>
         </div>
       </div>
@@ -178,11 +178,11 @@ export default function OnboardClientPage() {
       <Card>
         <CardContent className="p-6 space-y-6">
           {/* Section title */}
-          <div className="flex items-center gap-3 pb-2 border-b border-zinc-100">
+          <div className="flex items-center gap-3 pb-2 border-b border-zinc-100 dark:border-zinc-800">
             <div className="w-9 h-9 rounded-lg bg-teal-500/10 flex items-center justify-center">
               <User className="w-5 h-5 text-teal-600" />
             </div>
-            <h2 className="text-lg font-semibold text-zinc-900">
+            <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
               {ru ? 'Личные данные' : 'Personal Information'}
             </h2>
           </div>
@@ -192,7 +192,7 @@ export default function OnboardClientPage() {
             <div className="relative">
               <div
                 onClick={() => fileRef.current?.click()}
-                className="w-20 h-20 rounded-2xl border-2 border-dashed border-zinc-300 flex items-center justify-center cursor-pointer hover:border-teal-500 transition-colors overflow-hidden bg-zinc-50"
+                className="w-20 h-20 rounded-2xl border-2 border-dashed border-zinc-300 dark:border-zinc-600 flex items-center justify-center cursor-pointer hover:border-teal-500 transition-colors overflow-hidden bg-zinc-50 dark:bg-zinc-800"
               >
                 {avatarPreview ? (
                   <img src={avatarPreview} alt="Avatar" className="w-full h-full object-cover" />
@@ -217,7 +217,7 @@ export default function OnboardClientPage() {
               />
             </div>
             <div>
-              <p className="text-sm font-medium text-zinc-700">{ru ? 'Фото клиента' : 'Client photo'}</p>
+              <p className="text-sm font-medium text-zinc-700 dark:text-zinc-300">{ru ? 'Фото клиента' : 'Client photo'}</p>
               <p className="text-xs text-zinc-400 mt-0.5">{ru ? 'JPG, PNG до 5 МБ' : 'JPG, PNG up to 5 MB'}</p>
               <button
                 onClick={() => fileRef.current?.click()}
@@ -232,7 +232,7 @@ export default function OnboardClientPage() {
           {/* Name */}
           <div className="grid sm:grid-cols-2 gap-4">
             <div>
-              <label className="text-sm font-medium text-zinc-700 mb-1.5 block">
+              <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1.5 block">
                 {ru ? 'Имя' : 'First name'} <span className="text-red-500">*</span>
               </label>
               <input
@@ -241,7 +241,7 @@ export default function OnboardClientPage() {
                 onChange={e => u('firstName', e.target.value)}
                 placeholder={ru ? 'Александра' : 'Alexandra'}
                 className={`w-full h-11 px-4 rounded-xl border text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-teal-500/20 ${
-                  errors.firstName ? 'border-red-400 bg-red-50' : 'border-zinc-200 focus:border-teal-500'
+                  errors.firstName ? 'border-red-400 bg-red-50 dark:bg-red-900/20' : 'border-zinc-200 dark:border-zinc-700 dark:bg-zinc-800/50 dark:text-zinc-100 focus:border-teal-500'
                 }`}
               />
               {errors.firstName && (
@@ -251,7 +251,7 @@ export default function OnboardClientPage() {
               )}
             </div>
             <div>
-              <label className="text-sm font-medium text-zinc-700 mb-1.5 block">
+              <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1.5 block">
                 {ru ? 'Фамилия' : 'Last name'}
               </label>
               <input
@@ -259,14 +259,14 @@ export default function OnboardClientPage() {
                 value={data.lastName}
                 onChange={e => u('lastName', e.target.value)}
                 placeholder={ru ? 'Иванова' : 'Smith'}
-                className="w-full h-11 px-4 rounded-xl border border-zinc-200 text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
+                className="w-full h-11 px-4 rounded-xl border border-zinc-200 dark:border-zinc-700 dark:bg-zinc-800/50 dark:text-zinc-100 text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
               />
             </div>
           </div>
 
           {/* Email */}
           <div>
-            <label className="text-sm font-medium text-zinc-700 mb-1.5 block">
+            <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1.5 block">
               Email <span className="text-red-500">*</span>
             </label>
             <input
@@ -275,7 +275,7 @@ export default function OnboardClientPage() {
               onChange={e => u('email', e.target.value)}
               placeholder="client@example.com"
               className={`w-full h-11 px-4 rounded-xl border text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-teal-500/20 ${
-                errors.email ? 'border-red-400 bg-red-50' : 'border-zinc-200 focus:border-teal-500'
+                errors.email ? 'border-red-400 bg-red-50 dark:bg-red-900/20' : 'border-zinc-200 dark:border-zinc-700 dark:bg-zinc-800/50 dark:text-zinc-100 focus:border-teal-500'
               }`}
             />
             {errors.email && (
@@ -291,7 +291,7 @@ export default function OnboardClientPage() {
           {/* Phone + Birth date */}
           <div className="grid sm:grid-cols-2 gap-4">
             <div>
-              <label className="text-sm font-medium text-zinc-700 mb-1.5 block">
+              <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1.5 block">
                 {ru ? 'Телефон' : 'Phone'}
               </label>
               <input
@@ -299,25 +299,25 @@ export default function OnboardClientPage() {
                 value={data.phone}
                 onChange={e => u('phone', e.target.value)}
                 placeholder="+1 (555) 123-4567"
-                className="w-full h-11 px-4 rounded-xl border border-zinc-200 text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
+                className="w-full h-11 px-4 rounded-xl border border-zinc-200 dark:border-zinc-700 dark:bg-zinc-800/50 dark:text-zinc-100 text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
               />
             </div>
             <div>
-              <label className="text-sm font-medium text-zinc-700 mb-1.5 block">
+              <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1.5 block">
                 {ru ? 'Дата рождения' : 'Date of birth'}
               </label>
               <input
                 type="date"
                 value={data.birthDate}
                 onChange={e => u('birthDate', e.target.value)}
-                className="w-full h-11 px-4 rounded-xl border border-zinc-200 text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
+                className="w-full h-11 px-4 rounded-xl border border-zinc-200 dark:border-zinc-700 dark:bg-zinc-800/50 dark:text-zinc-100 text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
               />
             </div>
           </div>
 
           {/* Gender */}
           <div>
-            <label className="text-sm font-medium text-zinc-700 mb-2 block">
+            <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2 block">
               {ru ? 'Пол' : 'Gender'}
             </label>
             <div className="flex gap-3">
@@ -331,8 +331,8 @@ export default function OnboardClientPage() {
                   onClick={() => u('gender', g.v)}
                   className={`flex-1 h-11 rounded-xl border text-sm font-medium transition-all ${
                     data.gender === g.v
-                      ? 'border-teal-500 bg-teal-50 text-teal-700'
-                      : 'border-zinc-200 text-zinc-500 hover:border-zinc-300'
+                      ? 'border-teal-500 bg-teal-50 dark:bg-teal-900/20 text-teal-700 dark:text-teal-300'
+                      : 'border-zinc-200 dark:border-zinc-700 text-zinc-500 dark:text-zinc-400 hover:border-zinc-300'
                   }`}
                 >
                   {ru ? g.ru : g.en}

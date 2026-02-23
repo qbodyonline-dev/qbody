@@ -119,7 +119,16 @@ export async function DELETE(
 
     const supabase = createServerClient()
 
-    // Delete in correct order (foreign key constraints)
+    // Delete all related data in correct order (foreign key constraints)
+    await supabase.from('nutrition_logs').delete().eq('client_id', id)
+    await supabase.from('nutrition_targets').delete().eq('client_id', id)
+    await supabase.from('workout_logs').delete().eq('client_id', id)
+    await supabase.from('client_programs').delete().eq('client_id', id)
+    await supabase.from('checkins').delete().eq('client_id', id)
+    await supabase.from('trainer_notifications').delete().eq('client_id', id)
+    await supabase.from('client_questionnaires').delete().eq('client_id', id)
+    await supabase.from('messages').delete().eq('sender_id', id)
+    await supabase.from('conversations').delete().eq('client_id', id)
     await supabase.from('course_access').delete().eq('user_id', id)
     await supabase.from('orders').delete().eq('user_id', id)
     await supabase.from('profiles').delete().eq('id', id)
