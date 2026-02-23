@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase-server'
 import { authenticateRequest } from '@/lib/api-auth'
+import { autoExpirePrograms, daysRemaining } from '@/lib/subscription'
 
 /**
  * GET /api/client/my-programs
@@ -16,6 +17,9 @@ export async function GET(request: NextRequest) {
 
   try {
     const supabase = createServerClient()
+
+    // Auto-expire overdue programs for this client
+    await autoExpirePrograms(supabase, userId)
 
     const { data, error } = await supabase
       .from('client_programs')
@@ -62,6 +66,8 @@ export async function GET(request: NextRequest) {
         end_date: cp.end_date,
         status: cp.status,
         current_week: currentWeek,
+        days_remaining: daysRemaining(cp.end_date),
+        access_blocked: ['expired', 'cancelled'].includes(cp.status),
       }
     }).filter(Boolean)
 

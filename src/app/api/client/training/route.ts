@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase-server'
 import { authenticateRequest } from '@/lib/api-auth'
+import { autoExpirePrograms, isProgramAccessible, daysRemaining } from '@/lib/subscription'
 
 // GET — get client's active program with full schedule
 export async function GET(request: NextRequest) {
@@ -13,6 +14,9 @@ export async function GET(request: NextRequest) {
 
   try {
     const supabase = createServerClient()
+
+    // Auto-expire overdue programs for this client
+    await autoExpirePrograms(supabase, userId)
 
     // 1. Get client_program — by ID or active
     const { searchParams } = new URL(request.url)
@@ -48,6 +52,26 @@ export async function GET(request: NextRequest) {
 
     const program = cp.training_programs as any
     const programId = program.id
+
+    // Subscription access check
+    const access = isProgramAccessible(cp.status, cp.end_date)
+    if (!access.allowed) {
+      return NextResponse.json({
+        program: {
+          ...program,
+          client_program_id: cp.id,
+          start_date: cp.start_date,
+          end_date: cp.end_date,
+          status: cp.status,
+          days_remaining: daysRemaining(cp.end_date),
+          access_blocked: true,
+          access_reason: access.reason,
+        },
+        schedule: [],
+        today_workout: null,
+        recent_logs: [],
+      })
+    }
 
     // 2. Get all program days with workouts + exercises
     const { data: days, error: daysErr } = await supabase
@@ -122,6 +146,8 @@ export async function GET(request: NextRequest) {
         status: cp.status,
         current_week: Math.min(currentWeek, program.duration_weeks),
         current_day_of_week: currentDayOfWeek,
+        days_remaining: daysRemaining(cp.end_date),
+        access_blocked: false,
       },
       schedule,
       today_workout: todayWorkout,

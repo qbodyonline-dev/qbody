@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase-server'
 import { authenticateRequest } from '@/lib/api-auth'
+import { autoExpirePrograms, daysRemaining } from '@/lib/subscription'
 
 // GET — unified dashboard: today's workout, stats, notifications
 export async function GET(request: NextRequest) {
@@ -13,6 +14,9 @@ export async function GET(request: NextRequest) {
 
   try {
     const supabase = createServerClient()
+
+    // Auto-expire overdue programs for this client
+    await autoExpirePrograms(supabase, userId)
 
     const [
       { data: cp },
@@ -65,7 +69,9 @@ export async function GET(request: NextRequest) {
         goal: prog.goal,
         current_week: currentWeek,
         start_date: cp.start_date,
+        end_date: cp.end_date,
         client_program_id: cp.id,
+        days_remaining: daysRemaining(cp.end_date),
       }
 
       // Get today's workout

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase-server'
 import { authenticateRequest } from '@/lib/api-auth'
+import { isProgramAccessible } from '@/lib/subscription'
 
 // POST — start a new workout session
 export async function POST(request: NextRequest) {
@@ -18,6 +19,26 @@ export async function POST(request: NextRequest) {
 
     if (!workout_id) {
       return NextResponse.json({ error: 'workout_id required' }, { status: 400 })
+    }
+
+    // Check subscription access if linked to a program
+    if (client_program_id) {
+      const { data: cp } = await supabase
+        .from('client_programs')
+        .select('status, end_date')
+        .eq('id', client_program_id)
+        .eq('client_id', userId)
+        .single()
+
+      if (cp) {
+        const access = isProgramAccessible(cp.status, cp.end_date)
+        if (!access.allowed) {
+          return NextResponse.json(
+            { error: access.reason || 'Program access expired. Please renew to continue training.' },
+            { status: 403 }
+          )
+        }
+      }
     }
 
     // Create workout log
