@@ -1,6 +1,26 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase-server'
 import { requireAdmin } from '@/lib/api-auth'
+import { sanitizeString } from '@/lib/security'
+
+export const dynamic = 'force-dynamic'
+
+const GOALS = ['weight_loss', 'muscle_gain', 'endurance', 'recovery', 'general', 'beginner', 'home']
+const DIFFS = ['beginner', 'intermediate', 'advanced']
+
+function sanitizeUrl(url: string | null | undefined): string | null {
+  if (!url || typeof url !== 'string') return null
+  const trimmed = url.trim()
+  if (!trimmed) return null
+  try {
+    const parsed = new URL(trimmed)
+    if (!['http:', 'https:'].includes(parsed.protocol)) return null
+    return trimmed.slice(0, 2000)
+  } catch {
+    if (trimmed.startsWith('/')) return trimmed.slice(0, 2000)
+    return null
+  }
+}
 
 // GET — list programs with schedule and client count
 export async function GET(request: NextRequest) {
@@ -26,7 +46,8 @@ export async function GET(request: NextRequest) {
       .order('created_at', { ascending: false })
 
     if (search) {
-      query = query.or(`name.ilike.%${search}%,name_secondary.ilike.%${search}%`)
+      const safe = search.replace(/[%_\\()]/g, '')
+      if (safe) query = query.or(`name.ilike.%${safe}%,name_secondary.ilike.%${safe}%`)
     }
 
     const { data, error, count } = await query
@@ -74,28 +95,32 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const { name, name_secondary, slug, description, description_secondary, full_description, full_description_secondary, hero_image_url, duration_weeks, goal, difficulty, days } = body
 
-    if (!name) {
+    if (!name || !name.trim()) {
       return NextResponse.json({ error: 'Name is required' }, { status: 400 })
     }
 
+    const s = (v: string, len = 1000) => sanitizeString(v, len)
+
     // Auto-generate slug if not provided
-    const programSlug = slug || name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 80)
+    const programSlug = (slug || name).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 80)
+    const safeGoal = GOALS.includes(goal) ? goal : 'general'
+    const safeDiff = DIFFS.includes(difficulty) ? difficulty : 'intermediate'
 
     // Create program
     const { data: program, error: pError } = await supabase
       .from('training_programs')
       .insert({
-        name,
-        name_secondary: name_secondary || null,
+        name: s(name, 500),
+        name_secondary: name_secondary ? s(name_secondary, 500) : null,
         slug: programSlug,
-        description: description || null,
-        description_secondary: description_secondary || null,
+        description: description ? s(description, 5000) : null,
+        description_secondary: description_secondary ? s(description_secondary, 5000) : null,
         full_description: full_description || null,
         full_description_secondary: full_description_secondary || null,
-        hero_image_url: hero_image_url || null,
-        duration_weeks: duration_weeks || 8,
-        goal: goal || 'general',
-        difficulty: difficulty || 'intermediate',
+        hero_image_url: sanitizeUrl(hero_image_url),
+        duration_weeks: Math.max(1, Math.min(Number(duration_weeks) || 8, 52)),
+        goal: safeGoal,
+        difficulty: safeDiff,
         created_by: auth.data.user.id,
       })
       .select()

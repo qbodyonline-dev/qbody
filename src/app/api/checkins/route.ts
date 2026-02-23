@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase-server'
 import { requireAdmin, authenticateRequest } from '@/lib/api-auth'
+import { sanitizeString, isValidUUID } from '@/lib/security'
+
+export const dynamic = 'force-dynamic'
 
 // GET — list checkins (admin: all clients, client: own only)
 export async function GET(request: NextRequest) {
@@ -48,6 +51,7 @@ export async function GET(request: NextRequest) {
     if (!isAdmin) {
       query = query.eq('client_id', auth.data.user.id)
     } else if (clientId) {
+      if (!isValidUUID(clientId)) return NextResponse.json({ error: 'Invalid client_id' }, { status: 400 })
       query = query.eq('client_id', clientId)
     }
 
@@ -62,30 +66,38 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to fetch checkins' }, { status: 500 })
     }
 
-    // Get previous weight for each client to compute change
+    // Compute weight change in-memory (avoids N+1 DB queries)
     const checkins = data || []
-    const enriched = await Promise.all(
-      checkins.map(async (ci: any) => {
-        // Find previous checkin weight
-        const { data: prev } = await supabase
-          .from('checkins')
-          .select('weight')
-          .eq('client_id', ci.client_id)
-          .lt('checkin_date', ci.checkin_date)
-          .not('weight', 'is', null)
-          .order('checkin_date', { ascending: false })
-          .limit(1)
-          .maybeSingle()
 
-        return {
-          ...ci,
-          previous_weight: prev?.weight ?? null,
-          weight_change: prev?.weight && ci.weight ? +(ci.weight - prev.weight).toFixed(1) : null,
-          photos_count: (ci.checkin_photos || []).length,
-          has_response: (ci.checkin_responses || []).length > 0,
-        }
-      })
-    )
+    // Group checkins by client and sort by date ascending to find "previous" weights
+    const byClient = new Map<string, any[]>()
+    for (const ci of checkins) {
+      const arr = byClient.get(ci.client_id) || []
+      arr.push(ci)
+      byClient.set(ci.client_id, arr)
+    }
+
+    // For each client group, sort by date asc and build prev-weight map
+    const prevWeightMap = new Map<string, number | null>() // checkin.id -> previous weight
+    for (const [, group] of byClient) {
+      const sorted = [...group].sort((a, b) => a.checkin_date.localeCompare(b.checkin_date))
+      let lastWeight: number | null = null
+      for (const ci of sorted) {
+        prevWeightMap.set(ci.id, lastWeight)
+        if (ci.weight != null) lastWeight = ci.weight
+      }
+    }
+
+    const enriched = checkins.map((ci: any) => {
+      const prevWeight = prevWeightMap.get(ci.id) ?? null
+      return {
+        ...ci,
+        previous_weight: prevWeight,
+        weight_change: prevWeight != null && ci.weight != null ? +(ci.weight - prevWeight).toFixed(1) : null,
+        photos_count: (ci.checkin_photos || []).length,
+        has_response: (ci.checkin_responses || []).length > 0,
+      }
+    })
 
     return NextResponse.json({ checkins: enriched, total: count || 0 })
   } catch (err: any) {
@@ -113,7 +125,9 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
 
     const isAdmin = ['admin', 'trainer'].includes(auth.data.profile.role)
-    const clientId = isAdmin ? (body.client_id || auth.data.user.id) : auth.data.user.id
+    const rawClientId = isAdmin ? (body.client_id || auth.data.user.id) : auth.data.user.id
+    if (!isValidUUID(rawClientId)) return NextResponse.json({ error: 'Invalid client_id' }, { status: 400 })
+    const clientId = rawClientId
 
     // Separate known DB columns from custom data
     const insert: Record<string, any> = {
@@ -130,9 +144,14 @@ export async function POST(request: NextRequest) {
       if (val === null || val === undefined || val === '') continue
       
       if (CHECKIN_DB_COLUMNS.has(key)) {
-        insert[key] = typeof val === 'string' ? (isNaN(Number(val)) ? val : Number(val)) : val
+        if (typeof val === 'string') {
+          const num = Number(val)
+          insert[key] = isNaN(num) ? sanitizeString(val, 2000) : num
+        } else {
+          insert[key] = val
+        }
       } else {
-        customData[key] = val
+        customData[key] = typeof val === 'string' ? sanitizeString(val, 2000) : val
       }
     }
 
@@ -153,12 +172,17 @@ export async function POST(request: NextRequest) {
 
     // Insert photos if provided
     const photos = body.photos || []
-    if (Array.isArray(photos) && photos.length > 0) {
-      const photoRows = photos.map((p: any) => ({
-        checkin_id: data.id,
-        photo_url: typeof p === 'string' ? p : p.photo_url,
-        photo_type: typeof p === 'string' ? 'progress' : (p.photo_type || 'front'),
-      }))
+    if (Array.isArray(photos) && photos.length > 0 && photos.length <= 20) {
+      const allowedTypes = ['front', 'side', 'back', 'progress', 'other']
+      const photoRows = photos.map((p: any) => {
+        const url = typeof p === 'string' ? p : p.photo_url
+        const type = typeof p === 'string' ? 'progress' : (p.photo_type || 'front')
+        return {
+          checkin_id: data.id,
+          photo_url: sanitizeString(url || '', 2000),
+          photo_type: allowedTypes.includes(type) ? type : 'other',
+        }
+      })
       await supabase.from('checkin_photos').insert(photoRows)
     }
 

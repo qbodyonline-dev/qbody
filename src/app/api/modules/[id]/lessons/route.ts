@@ -30,13 +30,16 @@ export async function POST(
     
     const nextOrder = (existing?.[0]?.sort_order ?? -1) + 1
     
+    const allowedTypes = ['video', 'text', 'task', 'quiz', 'assignment']
+    const lessonType = allowedTypes.includes(body.type) ? body.type : 'video'
+
     const { data, error } = await supabase
       .from('course_lessons')
       .insert({
         module_id: params.id,
         title: sanitizeString(body.title || 'New Lesson', 500),
         title_secondary: sanitizeString(body.title_secondary || '', 500) || null,
-        type: body.type || 'video',
+        type: lessonType,
         duration_minutes: body.duration_minutes || 10,
         video_url: body.video_url || null,
         content: body.content || [],

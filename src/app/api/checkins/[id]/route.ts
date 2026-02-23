@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase-server'
 import { requireAdmin, authenticateRequest } from '@/lib/api-auth'
+import { isValidUUID, sanitizeString } from '@/lib/security'
+
+export const dynamic = 'force-dynamic'
+
+const VALID_STATUSES = ['new', 'reviewed', 'flagged']
 
 // GET — single checkin with photos, responses, previous data
 export async function GET(
@@ -13,6 +18,7 @@ export async function GET(
   }
 
   try {
+    if (!isValidUUID(params.id)) return NextResponse.json({ error: 'Invalid ID' }, { status: 400 })
     const supabase = createServerClient()
 
     const { data, error } = await supabase
@@ -77,6 +83,7 @@ export async function PUT(
   }
 
   try {
+    if (!isValidUUID(params.id)) return NextResponse.json({ error: 'Invalid ID' }, { status: 400 })
     const supabase = createServerClient()
     const body = await request.json()
     const isAdmin = ['admin', 'trainer'].includes(auth.data.profile.role)
@@ -98,21 +105,29 @@ export async function PUT(
 
     // Admin-only fields
     if (isAdmin) {
-      if (body.status !== undefined) updates.status = body.status
-      if (body.flagged !== undefined) updates.flagged = body.flagged
-      if (body.flag_reason !== undefined) updates.flag_reason = body.flag_reason
+      if (body.status !== undefined) {
+        updates.status = VALID_STATUSES.includes(body.status) ? body.status : 'new'
+      }
+      if (body.flagged !== undefined) updates.flagged = !!body.flagged
+      if (body.flag_reason !== undefined) updates.flag_reason = body.flag_reason ? sanitizeString(body.flag_reason, 500) : null
     }
 
     // Client-editable fields
-    const clientFields = [
+    const numericFields = [
       'weight', 'body_fat_pct', 'waist', 'hips', 'chest', 'thigh', 'arm',
       'sleep_hours', 'sleep_quality', 'stress_level', 'energy_level',
-      'appetite', 'soreness', 'cycle_day', 'cycle_notes', 'comment'
+      'appetite', 'soreness', 'cycle_day'
     ]
+    const textFields = ['cycle_notes', 'comment']
 
-    for (const field of clientFields) {
+    for (const field of numericFields) {
       if (field in body) {
-        updates[field] = body[field]
+        updates[field] = body[field] === null ? null : Number(body[field]) || null
+      }
+    }
+    for (const field of textFields) {
+      if (field in body) {
+        updates[field] = body[field] ? sanitizeString(String(body[field]), 2000) : null
       }
     }
 
@@ -150,6 +165,7 @@ export async function DELETE(
   }
 
   try {
+    if (!isValidUUID(params.id)) return NextResponse.json({ error: 'Invalid ID' }, { status: 400 })
     const supabase = createServerClient()
     const { error } = await supabase
       .from('checkins')

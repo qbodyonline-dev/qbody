@@ -3,9 +3,28 @@ import { createServerClient } from '@/lib/supabase-server'
 import { requireAdmin } from '@/lib/api-auth'
 import crypto from 'crypto'
 
+export const maxDuration = 60
+
+const IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
+const VIDEO_TYPES = ['video/mp4', 'video/webm', 'video/quicktime', 'video/x-msvideo', 'video/x-matroska']
+const IMAGE_MAX = 10 * 1024 * 1024   // 10 MB
+const VIDEO_MAX = 100 * 1024 * 1024  // 100 MB
+
+const BUCKET_IMAGES = 'content-images'
+const BUCKET_VIDEOS = 'content-videos'
+
+async function ensureBucket(supabase: any, bucketId: string) {
+  const { data: buckets } = await supabase.storage.listBuckets()
+  if (!buckets?.find((b: any) => b.id === bucketId)) {
+    const { error } = await supabase.storage.createBucket(bucketId, { public: true })
+    if (error) console.error(`Create bucket "${bucketId}" error:`, error)
+  }
+}
+
 /**
- * Upload image to Supabase Storage.
- * Used by the block editor for program/course content images.
+ * Upload image or video to Supabase Storage.
+ * Images  → content-images bucket (max 10 MB)
+ * Videos  → content-videos bucket (max 100 MB)
  */
 export async function POST(request: NextRequest) {
   const auth = await requireAdmin(request)
@@ -21,33 +40,38 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No file provided' }, { status: 400 })
     }
 
-    // Validate file type
-    const allowed = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
-    if (!allowed.includes(file.type)) {
-      return NextResponse.json({ error: 'Invalid file type' }, { status: 400 })
+    const isImage = IMAGE_TYPES.includes(file.type)
+    const isVideo = VIDEO_TYPES.includes(file.type)
+
+    if (!isImage && !isVideo) {
+      return NextResponse.json(
+        { error: `Invalid file type: ${file.type}. Allowed: images (jpeg, png, webp, gif) and videos (mp4, webm, mov, avi, mkv)` },
+        { status: 400 }
+      )
     }
 
-    // Validate size (5MB max)
-    if (file.size > 5 * 1024 * 1024) {
-      return NextResponse.json({ error: 'File too large (max 5MB)' }, { status: 400 })
+    const maxSize = isVideo ? VIDEO_MAX : IMAGE_MAX
+    if (file.size > maxSize) {
+      const limitMB = Math.round(maxSize / 1024 / 1024)
+      return NextResponse.json(
+        { error: `File too large (max ${limitMB} MB for ${isVideo ? 'videos' : 'images'})` },
+        { status: 400 }
+      )
     }
 
     const supabase = createServerClient()
-    const ext = file.name.split('.').pop() || 'jpg'
-    const fileName = `content/${crypto.randomUUID()}.${ext}`
+    const ext = file.name.split('.').pop()?.toLowerCase() || (isVideo ? 'mp4' : 'jpg')
+    const folder = formData.get('folder') as string | null
+    const prefix = folder ? `${folder}/` : 'content/'
+    const fileName = `${prefix}${crypto.randomUUID()}.${ext}`
+    const bucket = isVideo ? BUCKET_VIDEOS : BUCKET_IMAGES
+
+    await ensureBucket(supabase, bucket)
 
     const buffer = Buffer.from(await file.arrayBuffer())
 
-    // Ensure bucket exists
-    const BUCKET = 'content-images'
-    const { data: buckets } = await supabase.storage.listBuckets()
-    if (!buckets?.find((b: any) => b.id === BUCKET)) {
-      const { error: createError } = await supabase.storage.createBucket(BUCKET, { public: true })
-      if (createError) console.error('Create bucket error:', createError)
-    }
-
     const { error: uploadError } = await supabase.storage
-      .from(BUCKET)
+      .from(bucket)
       .upload(fileName, buffer, {
         contentType: file.type,
         upsert: true,
@@ -59,7 +83,7 @@ export async function POST(request: NextRequest) {
     }
 
     const { data: urlData } = supabase.storage
-      .from(BUCKET)
+      .from(bucket)
       .getPublicUrl(fileName)
 
     return NextResponse.json({ url: urlData.publicUrl })

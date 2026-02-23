@@ -74,7 +74,7 @@ export async function PATCH(
     // Basic fields
     if (body.title !== undefined) updateData.title = s(body.title, 500)
     if (body.title_secondary !== undefined) updateData.title_secondary = s(body.title_secondary, 500)
-    if (body.slug !== undefined) updateData.slug = (body.slug || '').replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 200)
+    if (body.slug !== undefined) updateData.slug = (body.slug || '').toLowerCase().replace(/[^a-z0-9_-]/g, '').slice(0, 200)
     if (body.description !== undefined) updateData.description = s(body.description, 5000)
     if (body.description_secondary !== undefined) updateData.description_secondary = s(body.description_secondary, 5000)
     if (body.price !== undefined) updateData.price = Math.round(Math.max(0, Number(body.price) || 0) * 100)
@@ -86,7 +86,7 @@ export async function PATCH(
     // Page builder fields
     if (body.hero_video_url !== undefined) updateData.hero_video_url = body.hero_video_url || null
     if (body.hero_image_url !== undefined) updateData.hero_image_url = body.hero_image_url || null
-    if (body.hero_bg_color !== undefined) updateData.hero_bg_color = (body.hero_bg_color || '').replace(/[^a-zA-Z0-9#(),. ]/g, '').slice(0, 50) || null
+    if (body.hero_bg_color !== undefined) updateData.hero_bg_color = (body.hero_bg_color || '').replace(/[^a-zA-Z0-9#(),%.:_ -]/g, '').slice(0, 300) || null
     if (body.hero_bg_image_url !== undefined) updateData.hero_bg_image_url = body.hero_bg_image_url || null
     if (body.rating !== undefined) updateData.rating = Math.max(0, Math.min(parseFloat(body.rating) || 0, 5))
     if (body.reviews_count !== undefined) updateData.reviews_count = Math.max(0, parseInt(body.reviews_count) || 0)

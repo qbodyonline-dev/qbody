@@ -4,6 +4,8 @@ import { requireAdmin } from '@/lib/api-auth'
 import { sanitizeString, sanitizeHTMLContent } from '@/lib/security'
 import { pageBlocksCache, PAGE_CACHE_TTL } from '@/lib/cache'
 
+export const dynamic = 'force-dynamic'
+
 /** Public-safe Supabase client (anon key, respects RLS) */
 function getPublicSupabase() {
   return createClient(

@@ -3,6 +3,8 @@ import { createServerClient } from '@/lib/supabase-server'
 import { requireAdmin } from '@/lib/api-auth'
 import { sanitizeString } from '@/lib/security'
 
+export const dynamic = 'force-dynamic'
+
 // GET all courses — admin only (includes unpublished)
 export async function GET(request: Request) {
   const auth = await requireAdmin(request)

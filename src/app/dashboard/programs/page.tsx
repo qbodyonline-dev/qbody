@@ -1,5 +1,6 @@
 'use client'
 import React, { useState, useEffect, useCallback } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -36,6 +37,7 @@ export default function ProgramsPage() {
   const { t, locale } = useTranslation()
   const ru = locale === 'ru'
   const lang = useLanguageConfig()
+  const searchParams = useSearchParams()
 
   const [programs, setPrograms] = useState<Program[]>([])
   const [total, setTotal] = useState(0)
@@ -61,7 +63,7 @@ export default function ProgramsPage() {
   const [fDescSecondary, setFDescSecondary] = useState('')
   const [fFullDesc, setFFullDesc] = useState<Block[]>([])
   const [fFullDescSecondary, setFFullDescSecondary] = useState<Block[]>([])
-  const [descTab, setDescTab] = useState<'en' | 'ru'>('ru')
+  const [descTab, setDescTab] = useState<'primary' | 'secondary'>('secondary')
   const [fHeroImage, setFHeroImage] = useState('')
   const [heroUploading, setHeroUploading] = useState(false)
   const [fWeeks, setFWeeks] = useState(8)
@@ -125,9 +127,9 @@ export default function ProgramsPage() {
       const data = await res.json()
       setPrograms(data.programs || [])
       setTotal(data.total || 0)
-    } catch { toast.error(ru ? 'Ошибка загрузки' : 'Failed to load') }
+    } catch { toast.error('Failed to load') }
     finally { setLoading(false) }
-  }, [ru])
+  }, [])
 
   const fetchWorkouts = useCallback(async () => {
     try {
@@ -149,6 +151,14 @@ export default function ProgramsPage() {
   }, [])
 
   useEffect(() => { fetchPrograms(); fetchWorkouts() }, [fetchPrograms, fetchWorkouts])
+
+  // Auto-open create modal from redirect (?new=1)
+  useEffect(() => {
+    if (searchParams.get('new') === '1' && !loading) {
+      openAdd()
+      window.history.replaceState({}, '', '/dashboard/programs')
+    }
+  }, [searchParams, loading])
 
   /* ─── SCHEDULE HELPERS ─── */
   const emptyWeek = (): FormDay[] => Array(7).fill(null).map(() => ({ workout_id: null, is_rest_day: true }))
@@ -208,7 +218,7 @@ export default function ProgramsPage() {
   /* ─── MODAL ─── */
   const resetForm = () => {
     setFName(''); setFNameSecondary(''); setFSlug(''); setFDesc(''); setFDescSecondary('')
-    setFFullDesc([]); setFFullDescSecondary([]); setDescTab('ru'); setFHeroImage('')
+    setFFullDesc([]); setFFullDescSecondary([]); setDescTab('secondary'); setFHeroImage('')
     setFWeeks(8); setFGoal('general'); setFDiff('intermediate')
     setFSchedule(Array.from({ length: 8 }, () => emptyWeek()))
     setEditingId(null); setExpandedWeek(null)
@@ -228,7 +238,7 @@ export default function ProgramsPage() {
   const openEdit = (p: Program) => {
     setEditingId(p.id)
     setFName(p.name); setFNameSecondary(p.name_secondary || ''); setFSlug((p as any).slug || generateSlug(p.name)); setFDesc(p.description || ''); setFDescSecondary(p.description_secondary || '')
-    setFFullDesc(parseBlocks((p as any).full_description)); setFFullDescSecondary(parseBlocks((p as any).full_description_secondary)); setDescTab('ru')
+    setFFullDesc(parseBlocks((p as any).full_description)); setFFullDescSecondary(parseBlocks((p as any).full_description_secondary)); setDescTab('secondary')
     setFHeroImage((p as any).hero_image_url || '')
     setFWeeks(p.duration_weeks); setFGoal(p.goal); setFDiff(p.difficulty)
     setFSchedule(buildScheduleFromDays(p.program_days, p.duration_weeks))
@@ -310,6 +320,19 @@ export default function ProgramsPage() {
     finally { setSaving(false) }
   }
 
+  /* ─── TOGGLE ACTIVE ─── */
+  const toggleActive = async (p: Program) => {
+    try {
+      const res = await fetchWithAuth(`/api/programs/${p.id}`, {
+        method: 'PUT',
+        body: JSON.stringify({ is_active: !p.is_active }),
+      })
+      if (!res.ok) throw new Error()
+      toast.success(p.is_active ? (ru ? 'Программа деактивирована' : 'Program deactivated') : (ru ? 'Программа активирована' : 'Program activated'))
+      fetchPrograms()
+    } catch { toast.error(ru ? 'Ошибка' : 'Failed') }
+  }
+
   /* ─── STATS ─── */
   const workoutDays = (p: Program) => (p.program_days || []).filter(d => !d.is_rest_day && d.workout_id).length
 
@@ -384,6 +407,9 @@ export default function ProgramsPage() {
                   <Button variant="ghost" size="sm" title={ru ? 'Назначить клиенту' : 'Assign to client'} onClick={() => openAssign(p.id)}>
                     <UserPlus className="w-4 h-4 text-teal-500" />
                   </Button>
+                  <Button variant="ghost" size="sm" onClick={() => toggleActive(p)} title={p.is_active ? (ru ? 'Деактивировать' : 'Deactivate') : (ru ? 'Активировать' : 'Activate')}>
+                    <Power className={`w-4 h-4 ${p.is_active ? 'text-green-500' : 'text-zinc-400'}`} />
+                  </Button>
                   <Button variant="ghost" size="sm" onClick={() => { setDeleteId(p.id); setIsDeleteModalOpen(true) }}>
                     <Trash2 className="w-4 h-4 text-red-500" />
                   </Button>
@@ -400,7 +426,7 @@ export default function ProgramsPage() {
         <form onSubmit={handleSubmit} className="space-y-4 max-h-[75vh] overflow-y-auto pr-1">
           {/* Basic */}
           <div className={`grid ${lang.isBilingual ? 'sm:grid-cols-2' : ''} gap-4`}>
-            <Input label={`${lang.pl(ru ? 'Название' : 'Name')} *`} value={fName} onChange={e => setFName(e.target.value)} required />
+            <Input label={`${lang.pl(ru ? 'Название' : 'Name')} *`} value={fName} onChange={e => { setFName(e.target.value); if (!editingId) setFSlug(generateSlug(e.target.value)) }} required />
             {lang.isBilingual && <Input label={lang.sl(ru ? 'Название' : 'Name')} value={fNameSecondary} onChange={e => setFNameSecondary(e.target.value)} />}
           </div>
           <div className={`grid ${lang.isBilingual ? 'sm:grid-cols-2' : ''} gap-4`}>
@@ -472,17 +498,17 @@ export default function ProgramsPage() {
               <h3 className="font-semibold text-sm">{ru ? 'Полное описание' : 'Full Description'}</h3>
               {lang.isBilingual && (
                 <div className="flex gap-1">
-                  <button type="button" onClick={() => setDescTab('en')}
-                    className={`px-3 py-1 text-xs rounded-lg font-medium transition-colors ${descTab === 'en' ? 'bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400' : 'text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800'}`}>{lang.pCode}</button>
-                  <button type="button" onClick={() => setDescTab('ru')}
-                    className={`px-3 py-1 text-xs rounded-lg font-medium transition-colors ${descTab === 'ru' ? 'bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400' : 'text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800'}`}>{lang.sCode}</button>
+                  <button type="button" onClick={() => setDescTab('primary')}
+                    className={`px-3 py-1 text-xs rounded-lg font-medium transition-colors ${descTab === 'primary' ? 'bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400' : 'text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800'}`}>{lang.pCode}</button>
+                  <button type="button" onClick={() => setDescTab('secondary')}
+                    className={`px-3 py-1 text-xs rounded-lg font-medium transition-colors ${descTab === 'secondary' ? 'bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400' : 'text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800'}`}>{lang.sCode}</button>
                 </div>
               )}
             </div>
-            {descTab === 'ru' && lang.isBilingual ? (
-              <BlockEditor value={fFullDescSecondary} onChange={setFFullDescSecondary} locale="ru" uploadImage={uploadImageFile} />
+            {descTab === 'secondary' && lang.isBilingual ? (
+              <BlockEditor value={fFullDescSecondary} onChange={setFFullDescSecondary} locale={lang.secondaryLanguage || 'ru'} uploadImage={uploadImageFile} />
             ) : (
-              <BlockEditor value={fFullDesc} onChange={setFFullDesc} locale="en" uploadImage={uploadImageFile} />
+              <BlockEditor value={fFullDesc} onChange={setFFullDesc} locale={lang.primaryLanguage} uploadImage={uploadImageFile} />
             )}
           </div>
 

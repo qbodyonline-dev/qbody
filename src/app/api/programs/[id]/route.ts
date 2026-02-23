@@ -1,6 +1,26 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase-server'
 import { authenticateRequest, requireAdmin } from '@/lib/api-auth'
+import { isValidUUID, sanitizeString } from '@/lib/security'
+
+export const dynamic = 'force-dynamic'
+
+const GOALS = ['weight_loss', 'muscle_gain', 'endurance', 'recovery', 'general', 'beginner', 'home']
+const DIFFS = ['beginner', 'intermediate', 'advanced']
+
+function sanitizeUrl(url: string | null | undefined): string | null {
+  if (!url || typeof url !== 'string') return null
+  const trimmed = url.trim()
+  if (!trimmed) return null
+  try {
+    const parsed = new URL(trimmed)
+    if (!['http:', 'https:'].includes(parsed.protocol)) return null
+    return trimmed.slice(0, 2000)
+  } catch {
+    if (trimmed.startsWith('/')) return trimmed.slice(0, 2000)
+    return null
+  }
+}
 
 /**
  * Convert Block[] (custom page-builder format) to plain text.
@@ -99,6 +119,10 @@ export async function GET(
   const auth = await authenticateRequest(request)
   if (!auth.success) {
     return NextResponse.json({ error: auth.error.error }, { status: auth.error.status })
+  }
+
+  if (!isValidUUID(params.id)) {
+    return NextResponse.json({ error: 'Invalid program ID' }, { status: 400 })
   }
 
   const isAdmin = auth.data.profile?.role === 'admin' || auth.data.profile?.role === 'trainer'
@@ -216,25 +240,31 @@ export async function PUT(
     return NextResponse.json({ error: auth.error.error }, { status: auth.error.status })
   }
 
+  if (!isValidUUID(params.id)) {
+    return NextResponse.json({ error: 'Invalid program ID' }, { status: 400 })
+  }
+
   try {
     const supabase = createServerClient()
     const body = await request.json()
     const { name, name_secondary, slug, description, description_secondary, full_description, full_description_secondary, hero_image_url, duration_weeks, goal, difficulty, is_active, days } = body
 
+    const s = (v: string, len = 1000) => sanitizeString(v, len)
+
     // Update program fields
     const updates: Record<string, any> = {}
-    if (name !== undefined) updates.name = name
-    if (name_secondary !== undefined) updates.name_secondary = name_secondary || null
-    if (slug !== undefined) updates.slug = slug || null
-    if (description !== undefined) updates.description = description || null
-    if (description_secondary !== undefined) updates.description_secondary = description_secondary || null
+    if (name !== undefined) updates.name = s(name, 500)
+    if (name_secondary !== undefined) updates.name_secondary = name_secondary ? s(name_secondary, 500) : null
+    if (slug !== undefined) updates.slug = slug ? slug.toLowerCase().replace(/[^a-z0-9-]/g, '').slice(0, 80) : null
+    if (description !== undefined) updates.description = description ? s(description, 5000) : null
+    if (description_secondary !== undefined) updates.description_secondary = description_secondary ? s(description_secondary, 5000) : null
     if (full_description !== undefined) updates.full_description = full_description
     if (full_description_secondary !== undefined) updates.full_description_secondary = full_description_secondary
-    if (hero_image_url !== undefined) updates.hero_image_url = hero_image_url
-    if (duration_weeks !== undefined) updates.duration_weeks = duration_weeks
-    if (goal !== undefined) updates.goal = goal
-    if (difficulty !== undefined) updates.difficulty = difficulty
-    if (is_active !== undefined) updates.is_active = is_active
+    if (hero_image_url !== undefined) updates.hero_image_url = sanitizeUrl(hero_image_url)
+    if (duration_weeks !== undefined) updates.duration_weeks = Math.max(1, Math.min(Number(duration_weeks) || 8, 52))
+    if (goal !== undefined) updates.goal = GOALS.includes(goal) ? goal : 'general'
+    if (difficulty !== undefined) updates.difficulty = DIFFS.includes(difficulty) ? difficulty : 'intermediate'
+    if (is_active !== undefined) updates.is_active = !!is_active
 
     if (Object.keys(updates).length > 0) {
       const { error: uError } = await supabase
@@ -296,6 +326,10 @@ export async function DELETE(
   const auth = await requireAdmin(request)
   if (!auth.success) {
     return NextResponse.json({ error: auth.error.error }, { status: auth.error.status })
+  }
+
+  if (!isValidUUID(params.id)) {
+    return NextResponse.json({ error: 'Invalid program ID' }, { status: 400 })
   }
 
   try {

@@ -201,6 +201,7 @@ function PageEditorInner() {
   const [showStyle, setShowStyle] = useState(false)
   const [history, setHistory] = useState<PageBlock[][]>([initBlocks])
   const [histIdx, setHistIdx] = useState(0)
+  const [showResetConfirm, setShowResetConfirm] = useState(false)
   // editMode removed — structured blocks always use Items editor, custom blocks use RichEditor
 
   const ab = blocks.find(b => b.id === active) || null
@@ -239,9 +240,11 @@ function PageEditorInner() {
     }
   }
 
+  const MAX_HISTORY = 50
   const push = (next: PageBlock[]) => {
-    const h = history.slice(0, histIdx + 1)
+    let h = history.slice(0, histIdx + 1)
     h.push(next)
+    if (h.length > MAX_HISTORY) { h = h.slice(h.length - MAX_HISTORY) }
     setHistory(h)
     setHistIdx(h.length - 1)
     setBlocks(next)
@@ -264,8 +267,9 @@ function PageEditorInner() {
   const commitTimers = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map())
 
   const pushStable = (next: PageBlock[]) => {
-    const h = historyRef.current.slice(0, histIdxRef.current + 1)
+    let h = historyRef.current.slice(0, histIdxRef.current + 1)
     h.push(next)
+    if (h.length > MAX_HISTORY) { h = h.slice(h.length - MAX_HISTORY) }
     setHistory(h)
     setHistIdx(h.length - 1)
     setBlocks(next)
@@ -397,11 +401,15 @@ function PageEditorInner() {
     i.onchange = e => {
       const f = (e.target as HTMLInputElement).files?.[0]
       if (!f) return
+      if (f.size > 5 * 1024 * 1024) { toast.error(lang === 'ru' ? 'Файл слишком большой (макс 5MB)' : 'File too large (max 5MB)'); return }
       const r = new FileReader()
       r.onload = ev => {
         try {
           const d = JSON.parse(ev.target?.result as string)
-          if (Array.isArray(d)) { push(d); toast.success(lang === 'ru' ? 'Импорт!' : 'Imported!') }
+          if (!Array.isArray(d) || d.length > 50) { toast.error(lang === 'ru' ? 'Неверный формат (массив до 50 блоков)' : 'Invalid format (array of up to 50 blocks)'); return }
+          const valid = d.every((b: any) => b && typeof b.id === 'string' && typeof b.type === 'string')
+          if (!valid) { toast.error(lang === 'ru' ? 'Блоки должны иметь id и type' : 'Blocks must have id and type'); return }
+          push(d); toast.success(lang === 'ru' ? 'Импорт!' : 'Imported!')
         } catch { toast.error('Invalid JSON') }
       }
       r.readAsText(f)
@@ -522,13 +530,7 @@ function PageEditorInner() {
           <button onClick={exportJSON} className="p-1.5 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800" title="Export JSON"><Download className="w-4 h-4" /></button>
           <button onClick={importJSON} className="p-1.5 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800" title="Import JSON"><Upload className="w-4 h-4" /></button>
           <button onClick={migrateAllBlocks} className="p-1.5 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800" title={lang === 'ru' ? 'Мигрировать в структуру' : 'Migrate to structured'}><LayoutList className="w-4 h-4" /></button>
-          <Button variant="outline" size="sm" onClick={async () => {
-            if (!confirm(lang === 'ru' ? 'Сбросить все блоки к исходным? Несохранённые правки будут потеряны.' : 'Reset all blocks to defaults? Unsaved changes will be lost.')) return
-            push(initBlocks)
-            await saveBlocksToDB(initBlocks)
-            setActive('hero')
-            toast.success(lang === 'ru' ? 'Сброшено к дефолтам' : 'Reset to defaults!')
-          }}>{lang === 'ru' ? 'Сброс' : 'Reset'}</Button>
+          <Button variant="outline" size="sm" onClick={() => setShowResetConfirm(true)}>{lang === 'ru' ? 'Сброс' : 'Reset'}</Button>
           <Button variant="gradient" size="sm" onClick={async () => {
             try {
               const fresh = flushPendingCommits()
@@ -984,6 +986,24 @@ function PageEditorInner() {
           </div>
         </div>
       )}
+
+      {/* Reset Confirmation Modal */}
+      {showResetConfirm && (<div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setShowResetConfirm(false)}>
+        <div className="bg-white dark:bg-zinc-900 rounded-2xl p-6 w-full max-w-sm shadow-2xl" onClick={e => e.stopPropagation()}>
+          <h2 className="text-lg font-bold text-zinc-900 dark:text-zinc-100 mb-3">{lang === 'ru' ? 'Сбросить блоки?' : 'Reset blocks?'}</h2>
+          <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-5">{lang === 'ru' ? 'Все блоки будут заменены на исходные. Несохранённые правки будут потеряны.' : 'All blocks will be replaced with defaults. Unsaved changes will be lost.'}</p>
+          <div className="flex justify-end gap-3">
+            <Button variant="outline" size="sm" onClick={() => setShowResetConfirm(false)}>{lang === 'ru' ? 'Отмена' : 'Cancel'}</Button>
+            <Button size="sm" className="bg-red-500 hover:bg-red-600 text-white" onClick={async () => {
+              setShowResetConfirm(false)
+              push(initBlocks)
+              await saveBlocksToDB(initBlocks)
+              setActive('hero')
+              toast.success(lang === 'ru' ? 'Сброшено к дефолтам' : 'Reset to defaults!')
+            }}>{lang === 'ru' ? 'Сбросить' : 'Reset'}</Button>
+          </div>
+        </div>
+      </div>)}
 
       {/* Add Block modal */}
       {addModal && (<div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => { setAddModal(false); setInsertIdx(-1) }}>

@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase-server'
 import { requireAdmin } from '@/lib/api-auth'
+import { isValidUUID } from '@/lib/security'
+
+export const dynamic = 'force-dynamic'
 
 // POST — assign program to client
 export async function POST(
@@ -12,13 +15,17 @@ export async function POST(
     return NextResponse.json({ error: auth.error.error }, { status: auth.error.status })
   }
 
+  if (!isValidUUID(params.id)) {
+    return NextResponse.json({ error: 'Invalid program ID' }, { status: 400 })
+  }
+
   try {
     const supabase = createServerClient()
     const body = await request.json()
     const { client_id, start_date, notes } = body
 
-    if (!client_id) {
-      return NextResponse.json({ error: 'client_id is required' }, { status: 400 })
+    if (!client_id || !isValidUUID(client_id)) {
+      return NextResponse.json({ error: 'Valid client_id is required' }, { status: 400 })
     }
 
     // Check if client already has an active program
@@ -93,13 +100,17 @@ export async function DELETE(
     return NextResponse.json({ error: auth.error.error }, { status: auth.error.status })
   }
 
+  if (!isValidUUID(params.id)) {
+    return NextResponse.json({ error: 'Invalid program ID' }, { status: 400 })
+  }
+
   try {
     const supabase = createServerClient()
     const { searchParams } = new URL(request.url)
     const clientId = searchParams.get('client_id')
 
-    if (!clientId) {
-      return NextResponse.json({ error: 'client_id query param required' }, { status: 400 })
+    if (!clientId || !isValidUUID(clientId)) {
+      return NextResponse.json({ error: 'Valid client_id query param required' }, { status: 400 })
     }
 
     const { error } = await supabase

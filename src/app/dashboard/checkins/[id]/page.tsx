@@ -74,11 +74,11 @@ export default function CheckinDetailPage() {
       const data = await res.json()
       setCheckin(data)
     } catch {
-      toast.error(ru ? 'Ошибка загрузки' : 'Failed to load')
+      toast.error('Failed to load')
     } finally {
       setLoading(false)
     }
-  }, [checkinId, ru])
+  }, [checkinId])
 
   useEffect(() => { fetchCheckin() }, [fetchCheckin])
 

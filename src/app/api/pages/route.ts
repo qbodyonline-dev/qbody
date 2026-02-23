@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { requireAdmin } from '@/lib/api-auth'
+import { isValidUUID } from '@/lib/security'
+
+export const dynamic = 'force-dynamic'
 
 // Cyrillic → Latin transliteration for URL slugs
 const TRANSLIT: Record<string, string> = {
@@ -194,8 +197,8 @@ export async function PATCH(request: Request) {
     const body = await request.json()
     const { id, title, titleSecondary, is_published, sort_order, settings } = body
 
-    if (!id) {
-      return NextResponse.json({ error: 'Page ID is required' }, { status: 400 })
+    if (!id || !isValidUUID(id)) {
+      return NextResponse.json({ error: 'Valid Page ID is required' }, { status: 400 })
     }
 
     const updates: Record<string, any> = { updated_at: new Date().toISOString() }
@@ -203,7 +206,12 @@ export async function PATCH(request: Request) {
     if (titleSecondary !== undefined) updates.title_secondary = String(titleSecondary).trim().slice(0, 200)
     if (is_published !== undefined) updates.is_published = Boolean(is_published)
     if (sort_order !== undefined) updates.sort_order = Number(sort_order)
-    if (settings !== undefined && typeof settings === 'object') updates.settings = settings
+    if (settings !== undefined && typeof settings === 'object') {
+      // Whitelist allowed settings keys
+      const allowed: Record<string, any> = {}
+      if (typeof settings.bgColor === 'string') allowed.bgColor = settings.bgColor.slice(0, 100)
+      updates.settings = allowed
+    }
 
     const { data, error } = await supabase
       .from('site_pages')
@@ -236,8 +244,8 @@ export async function DELETE(request: Request) {
     const { searchParams } = new URL(request.url)
     const id = searchParams.get('id')
     
-    if (!id) {
-      return NextResponse.json({ error: 'Page ID is required' }, { status: 400 })
+    if (!id || !isValidUUID(id)) {
+      return NextResponse.json({ error: 'Valid Page ID is required' }, { status: 400 })
     }
 
     // Check if homepage

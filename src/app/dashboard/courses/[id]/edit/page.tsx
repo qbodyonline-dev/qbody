@@ -88,6 +88,8 @@ export default function CourseEditorPage() {
   const [addingToModuleId, setAddingToModuleId] = useState<string | null>(null)
   const [uploadingVideo, setUploadingVideo] = useState(false)
   const [uploadingImage, setUploadingImage] = useState<string | null>(null)
+  const [deleteModuleId, setDeleteModuleId] = useState<string | null>(null)
+  const [deleteLessonId, setDeleteLessonId] = useState<string | null>(null)
   const videoInputRef = useRef<HTMLInputElement>(null)
 
   const loadCourse = async () => {
@@ -196,38 +198,51 @@ export default function CourseEditorPage() {
   }
 
   const addChecklistItem = (blockId: string) => {
-    const newContent = lessonForm.content.map(b => {
+    const newItem = { id: `item-${Date.now()}`, text: '', text_secondary: '' }
+    const addItem = (blocks: ContentBlock[]) => blocks.map(b => {
       if (b.id === blockId && b.items) {
-        return { ...b, items: [...b.items, { id: `item-${Date.now()}`, text: '', text_secondary: '' }] }
+        return { ...b, items: [...b.items, { ...newItem }] }
       }
       return b
     })
-    setLessonForm({ ...lessonForm, content: newContent })
+    setLessonForm({
+      ...lessonForm,
+      content: addItem(lessonForm.content),
+      content_secondary: addItem(lessonForm.content_secondary),
+    })
   }
 
   const updateChecklistItem = (blockId: string, itemId: string, field: 'text' | 'text_secondary', value: string) => {
-    const newContent = lessonForm.content.map(b => {
+    const patchItem = (blocks: ContentBlock[]) => blocks.map(b => {
       if (b.id === blockId && b.items) {
         return {
           ...b,
-          items: b.items.map(item => 
+          items: b.items.map(item =>
             item.id === itemId ? { ...item, [field]: value } : item
           )
         }
       }
       return b
     })
-    setLessonForm({ ...lessonForm, content: newContent })
+    setLessonForm({
+      ...lessonForm,
+      content: patchItem(lessonForm.content),
+      content_secondary: patchItem(lessonForm.content_secondary),
+    })
   }
 
   const removeChecklistItem = (blockId: string, itemId: string) => {
-    const newContent = lessonForm.content.map(b => {
+    const dropItem = (blocks: ContentBlock[]) => blocks.map(b => {
       if (b.id === blockId && b.items) {
         return { ...b, items: b.items.filter(item => item.id !== itemId) }
       }
       return b
     })
-    setLessonForm({ ...lessonForm, content: newContent })
+    setLessonForm({
+      ...lessonForm,
+      content: dropItem(lessonForm.content),
+      content_secondary: dropItem(lessonForm.content_secondary),
+    })
   }
 
   // === MODULE CRUD ===
@@ -274,8 +289,11 @@ export default function CourseEditorPage() {
     }
   }
 
-  const deleteModule = async (id: string) => {
-    if (!confirm(ru ? 'Удалить модуль и все его уроки?' : 'Delete module and all its lessons?')) return
+  const confirmDeleteModule = async () => {
+    if (!deleteModuleId) return
+    const id = deleteModuleId
+    setDeleteModuleId(null)
+    setSaving(true)
     try {
       const res = await fetchWithAuth(`/api/modules/${id}`, { method: 'DELETE' })
       if (!res.ok) throw new Error('Failed')
@@ -283,6 +301,8 @@ export default function CourseEditorPage() {
       loadCourse()
     } catch {
       toast.error(ru ? 'Ошибка удаления' : 'Delete failed')
+    } finally {
+      setSaving(false)
     }
   }
 
@@ -356,8 +376,11 @@ export default function CourseEditorPage() {
     }
   }
 
-  const deleteLesson = async (id: string) => {
-    if (!confirm(ru ? 'Удалить урок?' : 'Delete lesson?')) return
+  const confirmDeleteLesson = async () => {
+    if (!deleteLessonId) return
+    const id = deleteLessonId
+    setDeleteLessonId(null)
+    setSaving(true)
     try {
       const res = await fetchWithAuth(`/api/lessons/${id}`, { method: 'DELETE' })
       if (!res.ok) throw new Error('Failed')
@@ -365,6 +388,8 @@ export default function CourseEditorPage() {
       loadCourse()
     } catch {
       toast.error(ru ? 'Ошибка удаления' : 'Delete failed')
+    } finally {
+      setSaving(false)
     }
   }
 
@@ -479,7 +504,7 @@ export default function CourseEditorPage() {
                 <p className="text-xs text-zinc-500">{mod.course_lessons?.length || 0} {ru ? 'уроков' : 'lessons'}</p>
               </div>
               <Button variant="ghost" size="sm" onClick={() => openEditModule(mod)}><Edit className="w-4 h-4" /></Button>
-              <Button variant="ghost" size="sm" onClick={() => deleteModule(mod.id)} className="text-red-500 hover:text-red-600 hover:bg-red-50"><Trash2 className="w-4 h-4" /></Button>
+              <Button variant="ghost" size="sm" onClick={() => setDeleteModuleId(mod.id)} className="text-red-500 hover:text-red-600 hover:bg-red-50"><Trash2 className="w-4 h-4" /></Button>
             </div>
 
             {expandedModules.has(mod.id) && (
@@ -510,7 +535,7 @@ export default function CourseEditorPage() {
                         {lesson.is_published ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
                       </button>
                       <Button variant="ghost" size="sm" onClick={() => openEditLesson(lesson, mod.id)}><Edit className="w-4 h-4" /></Button>
-                      <Button variant="ghost" size="sm" onClick={() => deleteLesson(lesson.id)} className="text-red-500 hover:text-red-600 hover:bg-red-50"><Trash2 className="w-4 h-4" /></Button>
+                      <Button variant="ghost" size="sm" onClick={() => setDeleteLessonId(lesson.id)} className="text-red-500 hover:text-red-600 hover:bg-red-50"><Trash2 className="w-4 h-4" /></Button>
                     </div>
                   ))
                 )}
@@ -690,6 +715,38 @@ export default function CourseEditorPage() {
               {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
               <Save className="w-4 h-4 mr-2" />
               {ru ? 'Сохранить урок' : 'Save Lesson'}
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Delete Module Confirm Modal */}
+      <Modal isOpen={!!deleteModuleId} onClose={() => setDeleteModuleId(null)} title={ru ? 'Удалить модуль' : 'Delete Module'} size="sm">
+        <div className="space-y-4">
+          <p className="text-zinc-600 dark:text-zinc-400">
+            {ru ? 'Удалить этот модуль и все его уроки? Это действие необратимо.' : 'Delete this module and all its lessons? This cannot be undone.'}
+          </p>
+          <div className="flex justify-end gap-3">
+            <Button variant="outline" onClick={() => setDeleteModuleId(null)}>{ru ? 'Отмена' : 'Cancel'}</Button>
+            <Button variant="destructive" onClick={confirmDeleteModule} disabled={saving} className="bg-red-500 hover:bg-red-600 text-white">
+              {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Trash2 className="w-4 h-4 mr-2" />}
+              {ru ? 'Удалить' : 'Delete'}
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Delete Lesson Confirm Modal */}
+      <Modal isOpen={!!deleteLessonId} onClose={() => setDeleteLessonId(null)} title={ru ? 'Удалить урок' : 'Delete Lesson'} size="sm">
+        <div className="space-y-4">
+          <p className="text-zinc-600 dark:text-zinc-400">
+            {ru ? 'Удалить этот урок? Это действие необратимо.' : 'Delete this lesson? This cannot be undone.'}
+          </p>
+          <div className="flex justify-end gap-3">
+            <Button variant="outline" onClick={() => setDeleteLessonId(null)}>{ru ? 'Отмена' : 'Cancel'}</Button>
+            <Button variant="destructive" onClick={confirmDeleteLesson} disabled={saving} className="bg-red-500 hover:bg-red-600 text-white">
+              {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Trash2 className="w-4 h-4 mr-2" />}
+              {ru ? 'Удалить' : 'Delete'}
             </Button>
           </div>
         </div>

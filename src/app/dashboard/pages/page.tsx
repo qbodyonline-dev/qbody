@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { FileText, Plus, Trash2, Eye, EyeOff, ExternalLink, Home, Loader2, Globe } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Modal } from '@/components/ui/modal'
 import { useTranslation } from '@/lib/i18n'
 import { fetchWithAuth } from '@/lib/api'
 import { useLanguageConfig } from '@/lib/useLanguageConfig'
@@ -49,6 +50,8 @@ export default function PagesPage() {
   const [creating, setCreating] = useState(false)
   const [showForm, setShowForm] = useState(false)
   const [error, setError] = useState('')
+  const [deleteTarget, setDeleteTarget] = useState<SitePage | null>(null)
+  const [deleting, setDeleting] = useState(false)
 
   const fetchPages = async () => {
     try {
@@ -103,17 +106,17 @@ export default function PagesPage() {
     }
   }
 
-  const deletePage = async (page: SitePage) => {
-    if (page.is_homepage) return
-    const msg = ru
-      ? `Удалить страницу "${page.title}"? Все блоки будут удалены.`
-      : `Delete page "${page.title}"? All blocks will be deleted.`
-    if (!confirm(msg)) return
+  const confirmDeletePage = async () => {
+    if (!deleteTarget) return
+    setDeleting(true)
     try {
-      await fetchWithAuth(`/api/pages?id=${page.id}`, { method: 'DELETE' })
+      await fetchWithAuth(`/api/pages?id=${deleteTarget.id}`, { method: 'DELETE' })
+      setDeleteTarget(null)
       await fetchPages()
     } catch (err) {
       console.error('Delete error:', err)
+    } finally {
+      setDeleting(false)
     }
   }
 
@@ -229,7 +232,7 @@ export default function PagesPage() {
                 {page.is_published ? <Eye className="w-4 h-4 text-green-500" /> : <EyeOff className="w-4 h-4 text-zinc-400" />}
               </Button>
               {!page.is_homepage && (
-                <Button variant="ghost" size="icon" onClick={() => deletePage(page)}
+                <Button variant="ghost" size="icon" onClick={() => setDeleteTarget(page)}
                   className="h-8 w-8 text-zinc-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20">
                   <Trash2 className="w-4 h-4" />
                 </Button>
@@ -252,6 +255,26 @@ export default function PagesPage() {
           <p>{ru ? 'Нет страниц' : 'No pages yet'}</p>
         </div>
       )}
+
+      {/* Delete Confirmation Modal */}
+      <Modal isOpen={!!deleteTarget} onClose={() => setDeleteTarget(null)}
+        title={ru ? 'Удалить страницу' : 'Delete Page'} size="sm">
+        <div className="space-y-4">
+          <p className="text-zinc-600 dark:text-zinc-400">
+            {ru
+              ? <>Удалить страницу <strong>«{deleteTarget?.title}»</strong>? Все блоки будут удалены.</>
+              : <>Delete page <strong>“{deleteTarget?.title}”</strong>? All blocks will be permanently removed.</>}
+          </p>
+          <div className="flex justify-end gap-3">
+            <Button variant="outline" onClick={() => setDeleteTarget(null)}>{ru ? 'Отмена' : 'Cancel'}</Button>
+            <Button onClick={confirmDeletePage} disabled={deleting}
+              className="bg-red-500 hover:bg-red-600 text-white">
+              {deleting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              <Trash2 className="w-4 h-4 mr-2" />{ru ? 'Удалить' : 'Delete'}
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   )
 }

@@ -69,11 +69,11 @@ export default function CheckinsPage() {
       setCheckins(data.checkins || [])
       setTotal(data.total || 0)
     } catch {
-      toast.error(ru ? 'Ошибка загрузки' : 'Failed to load')
+      toast.error('Failed to load')
     } finally {
       setLoading(false)
     }
-  }, [ru])
+  }, [])
 
   useEffect(() => { fetchCheckins() }, [fetchCheckins])
 

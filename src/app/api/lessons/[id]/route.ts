@@ -3,6 +3,8 @@ import { createServerClient } from '@/lib/supabase-server'
 import { requireAdmin } from '@/lib/api-auth'
 import { isValidUUID, sanitizeString } from '@/lib/security'
 
+export const dynamic = 'force-dynamic'
+
 // GET single lesson — admin only
 export async function GET(
   request: Request,
@@ -44,7 +46,7 @@ export async function PATCH(
     const body = await request.json()
     
     // ✅ VALIDATION: Whitelist allowed lesson types
-    const allowedTypes = ['video', 'text', 'quiz', 'assignment']
+    const allowedTypes = ['video', 'text', 'task', 'quiz', 'assignment']
     
     const updateData: any = {}
     if (body.title !== undefined) updateData.title = sanitizeString(body.title, 500)

@@ -1,6 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase-server'
 import { requireAdmin } from '@/lib/api-auth'
+import { isValidUUID, sanitizeString } from '@/lib/security'
+
+export const dynamic = 'force-dynamic'
+
+function sanitizeUrl(url: string | null | undefined): string | null {
+  if (!url || typeof url !== 'string') return null
+  const trimmed = url.trim()
+  if (!trimmed) return null
+  try {
+    const parsed = new URL(trimmed)
+    if (!['http:', 'https:'].includes(parsed.protocol)) return null
+    return trimmed.slice(0, 2000)
+  } catch {
+    if (trimmed.startsWith('/')) return trimmed.slice(0, 2000)
+    return null
+  }
+}
 
 // POST — trainer sends response to checkin
 export async function POST(
@@ -13,6 +30,7 @@ export async function POST(
   }
 
   try {
+    if (!isValidUUID(params.id)) return NextResponse.json({ error: 'Invalid ID' }, { status: 400 })
     const supabase = createServerClient()
     const body = await request.json()
 
@@ -26,8 +44,8 @@ export async function POST(
       .insert({
         checkin_id: params.id,
         trainer_id: auth.data.user.id,
-        message: body.message.trim(),
-        attachment_url: body.attachment_url || null,
+        message: sanitizeString(body.message.trim(), 5000),
+        attachment_url: sanitizeUrl(body.attachment_url),
       })
       .select(`
         *,
