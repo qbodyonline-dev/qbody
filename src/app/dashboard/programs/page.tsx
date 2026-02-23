@@ -1,6 +1,7 @@
 'use client'
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
+
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -33,7 +34,15 @@ type FormDay = { workout_id: string | null; is_rest_day: boolean }
 const GOALS = ['weight_loss', 'muscle_gain', 'endurance', 'recovery', 'general', 'beginner', 'home'] as const
 const DIFFS = ['beginner', 'intermediate', 'advanced'] as const
 
-export default function ProgramsPage() {
+export default function ProgramsPageWrapper() {
+  return (
+    <Suspense fallback={<div className="flex justify-center py-20"><Loader2 className="w-8 h-8 animate-spin text-teal-500" /></div>}>
+      <ProgramsPage />
+    </Suspense>
+  )
+}
+
+function ProgramsPage() {
   const { t, locale } = useTranslation()
   const ru = locale === 'ru'
   const lang = useLanguageConfig()
