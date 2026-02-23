@@ -43,6 +43,8 @@ export async function POST(request: NextRequest) {
         const courseSlug = session.metadata?.course_slug
         const userId = session.metadata?.user_id
         const userEmail = session.metadata?.user_email
+        const purchaseType = session.metadata?.type // 'program' or undefined (course)
+        const programId = session.metadata?.program_id
 
         if (courseSlug && userId) {
           // Update order status to paid
@@ -61,19 +63,75 @@ export async function POST(request: NextRequest) {
             console.error('Error updating order:', updateError)
           }
 
-          // Grant access: insert into course_access
-          const { error: accessError } = await supabase
-            .from('course_access')
-            .upsert({
-              user_id: userId,
-              course_slug: courseSlug,
-              granted_at: new Date().toISOString(),
-            }, {
-              onConflict: 'user_id,course_slug',
-            })
+          if (purchaseType === 'program' && programId) {
+            // ─── Training Program purchase: enroll client ───
+            const { data: program } = await supabase
+              .from('training_programs')
+              .select('id, duration_weeks')
+              .eq('id', programId)
+              .single()
 
-          if (accessError) {
-            console.error('Error granting course access:', accessError)
+            if (program) {
+              const startDate = new Date()
+              const endDate = new Date(startDate.getTime() + (program.duration_weeks || 8) * 7 * 24 * 60 * 60 * 1000)
+
+              // Check if enrollment already exists (any status)
+              const { data: existingEnrollment } = await supabase
+                .from('client_programs')
+                .select('id')
+                .eq('client_id', userId)
+                .eq('program_id', programId)
+                .maybeSingle()
+
+              let enrollError: any = null
+              if (existingEnrollment) {
+                // Re-activate existing enrollment
+                const res = await supabase
+                  .from('client_programs')
+                  .update({
+                    status: 'active',
+                    start_date: startDate.toISOString().split('T')[0],
+                    end_date: endDate.toISOString().split('T')[0],
+                    current_week: 1,
+                  })
+                  .eq('id', existingEnrollment.id)
+                enrollError = res.error
+              } else {
+                // Create new enrollment
+                const res = await supabase
+                  .from('client_programs')
+                  .insert({
+                    client_id: userId,
+                    program_id: programId,
+                    status: 'active',
+                    start_date: startDate.toISOString().split('T')[0],
+                    end_date: endDate.toISOString().split('T')[0],
+                    current_week: 1,
+                  })
+                enrollError = res.error
+              }
+
+              if (enrollError) {
+                console.error('Error enrolling client in program:', enrollError)
+              } else {
+                console.log(`✅ Program enrollment: ${userId} → ${programId}`)
+              }
+            }
+          } else {
+            // ─── Course purchase: grant course access ───
+            const { error: accessError } = await supabase
+              .from('course_access')
+              .upsert({
+                user_id: userId,
+                course_slug: courseSlug,
+                granted_at: new Date().toISOString(),
+              }, {
+                onConflict: 'user_id,course_slug',
+              })
+
+            if (accessError) {
+              console.error('Error granting course access:', accessError)
+            }
           }
 
           // Get user profile for email
@@ -85,25 +143,35 @@ export async function POST(request: NextRequest) {
 
           const clientName = profile?.full_name || 'Customer'
           const clientEmail = profile?.email || userEmail || ''
-          const course = COURSES[courseSlug as CourseSlug]
-          const courseName = course?.name || courseSlug
+
+          // Determine product name
+          let productName: string = courseSlug || 'Unknown product'
+          if (purchaseType === 'program' && programId) {
+            const { data: prog } = await supabase
+              .from('training_programs')
+              .select('name')
+              .eq('id', programId)
+              .single()
+            productName = prog?.name || 'Training Program'
+          } else {
+            const course = COURSES[courseSlug as CourseSlug]
+            productName = course?.name || courseSlug
+          }
 
           // Send email notifications
           if (clientEmail) {
-            // Send to client
             await sendPaymentSuccessClient(clientEmail, clientName, {
-              courseName,
+              courseName: productName,
               courseSlug,
               amount: orderData?.amount || session.amount_total || 0,
               currency: orderData?.currency || 'usd',
               orderId: orderData?.id || session.id,
             })
 
-            // Send to admin
             await sendPaymentSuccessAdmin({
               clientName,
               clientEmail,
-              courseName,
+              courseName: productName,
               amount: orderData?.amount || session.amount_total || 0,
               currency: orderData?.currency || 'usd',
               orderId: orderData?.id || session.id,
@@ -144,13 +212,26 @@ export async function POST(request: NextRequest) {
           .update({ status: 'refunded' })
           .eq('stripe_payment_intent_id', paymentIntentId)
 
-        // Revoke course access and send notifications
+        // Revoke access and send notifications
         if (order) {
-          await supabase
-            .from('course_access')
-            .delete()
-            .eq('user_id', order.user_id)
-            .eq('course_slug', order.course_slug)
+          const isProgram = order.course_slug?.startsWith('program:')
+
+          if (isProgram) {
+            // Deactivate program enrollment
+            const progId = order.course_slug.replace('program:', '')
+            await supabase
+              .from('client_programs')
+              .update({ status: 'cancelled' })
+              .eq('client_id', order.user_id)
+              .eq('program_id', progId)
+          } else {
+            // Revoke course access
+            await supabase
+              .from('course_access')
+              .delete()
+              .eq('user_id', order.user_id)
+              .eq('course_slug', order.course_slug)
+          }
 
           // Get user profile for email
           const { data: profile } = await supabase
@@ -161,8 +242,20 @@ export async function POST(request: NextRequest) {
 
           const clientName = profile?.full_name || 'Customer'
           const clientEmail = profile?.email || ''
-          const course = COURSES[order.course_slug as CourseSlug]
-          const courseName = course?.name || order.course_slug
+
+          let courseName = order.course_slug
+          if (isProgram) {
+            const progId = order.course_slug.replace('program:', '')
+            const { data: prog } = await supabase
+              .from('training_programs')
+              .select('name')
+              .eq('id', progId)
+              .single()
+            courseName = prog?.name || 'Training Program'
+          } else {
+            const course = COURSES[order.course_slug as CourseSlug]
+            courseName = course?.name || order.course_slug
+          }
 
           // Send email notifications
           if (clientEmail) {
