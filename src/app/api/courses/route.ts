@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase-server'
 import { requireAdmin } from '@/lib/api-auth'
 import { sanitizeString } from '@/lib/security'
+import { slugify } from '@/lib/utils'
 
 export const dynamic = 'force-dynamic'
 
@@ -59,12 +60,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Title is required' }, { status: 400 })
     }
 
-    const slug = body.slug || title
-      .toLowerCase()
-      .replace(/[^a-z0-9\s-]/g, '')
-      .replace(/\s+/g, '-')
-      .replace(/-+/g, '-')
-      .trim()
+    const slug = slugify(body.slug || title) || `course-${Date.now()}`
     
     const { data, error } = await supabase
       .from('courses')
