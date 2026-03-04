@@ -62,20 +62,25 @@ export async function POST(request: Request) {
 
     const slug = slugify(body.slug || title) || `course-${Date.now()}`
     
-    const { data, error } = await supabase
-      .from('courses')
-      .insert({
+    const insertData: any = {
         slug: slug.slice(0, 200),
         title,
         title_secondary: sanitizeString(body.title_secondary || '', 500) || null,
         description: sanitizeString(body.description || '', 5000) || null,
-        description_secondary: sanitizeString(body.description_secondary || '', 5000) || null,
         price: Math.round((body.price || 99) * 100),
         original_price: body.original_price ? Math.round(body.original_price * 100) : null,
         duration_weeks: body.duration_weeks || 8,
         image_url: body.image_url || null,
         is_published: body.is_published || false,
-      })
+    }
+    // Only include description_secondary if provided (column may not exist yet)
+    if (body.description_secondary) {
+      insertData.description_secondary = sanitizeString(body.description_secondary, 5000)
+    }
+
+    const { data, error } = await supabase
+      .from('courses')
+      .insert(insertData)
       .select()
       .single()
     

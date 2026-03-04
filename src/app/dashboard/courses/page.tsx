@@ -197,7 +197,7 @@ export default function CoursesAdminPage() {
     }
   }
 
-  const CourseForm = ({ onSubmit, submitLabel }: { onSubmit: (e: React.FormEvent) => void, submitLabel: string }) => (
+  const renderCourseForm = (onSubmit: (e: React.FormEvent) => void, submitLabel: string) => (
     <form onSubmit={onSubmit} className="space-y-4">
       <div className={`grid ${lang.isBilingual ? 'grid-cols-2' : ''} gap-4`}>
         <Input label={`${lang.pl(ru ? 'Название' : 'Title')} *`} value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value, slug: form.slug || generateSlug(e.target.value) })} required />
@@ -349,12 +349,12 @@ export default function CoursesAdminPage() {
 
       {/* Add Modal */}
       <Modal isOpen={isAddOpen} onClose={() => setIsAddOpen(false)} title={ru ? 'Новый курс' : 'New Course'} size="lg">
-        <CourseForm onSubmit={handleAdd} submitLabel={ru ? 'Создать' : 'Create'} />
+        {renderCourseForm(handleAdd, ru ? 'Создать' : 'Create')}
       </Modal>
 
       {/* Edit Modal */}
       <Modal isOpen={isEditOpen} onClose={() => { setIsEditOpen(false); setSelectedCourse(null); }} title={ru ? 'Настройки курса' : 'Course Settings'} size="lg">
-        <CourseForm onSubmit={handleEdit} submitLabel={ru ? 'Сохранить' : 'Save'} />
+        {renderCourseForm(handleEdit, ru ? 'Сохранить' : 'Save')}
       </Modal>
 
       {/* Delete Modal */}
