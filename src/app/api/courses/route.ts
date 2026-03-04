@@ -65,7 +65,6 @@ export async function POST(request: Request) {
     const insertData: any = {
         slug: slug.slice(0, 200),
         title,
-        title_secondary: sanitizeString(body.title_secondary || '', 500) || null,
         description: sanitizeString(body.description || '', 5000) || null,
         price: Math.round((body.price || 99) * 100),
         original_price: body.original_price ? Math.round(body.original_price * 100) : null,
@@ -73,7 +72,10 @@ export async function POST(request: Request) {
         image_url: body.image_url || null,
         is_published: body.is_published || false,
     }
-    // Only include description_secondary if provided (column may not exist yet)
+    // _secondary columns may not exist if rename migration wasn't applied
+    if (body.title_secondary) {
+      insertData.title_secondary = sanitizeString(body.title_secondary, 500)
+    }
     if (body.description_secondary) {
       insertData.description_secondary = sanitizeString(body.description_secondary, 5000)
     }
