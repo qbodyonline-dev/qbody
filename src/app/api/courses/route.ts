@@ -84,6 +84,7 @@ export async function POST(request: Request) {
     return NextResponse.json(data)
   } catch (err: any) {
     console.error('POST /api/courses error:', err)
-    return NextResponse.json({ error: 'Failed to create course' }, { status: 500 })
+    const message = err?.message || err?.details || err?.hint || 'Failed to create course'
+    return NextResponse.json({ error: message }, { status: 500 })
   }
 }
