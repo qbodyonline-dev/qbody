@@ -229,12 +229,42 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     }
   }, [session?.access_token, fetchNewCheckinsCount])
 
-  // Redirect clients away from admin dashboard
+  // Redirect unauthorized users away from admin dashboard
+  const isAuthorized = !loading && profile && (profile.role === 'admin' || profile.role === 'trainer')
+  const isUnauthorized = !loading && (!profile || profile.role === 'client')
+
   useEffect(() => {
     if (!loading && isClient) {
       router.replace('/client/home')
     }
-  }, [loading, isClient, router])
+    // If loaded but no profile (not logged in) — redirect to login
+    if (!loading && !profile && !session) {
+      router.replace('/auth/login')
+    }
+  }, [loading, isClient, profile, session, router])
+
+  // Show loading screen while auth state is being determined
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950 flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-teal-400 to-teal-600 flex items-center justify-center animate-pulse">
+            <span className="text-white font-bold text-lg">Q</span>
+          </div>
+          <div className="w-8 h-8 border-2 border-teal-500 border-t-transparent rounded-full animate-spin" />
+        </div>
+      </div>
+    )
+  }
+
+  // Block rendering for unauthorized users (clients, unauthenticated)
+  if (isUnauthorized) {
+    return (
+      <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950 flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-teal-500 border-t-transparent rounded-full animate-spin" />
+      </div>
+    )
+  }
 
   const ru = locale === 'ru'
 
