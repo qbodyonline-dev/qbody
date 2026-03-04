@@ -11,6 +11,7 @@ import { Plus, Edit, Eye, EyeOff, BookOpen, DollarSign, Clock, Trash2, Loader2, 
 import { toast } from 'sonner'
 import { fetchWithAuth } from '@/lib/api'
 import { useLanguageConfig } from '@/lib/useLanguageConfig'
+import { slugify } from '@/lib/utils'
 
 type Course = {
   id: string
@@ -76,9 +77,7 @@ export default function CoursesAdminPage() {
     is_published: false
   })
 
-  const generateSlug = (title: string) => {
-    return title.toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-').trim()
-  }
+  const generateSlug = (title: string) => slugify(title)
 
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault()
