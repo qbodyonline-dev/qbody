@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase-server'
-import { authenticateRequest } from '@/lib/api-auth'
+import { authenticateRequest, requireAdmin } from '@/lib/api-auth'
 import { isValidUUID } from '@/lib/security'
 
 // GET - fetch single conversation with messages
@@ -135,5 +135,53 @@ export async function PATCH(
   } catch (error: any) {
     console.error('Error updating conversation:', error)
     return NextResponse.json({ error: 'Failed to update conversation' }, { status: 500 })
+  }
+}
+
+// DELETE — delete conversation and its messages — admin only
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const auth = await requireAdmin(request)
+  if (!auth.success) {
+    return NextResponse.json({ error: auth.error.error }, { status: auth.error.status })
+  }
+
+  try {
+    const { id } = await params
+
+    if (!isValidUUID(id)) {
+      return NextResponse.json({ error: 'Invalid conversation ID' }, { status: 400 })
+    }
+
+    const supabase = createServerClient()
+
+    // Delete messages first
+    const { error: msgError } = await supabase
+      .from('messages')
+      .delete()
+      .eq('conversation_id', id)
+
+    if (msgError) {
+      console.error('Error deleting messages:', msgError)
+      return NextResponse.json({ error: 'Failed to delete messages' }, { status: 500 })
+    }
+
+    // Delete conversation
+    const { error } = await supabase
+      .from('conversations')
+      .delete()
+      .eq('id', id)
+
+    if (error) {
+      console.error('Error deleting conversation:', error)
+      return NextResponse.json({ error: 'Failed to delete conversation' }, { status: 500 })
+    }
+
+    return NextResponse.json({ success: true })
+  } catch (error: any) {
+    console.error('DELETE /api/conversations/[id] error:', error)
+    return NextResponse.json({ error: 'Server error' }, { status: 500 })
   }
 }

@@ -7,11 +7,11 @@ import { Avatar } from '@/components/ui/avatar'
 import { useTranslation } from '@/lib/i18n'
 import { useAuth } from '@/lib/auth'
 import { createClient } from '@/lib/supabase'
-import { 
-  MessageSquare, 
-  Send, 
-  Search, 
-  Check, 
+import {
+  MessageSquare,
+  Send,
+  Search,
+  Check,
   CheckCheck,
   ArrowLeft,
   Clock,
@@ -19,7 +19,8 @@ import {
   MessageCirclePlus,
   X,
   Image as ImageIcon,
-  Loader2
+  Loader2,
+  Trash2
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
@@ -467,6 +468,38 @@ export default function MessagesPage() {
     setSelectedClient(null)
   }
 
+  // Delete conversation
+  const deleteConversation = async (convId: string) => {
+    if (!confirm(ru ? 'Удалить этот чат и все сообщения? Это действие нельзя отменить.' : 'Delete this chat and all messages? This cannot be undone.')) return
+
+    const prev = conversations
+    const wasSelected = selectedConversation?.id === convId
+
+    // Optimistic UI
+    setConversations(cs => cs.filter(c => c.id !== convId))
+    if (wasSelected) {
+      setSelectedConversation(null)
+      setMessages([])
+      if (isMobileView) setShowMobileChat(false)
+    }
+
+    try {
+      const res = await fetch(`/api/conversations/${convId}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${session?.access_token}` },
+      })
+      if (!res.ok) throw new Error()
+      toast.success(ru ? 'Чат удалён' : 'Chat deleted')
+    } catch {
+      setConversations(prev)
+      if (wasSelected) {
+        const restored = prev.find(c => c.id === convId)
+        if (restored) setSelectedConversation(restored)
+      }
+      toast.error(ru ? 'Ошибка удаления' : 'Delete failed')
+    }
+  }
+
   // Filter conversations by search
   const filteredConversations = conversations.filter(conv => {
     const name = conv.client?.full_name || conv.client?.email || ''
@@ -605,18 +638,18 @@ export default function MessagesPage() {
                   </div>
                 ) : (
                   filteredConversations.map((conv) => (
-                    <button
+                    <div
                       key={conv.id}
-                      onClick={() => handleSelectConversation(conv)}
                       className={cn(
-                        "w-full p-4 flex items-start gap-3 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors text-left border-b border-zinc-100 dark:border-zinc-800",
+                        "group relative w-full p-4 flex items-start gap-3 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors text-left border-b border-zinc-100 dark:border-zinc-800 cursor-pointer",
                         selectedConversation?.id === conv.id && "bg-teal-50 dark:bg-teal-900/20"
                       )}
+                      onClick={() => handleSelectConversation(conv)}
                     >
-                      <Avatar 
-                        fallback={getInitials(conv.client?.full_name, conv.client?.email)} 
+                      <Avatar
+                        fallback={getInitials(conv.client?.full_name, conv.client?.email)}
                         src={conv.client?.avatar_url || undefined}
-                        size="md" 
+                        size="md"
                       />
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between gap-2">
@@ -638,7 +671,14 @@ export default function MessagesPage() {
                           )}
                         </div>
                       </div>
-                    </button>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); deleteConversation(conv.id) }}
+                        className="absolute top-2 right-2 p-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity text-zinc-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20"
+                        title={ru ? 'Удалить чат' : 'Delete chat'}
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
                   ))
                 )
               ) : (
@@ -713,16 +753,25 @@ export default function MessagesPage() {
                     </p>
                   </div>
                   {selectedConversation && (
-                    <div className={cn(
-                      "px-2 py-1 rounded-full text-xs font-medium",
-                      selectedConversation.status === 'open' 
-                        ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
-                        : "bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400"
-                    )}>
-                      {selectedConversation.status === 'open' 
-                        ? (ru ? 'Открыт' : 'Open')
-                        : (ru ? 'Закрыт' : 'Closed')
-                      }
+                    <div className="flex items-center gap-2">
+                      <div className={cn(
+                        "px-2 py-1 rounded-full text-xs font-medium",
+                        selectedConversation.status === 'open'
+                          ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                          : "bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400"
+                      )}>
+                        {selectedConversation.status === 'open'
+                          ? (ru ? 'Открыт' : 'Open')
+                          : (ru ? 'Закрыт' : 'Closed')
+                        }
+                      </div>
+                      <button
+                        onClick={() => deleteConversation(selectedConversation.id)}
+                        className="p-1.5 rounded-lg text-zinc-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                        title={ru ? 'Удалить чат' : 'Delete chat'}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
                     </div>
                   )}
                   {selectedClient && !selectedConversation && (
