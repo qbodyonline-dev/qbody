@@ -47,6 +47,14 @@ export default function CoursesAdminPage() {
     price: '99', original_price: '', duration_weeks: '8',
     is_published: false
   })
+  const [slugManuallyEdited, setSlugManuallyEdited] = useState(false)
+  const [slugError, setSlugError] = useState('')
+
+  const checkSlugUnique = (slug: string) => {
+    if (!slug) { setSlugError(''); return }
+    const duplicate = courses.find(c => c.slug === slug && c.id !== selectedCourse?.id)
+    setSlugError(duplicate ? (ru ? 'Этот slug уже используется' : 'This slug is already taken') : '')
+  }
 
   const loadCourses = async () => {
     try {
@@ -70,12 +78,15 @@ export default function CoursesAdminPage() {
     }
   }, [])
 
-  const resetForm = () => setForm({
-    title: '', title_secondary: '', slug: '',
-    description: '', description_secondary: '',
-    price: '99', original_price: '', duration_weeks: '8',
-    is_published: false
-  })
+  const resetForm = () => {
+    setForm({
+      title: '', title_secondary: '', slug: '',
+      description: '', description_secondary: '',
+      price: '99', original_price: '', duration_weeks: '8',
+      is_published: false
+    })
+    setSlugManuallyEdited(false)
+  }
 
   const generateSlug = (title: string) => slugify(title)
 
@@ -83,6 +94,11 @@ export default function CoursesAdminPage() {
     e.preventDefault()
     if (!form.title.trim()) {
       toast.error(ru ? 'Введите название' : 'Enter title')
+      return
+    }
+    const slug = form.slug || generateSlug(form.title)
+    if (courses.find(c => c.slug === slug)) {
+      toast.error(ru ? 'Slug уже используется' : 'Slug is already taken')
       return
     }
     setSaving(true)
@@ -119,6 +135,10 @@ export default function CoursesAdminPage() {
   const handleEdit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!selectedCourse) return
+    if (form.slug && courses.find(c => c.slug === form.slug && c.id !== selectedCourse.id)) {
+      toast.error(ru ? 'Slug уже используется' : 'Slug is already taken')
+      return
+    }
     setSaving(true)
     try {
       const res = await fetchWithAuth(`/api/courses/${selectedCourse.id}`, {
@@ -135,14 +155,17 @@ export default function CoursesAdminPage() {
           is_published: form.is_published,
         }),
       })
-      if (!res.ok) throw new Error('Failed')
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        throw new Error(err.error || (ru ? 'Ошибка обновления' : 'Update failed'))
+      }
       toast.success(ru ? 'Курс обновлён!' : 'Course updated!')
       setIsEditOpen(false)
       setSelectedCourse(null)
       resetForm()
       loadCourses()
-    } catch {
-      toast.error(ru ? 'Ошибка обновления' : 'Update failed')
+    } catch (err: any) {
+      toast.error(err.message || (ru ? 'Ошибка обновления' : 'Update failed'))
     } finally {
       setSaving(false)
     }
@@ -167,6 +190,7 @@ export default function CoursesAdminPage() {
 
   const openEdit = (course: Course) => {
     setSelectedCourse(course)
+    setSlugManuallyEdited(true)
     setForm({
       title: course.title,
       title_secondary: course.title_secondary || '',
@@ -200,10 +224,13 @@ export default function CoursesAdminPage() {
   const renderCourseForm = (onSubmit: (e: React.FormEvent) => void, submitLabel: string) => (
     <form onSubmit={onSubmit} className="space-y-4">
       <div className={`grid ${lang.isBilingual ? 'grid-cols-2' : ''} gap-4`}>
-        <Input label={`${lang.pl(ru ? 'Название' : 'Title')} *`} value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value, slug: form.slug || generateSlug(e.target.value) })} required />
+        <Input label={`${lang.pl(ru ? 'Название' : 'Title')} *`} value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value, ...(!slugManuallyEdited ? { slug: generateSlug(e.target.value) } : {}) })} required />
         {lang.isBilingual && <Input label={lang.sl(ru ? 'Название' : 'Title')} value={form.title_secondary} onChange={(e) => setForm({ ...form, title_secondary: e.target.value })} />}
       </div>
-      <Input label="Slug (URL)" value={form.slug} onChange={(e) => setForm({ ...form, slug: e.target.value })} placeholder="course-url-slug" />
+      <div>
+        <Input label="Slug (URL)" value={form.slug} onChange={(e) => { setSlugManuallyEdited(true); setForm({ ...form, slug: e.target.value }); setSlugError('') }} onBlur={() => checkSlugUnique(form.slug)} placeholder="course-url-slug" />
+        {slugError && <p className="text-xs text-red-500 mt-1">{slugError}</p>}
+      </div>
       <div className={`grid ${lang.isBilingual ? 'grid-cols-2' : ''} gap-4`}>
         <div>
           <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">{lang.pl(ru ? 'Описание' : 'Description')}</label>
@@ -224,7 +251,7 @@ export default function CoursesAdminPage() {
         <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">{ru ? 'Опубликован (виден клиентам)' : 'Published (visible to clients)'}</span>
       </label>
       <div className="flex justify-end gap-3 pt-4">
-        <Button type="button" variant="outline" onClick={() => { setIsAddOpen(false); setIsEditOpen(false); }}>{ru ? 'Отмена' : 'Cancel'}</Button>
+        <Button type="button" variant="outline" onClick={() => { setIsAddOpen(false); setIsEditOpen(false); setSelectedCourse(null); resetForm(); }}>{ru ? 'Отмена' : 'Cancel'}</Button>
         <Button type="submit" variant="gradient" disabled={saving}>
           {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
           {submitLabel}

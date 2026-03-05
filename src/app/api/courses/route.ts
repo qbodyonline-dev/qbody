@@ -66,7 +66,7 @@ export async function POST(request: Request) {
         slug: slug.slice(0, 200),
         title,
         description: sanitizeString(body.description || '', 5000) || null,
-        price: Math.round((body.price || 99) * 100),
+        price: Math.round((body.price !== undefined && body.price !== null ? Number(body.price) : 99) * 100),
         original_price: body.original_price ? Math.round(body.original_price * 100) : null,
         duration_weeks: body.duration_weeks || 8,
         image_url: body.image_url || null,

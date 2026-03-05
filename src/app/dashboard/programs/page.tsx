@@ -72,7 +72,7 @@ function ProgramsPage() {
   const [fDescSecondary, setFDescSecondary] = useState('')
   const [fFullDesc, setFFullDesc] = useState<Block[]>([])
   const [fFullDescSecondary, setFFullDescSecondary] = useState<Block[]>([])
-  const [descTab, setDescTab] = useState<'primary' | 'secondary'>('secondary')
+  const [descTab, setDescTab] = useState<'primary' | 'secondary'>('primary')
   const [fHeroImage, setFHeroImage] = useState('')
   const [heroUploading, setHeroUploading] = useState(false)
   const [fWeeks, setFWeeks] = useState(8)
@@ -138,7 +138,7 @@ function ProgramsPage() {
       setTotal(data.total || 0)
     } catch { toast.error(ru ? 'Ошибка загрузки' : 'Failed to load') }
     finally { setLoading(false) }
-  }, [])
+  }, [ru])
 
   const fetchWorkouts = useCallback(async () => {
     try {
@@ -149,7 +149,7 @@ function ProgramsPage() {
         id: w.id, name: w.name, name_secondary: w.name_secondary, type: w.type, difficulty: w.difficulty, estimated_duration: w.estimated_duration
       })))
     } catch { /* ignore */ }
-  }, [])
+  }, [ru])
 
   const fetchClients = useCallback(async () => {
     try {
@@ -157,7 +157,7 @@ function ProgramsPage() {
       if (!res.ok) throw new Error()
       setClientsList(await res.json())
     } catch { /* ignore */ }
-  }, [])
+  }, [ru])
 
   useEffect(() => { fetchPrograms(); fetchWorkouts() }, [fetchPrograms, fetchWorkouts])
 
@@ -202,6 +202,7 @@ function ProgramsPage() {
   const copyWeek = (fromIdx: number) => {
     const source = fSchedule[fromIdx]
     if (!source) return
+    if (!confirm(ru ? `Скопировать неделю ${fromIdx + 1} на все остальные? Текущее расписание будет перезаписано.` : `Copy week ${fromIdx + 1} to all others? Current schedule will be overwritten.`)) return
     const newSchedule = fSchedule.map((week, i) => i === fromIdx ? week : source.map(d => ({ ...d })))
     setFSchedule(newSchedule)
     toast.success(ru ? `Неделя ${fromIdx + 1} скопирована на все` : `Week ${fromIdx + 1} copied to all`)
@@ -227,7 +228,7 @@ function ProgramsPage() {
   /* ─── MODAL ─── */
   const resetForm = () => {
     setFName(''); setFNameSecondary(''); setFSlug(''); setFDesc(''); setFDescSecondary('')
-    setFFullDesc([]); setFFullDescSecondary([]); setDescTab('secondary'); setFHeroImage('')
+    setFFullDesc([]); setFFullDescSecondary([]); setDescTab('primary'); setFHeroImage('')
     setFWeeks(8); setFGoal('general'); setFDiff('intermediate')
     setFSchedule(Array.from({ length: 8 }, () => emptyWeek()))
     setEditingId(null); setExpandedWeek(null)
@@ -247,7 +248,7 @@ function ProgramsPage() {
   const openEdit = (p: Program) => {
     setEditingId(p.id)
     setFName(p.name); setFNameSecondary(p.name_secondary || ''); setFSlug((p as any).slug || generateSlug(p.name)); setFDesc(p.description || ''); setFDescSecondary(p.description_secondary || '')
-    setFFullDesc(parseBlocks((p as any).full_description)); setFFullDescSecondary(parseBlocks((p as any).full_description_secondary)); setDescTab('secondary')
+    setFFullDesc(parseBlocks((p as any).full_description)); setFFullDescSecondary(parseBlocks((p as any).full_description_secondary)); setDescTab('primary')
     setFHeroImage((p as any).hero_image_url || '')
     setFWeeks(p.duration_weeks); setFGoal(p.goal); setFDiff(p.difficulty)
     setFSchedule(buildScheduleFromDays(p.program_days, p.duration_weeks))
@@ -267,9 +268,14 @@ function ProgramsPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!fName.trim()) { toast.error(ru ? 'Введите название' : 'Name required'); return }
-    setSaving(true)
 
     const slug = fSlug.trim() || generateSlug(fName)
+    const duplicateSlug = programs.find(p => (p as any).slug === slug && p.id !== editingId)
+    if (duplicateSlug) {
+      toast.error(ru ? 'Этот slug уже используется' : 'This slug is already taken')
+      return
+    }
+    setSaving(true)
     const payload = {
       name: fName.trim(),
       name_secondary: fNameSecondary.trim() || null,
@@ -289,10 +295,13 @@ function ProgramsPage() {
       const url = editingId ? `/api/programs/${editingId}` : '/api/programs'
       const method = editingId ? 'PUT' : 'POST'
       const res = await fetchWithAuth(url, { method, body: JSON.stringify(payload) })
-      if (!res.ok) throw new Error()
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}))
+        throw new Error(errData.error || (ru ? 'Ошибка сохранения' : 'Save failed'))
+      }
       toast.success(ru ? 'Сохранено' : 'Saved')
       setIsModalOpen(false); resetForm(); fetchPrograms()
-    } catch { toast.error(ru ? 'Ошибка' : 'Failed') }
+    } catch (err: any) { toast.error(err.message || (ru ? 'Ошибка' : 'Failed')) }
     finally { setSaving(false) }
   }
 
@@ -334,12 +343,18 @@ function ProgramsPage() {
     try {
       const res = await fetchWithAuth(`/api/programs/${p.id}`, {
         method: 'PUT',
-        body: JSON.stringify({ is_active: !p.is_active }),
+        body: JSON.stringify({
+          name: p.name,
+          is_active: !p.is_active,
+        }),
       })
-      if (!res.ok) throw new Error()
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}))
+        throw new Error(errData.error || 'Failed')
+      }
       toast.success(p.is_active ? (ru ? 'Программа деактивирована' : 'Program deactivated') : (ru ? 'Программа активирована' : 'Program activated'))
       fetchPrograms()
-    } catch { toast.error(ru ? 'Ошибка' : 'Failed') }
+    } catch (err: any) { toast.error(err.message || (ru ? 'Ошибка' : 'Failed')) }
   }
 
   /* ─── STATS ─── */

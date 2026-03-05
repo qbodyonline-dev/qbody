@@ -145,7 +145,7 @@ export default function CourseEditorPage() {
     setUploadingVideo(true)
     const url = await uploadFile(file, 'videos')
     if (url) {
-      setLessonForm({ ...lessonForm, video_url: url })
+      setLessonForm(prev => ({ ...prev, video_url: url }))
       toast.success(ru ? 'Видео загружено!' : 'Video uploaded!')
     }
     setUploadingVideo(false)
@@ -155,10 +155,11 @@ export default function CourseEditorPage() {
     setUploadingImage(blockId)
     const url = await uploadFile(file, 'images')
     if (url) {
-      const newContent = lessonForm.content.map(b => 
-        b.id === blockId ? { ...b, content: url } : b
-      )
-      setLessonForm({ ...lessonForm, content: newContent })
+      setLessonForm(prev => ({
+        ...prev,
+        content: prev.content.map(b => b.id === blockId ? { ...b, content: url } : b),
+        content_secondary: prev.content_secondary.map(b => b.id === blockId ? { ...b, content: url } : b),
+      }))
       toast.success(ru ? 'Изображение загружено!' : 'Image uploaded!')
     }
     setUploadingImage(null)
@@ -436,14 +437,21 @@ export default function CourseEditorPage() {
     const [removed] = lessons.splice(draggedIndex, 1)
     lessons.splice(targetIndex, 0, removed)
 
-    // Update sort_order for all lessons
+    // Only update lessons whose sort_order actually changed
+    const originalLessons = module.course_lessons
+    const changed = lessons.filter((lesson, index) => {
+      const original = originalLessons.find(l => l.id === lesson.id)
+      return !original || original.sort_order !== index
+    })
+
     try {
-      await Promise.all(lessons.map((lesson, index) => 
-        fetchWithAuth(`/api/lessons/${lesson.id}`, {
+      await Promise.all(changed.map((lesson) => {
+        const newIndex = lessons.indexOf(lesson)
+        return fetchWithAuth(`/api/lessons/${lesson.id}`, {
           method: 'PATCH',
-          body: JSON.stringify({ sort_order: index }),
+          body: JSON.stringify({ sort_order: newIndex }),
         })
-      ))
+      }))
       loadCourse()
       toast.success(ru ? 'Порядок обновлён' : 'Order updated')
     } catch {
@@ -496,7 +504,7 @@ export default function CourseEditorPage() {
           <Card key={mod.id} className="overflow-hidden">
             <div className="flex items-center gap-3 p-4 bg-zinc-50 dark:bg-zinc-800/50 border-b border-zinc-200 dark:border-zinc-700">
               <button onClick={() => toggleModule(mod.id)} className="p-1 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded">
-                {expandedModules.has(mod.id) ? <ChevronDown className="w-5 h-5" /> : <ChevronUp className="w-5 h-5 rotate-180" />}
+                {expandedModules.has(mod.id) ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
               </button>
               <BookOpen className="w-5 h-5 text-teal-500" />
               <div className="flex-1 min-w-0">
