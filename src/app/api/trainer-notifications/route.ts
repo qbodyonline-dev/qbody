@@ -97,7 +97,7 @@ export async function PATCH(request: NextRequest) {
   }
 }
 
-// DELETE — delete old notifications (>30 days)
+// DELETE — delete specific notifications by IDs, or old read notifications (>30 days)
 export async function DELETE(request: NextRequest) {
   const auth = await requireAdmin(request)
   if (!auth.success) {
@@ -106,9 +106,25 @@ export async function DELETE(request: NextRequest) {
 
   try {
     const supabase = createServerClient()
+    const body = await request.json().catch(() => ({}))
+    const { ids } = body as { ids?: string[] }
+
+    // Delete specific notifications by IDs
+    if (ids && Array.isArray(ids) && ids.length > 0) {
+      const { error } = await supabase
+        .from('trainer_notifications')
+        .delete()
+        .in('id', ids)
+
+      if (error) {
+        return NextResponse.json({ error: 'Failed to delete' }, { status: 500 })
+      }
+      return NextResponse.json({ success: true, deleted: ids.length })
+    }
+
+    // Fallback: delete old read notifications (>30 days)
     const cutoff = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
 
-    // Count first, then delete
     const { count: toDelete } = await supabase
       .from('trainer_notifications')
       .select('*', { count: 'exact', head: true })

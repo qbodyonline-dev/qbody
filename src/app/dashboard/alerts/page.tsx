@@ -122,6 +122,31 @@ export default function AlertsPage() {
     }
   }
 
+  const deleteNotification = async (id: string) => {
+    // Optimistic UI
+    const prev = notifications
+    setNotifications(ns => ns.filter(n => n.id !== id))
+    setTotal(t => Math.max(0, t - 1))
+    const wasUnread = prev.find(n => n.id === id && !n.is_read)
+    if (wasUnread) setUnreadCount(c => Math.max(0, c - 1))
+
+    try {
+      const res = await fetch('/api/trainer-notifications', {
+        method: 'DELETE',
+        headers: headers(),
+        body: JSON.stringify({ ids: [id] }),
+      })
+      if (!res.ok) throw new Error()
+      toast.success(ru ? 'Оповещение удалено' : 'Alert deleted')
+    } catch {
+      // Revert
+      setNotifications(prev)
+      setTotal(t => t + 1)
+      if (wasUnread) setUnreadCount(c => c + 1)
+      toast.error(ru ? 'Ошибка удаления' : 'Delete failed')
+    }
+  }
+
   const formatDate = (iso: string) => {
     const d = new Date(iso)
     const now = new Date()
@@ -341,6 +366,15 @@ export default function AlertsPage() {
                             {ru ? 'Прочитано' : 'Mark read'}
                           </Button>
                         )}
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className={`h-7 text-xs text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 ${notif.is_read ? 'ml-auto' : ''}`}
+                          onClick={() => deleteNotification(notif.id)}
+                        >
+                          <Trash2 className="w-3 h-3 mr-1" />
+                          {ru ? 'Удалить' : 'Delete'}
+                        </Button>
                       </div>
                     </div>
                   </div>
