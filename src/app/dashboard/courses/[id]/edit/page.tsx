@@ -8,8 +8,8 @@ import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Modal } from '@/components/ui/modal'
 import { useTranslation } from '@/lib/i18n'
-import { 
-  ArrowLeft, Plus, Trash2, Video, FileText, 
+import {
+  ArrowLeft, ArrowUp, ArrowDown, Plus, Trash2, Video, FileText,
   ChevronDown, ChevronUp, Edit, BookOpen, Loader2, Clock, Eye, EyeOff,
   ListChecks, Save, Upload, Image, GripVertical, X, Check
 } from 'lucide-react'
@@ -114,6 +114,42 @@ export default function CourseEditorPage() {
     if (next.has(id)) next.delete(id)
     else next.add(id)
     setExpandedModules(next)
+  }
+
+  // === MODULE REORDER ===
+  const moveModule = async (moduleId: string, direction: 'up' | 'down') => {
+    if (!course || saving) return
+    const modules = [...course.course_modules]
+    const currentIndex = modules.findIndex(m => m.id === moduleId)
+    if (currentIndex === -1) return
+
+    const targetIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1
+    if (targetIndex < 0 || targetIndex >= modules.length) return
+
+    // Swap modules
+    const swapped = [...modules];
+    [swapped[currentIndex], swapped[targetIndex]] = [swapped[targetIndex], swapped[currentIndex]]
+
+    // Optimistic UI update
+    setCourse({ ...course, course_modules: swapped })
+
+    // Persist to API — only update the two swapped modules
+    try {
+      await Promise.all([
+        fetchWithAuth(`/api/modules/${swapped[currentIndex].id}`, {
+          method: 'PATCH',
+          body: JSON.stringify({ sort_order: currentIndex }),
+        }),
+        fetchWithAuth(`/api/modules/${swapped[targetIndex].id}`, {
+          method: 'PATCH',
+          body: JSON.stringify({ sort_order: targetIndex }),
+        }),
+      ])
+      toast.success(ru ? 'Порядок модулей обновлён' : 'Module order updated')
+    } catch {
+      toast.error(ru ? 'Ошибка перемещения' : 'Move failed')
+      loadCourse() // Revert on error
+    }
   }
 
   // === UPLOAD FUNCTIONS ===
@@ -503,6 +539,25 @@ export default function CourseEditorPage() {
         {course.course_modules?.map((mod, mi) => (
           <Card key={mod.id} className="overflow-hidden">
             <div className="flex items-center gap-3 p-4 bg-zinc-50 dark:bg-zinc-800/50 border-b border-zinc-200 dark:border-zinc-700">
+              {/* Reorder buttons */}
+              <div className="flex flex-col gap-0.5">
+                <button
+                  onClick={() => moveModule(mod.id, 'up')}
+                  disabled={mi === 0}
+                  className={`p-0.5 rounded transition-colors ${mi === 0 ? 'text-zinc-300 dark:text-zinc-600 cursor-not-allowed' : 'text-zinc-500 hover:text-teal-600 hover:bg-teal-50 dark:hover:bg-teal-900/20'}`}
+                  title={ru ? 'Переместить вверх' : 'Move up'}
+                >
+                  <ArrowUp className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  onClick={() => moveModule(mod.id, 'down')}
+                  disabled={mi === (course.course_modules?.length || 0) - 1}
+                  className={`p-0.5 rounded transition-colors ${mi === (course.course_modules?.length || 0) - 1 ? 'text-zinc-300 dark:text-zinc-600 cursor-not-allowed' : 'text-zinc-500 hover:text-teal-600 hover:bg-teal-50 dark:hover:bg-teal-900/20'}`}
+                  title={ru ? 'Переместить вниз' : 'Move down'}
+                >
+                  <ArrowDown className="w-3.5 h-3.5" />
+                </button>
+              </div>
               <button onClick={() => toggleModule(mod.id)} className="p-1 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded">
                 {expandedModules.has(mod.id) ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
               </button>
