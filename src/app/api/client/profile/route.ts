@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase-server'
 import { authenticateRequest } from '@/lib/api-auth'
 
+export const dynamic = 'force-dynamic'
+
 // GET — get own profile + questionnaire + program summary
 export async function GET(request: NextRequest) {
   const auth = await authenticateRequest(request)

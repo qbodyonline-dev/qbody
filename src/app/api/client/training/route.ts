@@ -3,6 +3,8 @@ import { createServerClient } from '@/lib/supabase-server'
 import { authenticateRequest } from '@/lib/api-auth'
 import { autoExpirePrograms, isProgramAccessible, daysRemaining } from '@/lib/subscription'
 
+export const dynamic = 'force-dynamic'
+
 // GET — get client's active program with full schedule
 export async function GET(request: NextRequest) {
   const auth = await authenticateRequest(request)

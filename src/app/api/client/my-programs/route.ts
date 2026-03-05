@@ -3,6 +3,8 @@ import { createServerClient } from '@/lib/supabase-server'
 import { authenticateRequest } from '@/lib/api-auth'
 import { autoExpirePrograms, daysRemaining } from '@/lib/subscription'
 
+export const dynamic = 'force-dynamic'
+
 /**
  * GET /api/client/my-programs
  * Returns all programs assigned to the current client (active, paused, completed).

@@ -3,6 +3,8 @@ import { createServerClient } from '@/lib/supabase-server'
 import { authenticateRequest } from '@/lib/api-auth'
 import { autoExpirePrograms, daysRemaining } from '@/lib/subscription'
 
+export const dynamic = 'force-dynamic'
+
 // GET — unified dashboard: today's workout, stats, notifications
 export async function GET(request: NextRequest) {
   const auth = await authenticateRequest(request)

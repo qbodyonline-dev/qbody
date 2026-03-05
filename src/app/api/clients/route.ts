@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase-server'
 import { requireAdmin } from '@/lib/api-auth'
 
+export const dynamic = 'force-dynamic'
+
 export async function GET(request: Request) {
   // ✅ AUTH: Only admin/trainer can list all clients
   const auth = await requireAdmin(request)

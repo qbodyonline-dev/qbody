@@ -243,6 +243,19 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     }
   }, [loading, isClient, profile, session, router])
 
+  // Dark theme: read from localStorage on mount
+  useEffect(() => {
+    const saved = localStorage.getItem('qbody-dark-mode')
+    if (saved === 'true') setIsDark(true)
+  }, [])
+
+  // Dark theme: apply to <html> element
+  useEffect(() => {
+    const html = document.documentElement
+    if (isDark) { html.classList.add('dark') } else { html.classList.remove('dark') }
+    localStorage.setItem('qbody-dark-mode', String(isDark))
+  }, [isDark])
+
   // Show loading screen while auth state is being determined
   if (loading) {
     return (
@@ -271,17 +284,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const initials = profile?.full_name
     ? profile.full_name.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2)
     : profile?.email?.slice(0, 2).toUpperCase() || 'U'
-
-  useEffect(() => {
-    const saved = localStorage.getItem('qbody-dark-mode')
-    if (saved === 'true') setIsDark(true)
-  }, [])
-
-  useEffect(() => {
-    const html = document.documentElement
-    if (isDark) { html.classList.add('dark') } else { html.classList.remove('dark') }
-    localStorage.setItem('qbody-dark-mode', String(isDark))
-  }, [isDark])
 
   const navigation: NavItem[] = [
     { name: t('sidebar.overview'), href: '/dashboard', icon: LayoutDashboard },
