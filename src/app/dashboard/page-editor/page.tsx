@@ -122,7 +122,7 @@ function PageEditorInner() {
     const loadBlocks = async () => {
       setLoading(true)
       try {
-        const res = await fetch(`/api/page-blocks?page=${pageSlug}`)
+        const res = await fetchWithAuth(`/api/page-blocks?page=${pageSlug}`)
         if (res.ok) {
           const data = await res.json()
           if (data.blocks && data.blocks.length > 0) {
@@ -133,9 +133,20 @@ function PageEditorInner() {
               if (block.type === 'header' && !block.data) return { ...block, data: defaultHeaderData }
               if (block.type === 'hero' && !block.data) return { ...block, data: defaultHeroData }
               if (block.type === 'about' && !block.data) return { ...block, data: defaultAboutData }
+              if (block.type === 'htmlblock' && !block.data) return { ...block, data: defaultHtmlBlockData() }
+              if (block.type === 'slider' && !block.data) return { ...block, data: defaultSliderData() }
+              if (block.type === 'herotemplate' && !block.data) return { ...block, data: defaultHeroTemplateData() }
+              if (block.type === 'courses2' && !block.data) return { ...block, data: { section: defaultCourseSectionData, items: defaultCourseItems2 } }
+              if (block.type === 'about2' && !block.data) return { ...block, data: { section: defaultAboutSectionData } }
+              if (block.type === 'cta2' && !block.data) return { ...block, data: { section: defaultCtaSectionData } }
+              if (block.type === 'faq2' && !block.data) return { ...block, data: { section: defaultFaqSectionData } }
+              if (block.type === 'contact2' && !block.data) return { ...block, data: { section: defaultContactSectionData } }
+              if (block.type === 'footer2' && !block.data) return { ...block, data: { section: defaultFooterSectionData } }
               return block
             })
             setBlocks(migratedBlocks)
+            setHistory([migratedBlocks])
+            setHistIdx(0)
             setActive(migratedBlocks.find((b: any) => b.type === 'hero')?.id || migratedBlocks[0]?.id || 'hero')
           } else {
             // New page — start with default blocks only for home
@@ -176,19 +187,23 @@ function PageEditorInner() {
     }
   }
 
-  // Save page-level settings (bgColor etc.)
-  const savePageSettings = async (newSettings: PageSettings) => {
+  // Save page-level settings (bgColor etc.) — debounced API call
+  const pageSettingsTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const savePageSettings = (newSettings: PageSettings) => {
     setPageSettings(newSettings)
-    const currentPage = pages.find(p => p.slug === pageSlug)
-    if (!currentPage) return
-    try {
-      await fetchWithAuth('/api/pages', {
-        method: 'PATCH',
-        body: JSON.stringify({ id: currentPage.id, settings: newSettings })
-      })
-    } catch (err) {
-      console.error('Save page settings error:', err)
-    }
+    if (pageSettingsTimer.current) clearTimeout(pageSettingsTimer.current)
+    pageSettingsTimer.current = setTimeout(async () => {
+      const currentPage = pages.find(p => p.slug === pageSlug)
+      if (!currentPage) return
+      try {
+        await fetchWithAuth('/api/pages', {
+          method: 'PATCH',
+          body: JSON.stringify({ id: currentPage.id, settings: newSettings })
+        })
+      } catch (err) {
+        console.error('Save page settings error:', err)
+      }
+    }, 500)
   }
 
   const [preview, setPreview] = useState(false)
@@ -265,6 +280,14 @@ function PageEditorInner() {
   const histIdxRef = useRef(histIdx)
   histIdxRef.current = histIdx
   const commitTimers = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map())
+
+  // Cleanup timers on unmount
+  useEffect(() => {
+    return () => {
+      commitTimers.current.forEach(timer => clearTimeout(timer))
+      commitTimers.current.clear()
+    }
+  }, [])
 
   const pushStable = (next: PageBlock[]) => {
     let h = historyRef.current.slice(0, histIdxRef.current + 1)
@@ -344,16 +367,16 @@ function PageEditorInner() {
         nb = { id: nid, type: 'about2', label: tpl.l, labelRu: tpl.lr, visible: true, contentEn: renderAbout2HTML(sec, 'en'), contentRu: renderAbout2HTML(sec, 'ru'), style: {}, data: { section: sec } as any }
       } else if (structType === 'cta2') {
         const sec = { ...defaultCtaSectionData, features: defaultCtaSectionData.features.map(f => ({ ...f })), btn1: { ...defaultCtaSectionData.btn1 }, btn2: { ...defaultCtaSectionData.btn2 } }
-        nb = { id: nid, type: 'cta2' as any, label: tpl.l, labelRu: tpl.lr, visible: true, contentEn: renderCta2HTML(sec, 'en'), contentRu: renderCta2HTML(sec, 'ru'), style: {}, data: { section: sec } as any }
+        nb = { id: nid, type: 'cta2', label: tpl.l, labelRu: tpl.lr, visible: true, contentEn: renderCta2HTML(sec, 'en'), contentRu: renderCta2HTML(sec, 'ru'), style: {}, data: { section: sec } as any }
       } else if (structType === 'faq2') {
         const sec = { ...defaultFaqSectionData, items: defaultFaqSectionData.items.map(i => ({ ...i })) }
-        nb = { id: nid, type: 'faq2' as any, label: tpl.l, labelRu: tpl.lr, visible: true, contentEn: renderFaq2HTML(sec, 'en'), contentRu: renderFaq2HTML(sec, 'ru'), style: {}, data: { section: sec } as any }
+        nb = { id: nid, type: 'faq2', label: tpl.l, labelRu: tpl.lr, visible: true, contentEn: renderFaq2HTML(sec, 'en'), contentRu: renderFaq2HTML(sec, 'ru'), style: {}, data: { section: sec } as any }
       } else if (structType === 'contact2') {
         const sec = { ...defaultContactSectionData, fields: defaultContactSectionData.fields.map(f => ({ ...f })), infoItems: defaultContactSectionData.infoItems.map(i => ({ ...i })), socialLinks: defaultContactSectionData.socialLinks.map(s => ({ ...s })) }
-        nb = { id: nid, type: 'contact2' as any, label: tpl.l, labelRu: tpl.lr, visible: true, contentEn: renderContact2HTML(sec, 'en'), contentRu: renderContact2HTML(sec, 'ru'), style: {}, data: { section: sec } as any }
+        nb = { id: nid, type: 'contact2', label: tpl.l, labelRu: tpl.lr, visible: true, contentEn: renderContact2HTML(sec, 'en'), contentRu: renderContact2HTML(sec, 'ru'), style: {}, data: { section: sec } as any }
       } else if (structType === 'footer2') {
         const sec = { ...defaultFooterSectionData, navColumns: defaultFooterSectionData.navColumns.map(c => ({ ...c, links: c.links.map(l => ({ ...l })) })), socialLinks: defaultFooterSectionData.socialLinks.map(s => ({ ...s })), contactItems: defaultFooterSectionData.contactItems.map(c => ({ ...c })) }
-        nb = { id: nid, type: 'footer2' as any, label: tpl.l, labelRu: tpl.lr, visible: true, contentEn: renderFooter2HTML(sec, 'en'), contentRu: renderFooter2HTML(sec, 'ru'), style: {}, data: { section: sec } as any }
+        nb = { id: nid, type: 'footer2', label: tpl.l, labelRu: tpl.lr, visible: true, contentEn: renderFooter2HTML(sec, 'en'), contentRu: renderFooter2HTML(sec, 'ru'), style: {}, data: { section: sec } as any }
       } else {
         nb = { id: nid, type: 'custom', label: tpl.l, labelRu: tpl.lr, visible: true, contentEn: '', contentRu: '', style: {} }
       }
@@ -381,7 +404,7 @@ function PageEditorInner() {
     a.splice(t, 0, item)
     setBlocks(a)
   }
-  const onDragEnd = () => { setDragId(null); push(blocks) }
+  const onDragEnd = () => { setDragId(null); push(blocksRef.current) }
 
   const exportJSON = () => {
     const data = JSON.stringify(blocks, null, 2)
@@ -432,10 +455,10 @@ function PageEditorInner() {
     else if (b.type === 'herotemplate' && b.data) c = renderHeroTemplateHTML(b.data as any as HeroTemplateData, lt)
     else if (b.type === 'courses2' && b.data) { const dd = b.data as any; c = renderCourses2HTML(dd.items || [], dd.section || defaultCourseSectionData, lt) }
     else if (b.type === 'about2' && b.data) { const dd = b.data as any; c = renderAbout2HTML(dd.section || defaultAboutSectionData, lt) }
-    else if ((b.type as any) === 'cta2' && b.data) { const dd = b.data as any; c = renderCta2HTML(dd.section || defaultCtaSectionData, lt) }
-    else if ((b.type as any) === 'faq2' && b.data) { const dd = b.data as any; c = renderFaq2HTML(dd.section || defaultFaqSectionData, lt) }
-    else if ((b.type as any) === 'contact2' && b.data) { const dd = b.data as any; c = renderContact2HTML(dd.section || defaultContactSectionData, lt) }
-    else if ((b.type as any) === 'footer2' && b.data) { const dd = b.data as any; c = renderFooter2HTML(dd.section || defaultFooterSectionData, lt) }
+    else if (b.type === 'cta2' && b.data) { const dd = b.data as any; c = renderCta2HTML(dd.section || defaultCtaSectionData, lt) }
+    else if (b.type === 'faq2' && b.data) { const dd = b.data as any; c = renderFaq2HTML(dd.section || defaultFaqSectionData, lt) }
+    else if (b.type === 'contact2' && b.data) { const dd = b.data as any; c = renderContact2HTML(dd.section || defaultContactSectionData, lt) }
+    else if (b.type === 'footer2' && b.data) { const dd = b.data as any; c = renderFooter2HTML(dd.section || defaultFooterSectionData, lt) }
     else c = lt === 'ru' ? b.contentRu : b.contentEn
     const s = styleToCSS(b.style)
     const a = styleAttrs(b.style)
@@ -815,7 +838,7 @@ function PageEditorInner() {
                     <div className="flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-teal-50 to-zinc-50 dark:from-teal-900/20 dark:to-zinc-800 border-b border-zinc-200 dark:border-zinc-700">
                       <Eye className="w-3 h-3 text-teal-500" /><span className="text-[10px] font-bold text-teal-600 uppercase tracking-widest">{lang === 'ru' ? 'Превью' : 'Live Preview'}</span>
                     </div>
-                    <div className="bg-zinc-950 max-h-[500px] overflow-y-auto"><div dangerouslySetInnerHTML={{ __html: renderSliderHTML((ab.data as any as SliderData) || defaultSliderData(), lt) }} /></div>
+                    <div className="bg-zinc-950 max-h-[500px] overflow-y-auto"><div dangerouslySetInnerHTML={{ __html: renderSliderHTML((ab.data as any as SliderData) || defaultSliderData(), lt) }} className="pointer-events-none" /></div>
                   </CardContent></Card>
                 </>
               ) : ab.type === 'herotemplate' ? (
@@ -834,7 +857,7 @@ function PageEditorInner() {
                     <div className="flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-teal-50 to-zinc-50 dark:from-teal-900/20 dark:to-zinc-800 border-b border-zinc-200 dark:border-zinc-700">
                       <Eye className="w-3 h-3 text-teal-500" /><span className="text-[10px] font-bold text-teal-600 uppercase tracking-widest">{lang === 'ru' ? 'Превью' : 'Live Preview'}</span>
                     </div>
-                    <div className="bg-zinc-950 max-h-[600px] overflow-y-auto"><div dangerouslySetInnerHTML={{ __html: renderHeroTemplateHTML((ab.data as any as HeroTemplateData) || defaultHeroTemplateData(), lt) }} /></div>
+                    <div className="bg-zinc-950 max-h-[600px] overflow-y-auto"><div dangerouslySetInnerHTML={{ __html: renderHeroTemplateHTML((ab.data as any as HeroTemplateData) || defaultHeroTemplateData(), lt) }} className="pointer-events-none" /></div>
                   </CardContent></Card>
                 </>
               ) : ab.type === 'courses2' ? (
@@ -882,7 +905,7 @@ function PageEditorInner() {
                     <div className="bg-zinc-950 max-h-[400px] overflow-y-auto"><div dangerouslySetInnerHTML={{ __html: renderAbout2HTML(((ab.data as any)?.section as AboutSectionData) || defaultAboutSectionData, lt) }} className="pointer-events-none" /></div>
                   </CardContent></Card>
                 </>
-              ) : (ab.type as any) === 'cta2' ? (
+              ) : ab.type === 'cta2' ? (
                 <>
                   <CtaSectionEditor
                     section={((ab.data as any)?.section as CtaSectionData) || defaultCtaSectionData}
@@ -901,7 +924,7 @@ function PageEditorInner() {
                     <div className="bg-zinc-950 max-h-[400px] overflow-y-auto"><div dangerouslySetInnerHTML={{ __html: renderCta2HTML(((ab.data as any)?.section as CtaSectionData) || defaultCtaSectionData, lt) }} className="pointer-events-none" /></div>
                   </CardContent></Card>
                 </>
-              ) : (ab.type as any) === 'faq2' ? (
+              ) : ab.type === 'faq2' ? (
                 <>
                   <FaqSectionEditor
                     section={((ab.data as any)?.section as FaqSectionData) || defaultFaqSectionData}
@@ -920,7 +943,7 @@ function PageEditorInner() {
                     <div className="bg-zinc-950 max-h-[400px] overflow-y-auto"><div dangerouslySetInnerHTML={{ __html: renderFaq2HTML(((ab.data as any)?.section as FaqSectionData) || defaultFaqSectionData, lt) }} className="pointer-events-none" /></div>
                   </CardContent></Card>
                 </>
-              ) : (ab.type as any) === 'contact2' ? (
+              ) : ab.type === 'contact2' ? (
                 <>
                   <ContactSectionEditor
                     section={((ab.data as any)?.section as ContactSectionData) || defaultContactSectionData}
@@ -939,7 +962,7 @@ function PageEditorInner() {
                     <div className="bg-zinc-950 max-h-[400px] overflow-y-auto"><div dangerouslySetInnerHTML={{ __html: renderContact2HTML(((ab.data as any)?.section as ContactSectionData) || defaultContactSectionData, lt) }} className="pointer-events-none" /></div>
                   </CardContent></Card>
                 </>
-              ) : (ab.type as any) === 'footer2' ? (
+              ) : ab.type === 'footer2' ? (
                 <>
                   <FooterSectionEditor
                     section={((ab.data as any)?.section as FooterSectionData) || defaultFooterSectionData}
@@ -960,7 +983,17 @@ function PageEditorInner() {
                 </>
               ) : (
                 <RichEditor key={`${ab.id}__${lt}`} content={lt === 'ru' ? ab.contentRu : ab.contentEn}
-                  onChange={h => updSilent(ab.id, lt === 'ru' ? { contentRu: h } : { contentEn: h })} minH="450px" lang={lt} />
+                  onChange={h => {
+                    updSilent(ab.id, lt === 'ru' ? { contentRu: h } : { contentEn: h })
+                    // Debounced history push for undo/redo
+                    const timerKey = `rich_${ab.id}`
+                    const prev = commitTimers.current.get(timerKey)
+                    if (prev) clearTimeout(prev)
+                    commitTimers.current.set(timerKey, setTimeout(() => {
+                      commitTimers.current.delete(timerKey)
+                      pushStable(blocksRef.current)
+                    }, 1000))
+                  }} minH="450px" lang={lt} />
               )}
 
               {/* Live section style preview */}
@@ -996,9 +1029,11 @@ function PageEditorInner() {
             <Button variant="outline" size="sm" onClick={() => setShowResetConfirm(false)}>{lang === 'ru' ? 'Отмена' : 'Cancel'}</Button>
             <Button size="sm" className="bg-red-500 hover:bg-red-600 text-white" onClick={async () => {
               setShowResetConfirm(false)
-              push(initBlocks)
-              await saveBlocksToDB(initBlocks)
-              setActive('hero')
+              const isHome = pageSlug === 'home'
+              const resetBlocks = isHome ? initBlocks : []
+              push(resetBlocks)
+              await saveBlocksToDB(resetBlocks)
+              setActive(isHome ? 'hero' : '')
               toast.success(lang === 'ru' ? 'Сброшено к дефолтам' : 'Reset to defaults!')
             }}>{lang === 'ru' ? 'Сбросить' : 'Reset'}</Button>
           </div>

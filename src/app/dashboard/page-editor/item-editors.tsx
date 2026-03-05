@@ -24,8 +24,17 @@ interface EmojiPickerProps {
 }
 
 function EmojiPicker({ value, onChange, onClose }: EmojiPickerProps) {
+  const ref = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) onClose()
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [onClose])
+
   return (
-    <div className="absolute top-full left-0 mt-1 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl shadow-xl z-50 p-2">
+    <div ref={ref} className="absolute top-full left-0 mt-1 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl shadow-xl z-50 p-2">
       <div className="grid grid-cols-6 gap-1">
         {EMOJI_ICONS.map(e => (
           <button key={e} onClick={() => { onChange(e); onClose() }}
@@ -46,8 +55,17 @@ interface GradientPickerProps {
 }
 
 function GradientPicker({ value, options, onChange, onClose }: GradientPickerProps) {
+  const ref = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) onClose()
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [onClose])
+
   return (
-    <div className="absolute top-full left-0 mt-1 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl shadow-xl z-50 p-2">
+    <div ref={ref} className="absolute top-full left-0 mt-1 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl shadow-xl z-50 p-2">
       <div className="grid grid-cols-3 gap-1.5">
         {options.map(g => (
           <button key={g} onClick={() => { onChange(g); onClose() }}

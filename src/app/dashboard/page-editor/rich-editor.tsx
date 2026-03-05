@@ -10,7 +10,9 @@ import {
   PanelTop, ImagePlus, Play, MessageSquare, DollarSign, Hash, Camera, Eye
 } from 'lucide-react'
 
+import { toast } from 'sonner'
 import { FONTS, SIZES, PAL, GRADIENTS } from './constants'
+import { fetchWithAuthUpload } from '@/lib/api'
 
 /* ═══════════ RICH TEXT EDITOR ═══════════ */
 export function RichEditor({ content, onChange, minH = '350px', lang }: {
@@ -192,11 +194,20 @@ export function RichEditor({ content, onChange, minH = '350px', lang }: {
 
   const insImg = () => {
     const i = document.createElement('input'); i.type = 'file'; i.accept = 'image/*'
-    i.onchange = e => {
+    i.onchange = async (e) => {
       const f = (e.target as HTMLInputElement).files?.[0]; if (!f) return
-      const r = new FileReader()
-      r.onload = ev => exec('insertHTML', `<img src="${ev.target?.result}" alt="" style="max-width:100%;border-radius:12px;margin:8px 0;" />`)
-      r.readAsDataURL(f)
+      if (f.size > 10 * 1024 * 1024) { toast.error(lang === 'ru' ? 'Макс 10 МБ' : 'Max 10 MB'); return }
+      try {
+        const formData = new FormData()
+        formData.append('file', f)
+        formData.append('folder', 'page-editor')
+        const res = await fetchWithAuthUpload('/api/upload', { method: 'POST', body: formData })
+        if (!res.ok) throw new Error('Upload failed')
+        const data = await res.json()
+        exec('insertHTML', `<img src="${data.url}" alt="" style="max-width:100%;border-radius:12px;margin:8px 0;" />`)
+      } catch {
+        toast.error(lang === 'ru' ? 'Ошибка загрузки' : 'Upload failed')
+      }
     }; i.click()
   }
   const insLink = () => { if (!lu) return; exec('insertHTML', `<a href="${lu}" target="_blank" style="color:#14b8a6;text-decoration:underline;">${lxt || lu}</a>`); setLinkModal(false); setLu(''); setLxt('') }

@@ -3,6 +3,9 @@ import type { CourseItem, ProgramItem, ResultItem, HeaderData, HeroData, AboutDa
 /* ═══════════ HTML RENDERERS ═══════════ */
 /* These functions generate HTML from structured data */
 
+/* Stable unique ID generator (avoids Date.now() collisions) */
+function uid(prefix: string): string { return prefix + Math.random().toString(36).slice(2, 8) }
+
 const LEVEL_LABELS = {
   en: { beginner: 'Beginner', intermediate: 'Intermediate', advanced: 'Advanced', any: 'Any level' },
   ru: { beginner: 'Новичок', intermediate: 'Средний', advanced: 'Продвинутый', any: 'Любой' }
@@ -19,7 +22,7 @@ export function renderCoursesHTML(items: CourseItem[], lang: 'en' | 'ru'): strin
   const sectionLabel = lang === 'ru' ? 'Экспертные видеокурсы' : 'Expert Video Courses'
   const buyLabel = lang === 'ru' ? 'Купить' : 'Buy Now'
 
-  const courseId = `courses-${Date.now()}`
+  const courseId = uid('courses-')
 
   const coursesHtml = items.map(course => {
     const t = lang === 'ru' ? course.titleRu : course.title
@@ -90,7 +93,7 @@ export function renderProgramsHTML(items: ProgramItem[], lang: 'en' | 'ru'): str
   const detailsLabel = lang === 'ru' ? 'Подробнее' : 'Details'
   const popularLabel = lang === 'ru' ? 'Хит' : 'Popular'
 
-  const progId = `programs-${Date.now()}`
+  const progId = uid('programs-')
 
   const renderProgram = (program: ProgramItem) => {
     const t = lang === 'ru' ? program.titleRu : program.title
@@ -176,7 +179,7 @@ export function renderResultsHTML(items: ResultItem[], lang: 'en' | 'ru'): strin
   const sectionLabel = lang === 'ru' ? 'Реальные трансформации' : 'Real Transformations'
   const ctaLabel = lang === 'ru' ? 'Начать сейчас' : 'Start Now'
 
-  const resId = `results-${Date.now()}`
+  const resId = uid('results-')
 
   // Generate stars SVG
   const starSvg = `<svg style="width:16px;height:16px;color:#eab308;" viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>`
@@ -371,7 +374,7 @@ export function renderHeroHTML(data: HeroData, lang: 'en' | 'ru'): string {
 
   // Two-column layout with image
   if (data.heroImage) {
-    const heroId = `hero-${Date.now()}`
+    const heroId = uid('hero-')
     
     // Image style settings with defaults
     const imgMaxWidth = data.imageMaxWidth || '480px'
@@ -420,7 +423,7 @@ export function renderHeroHTML(data: HeroData, lang: 'en' | 'ru'): string {
   }
 
   // Single column layout (no image) - original design
-  const heroNoImgId = `hero-noimg-${Date.now()}`
+  const heroNoImgId = uid('hero-noimg-')
   return `<style>
     @media (max-width: 640px) {
       #${heroNoImgId} h1 { font-size: 32px !important; }
@@ -452,7 +455,7 @@ export function renderAboutHTML(data: AboutData, lang: 'en' | 'ru'): string {
     ? `${nameParts[0]} <br/>${nameParts.slice(1).join(' ')}` 
     : data.name
 
-  const aboutId = `about-${Date.now()}`
+  const aboutId = uid('about-')
 
   // Certifications in 2-column grid
   const certificationsHtml = certifications.map(c => 

@@ -4,25 +4,28 @@ import type { SectionStyle } from './types'
 /* ═══════════ UTILITIES ═══════════ */
 
 /* Block style → inline CSS string */
+/* Safely append 'px' only if the value is a plain number (no existing unit) */
+const addPxIfNeeded = (v: string): string => /^\d+(\.\d+)?$/.test(v) ? `${v}px` : v
+
 export const styleToCSS = (s: SectionStyle): string => {
   const p: string[] = []
   if (s.bgGradient) p.push(`background:${s.bgGradient}`)
   else if (s.bgColor) p.push(`background-color:${s.bgColor}`)
   if (s.bgImage) p.push(`background-image:url(${s.bgImage});background-size:cover;background-position:center`)
-  if (s.paddingTop) p.push(`padding-top:${s.paddingTop}px`)
-  if (s.paddingBottom) p.push(`padding-bottom:${s.paddingBottom}px`)
-  if (s.paddingLeft) p.push(`padding-left:${s.paddingLeft}px`)
-  if (s.paddingRight) p.push(`padding-right:${s.paddingRight}px`)
-  if (s.marginTop) p.push(`margin-top:${s.marginTop}px`)
-  if (s.marginBottom) p.push(`margin-bottom:${s.marginBottom}px`)
+  if (s.paddingTop) p.push(`padding-top:${addPxIfNeeded(s.paddingTop)}`)
+  if (s.paddingBottom) p.push(`padding-bottom:${addPxIfNeeded(s.paddingBottom)}`)
+  if (s.paddingLeft) p.push(`padding-left:${addPxIfNeeded(s.paddingLeft)}`)
+  if (s.paddingRight) p.push(`padding-right:${addPxIfNeeded(s.paddingRight)}`)
+  if (s.marginTop) p.push(`margin-top:${addPxIfNeeded(s.marginTop)}`)
+  if (s.marginBottom) p.push(`margin-bottom:${addPxIfNeeded(s.marginBottom)}`)
   if (s.maxWidth) {
     p.push(`max-width:${s.maxWidth}`)
-    if (!s.marginTop && !s.marginBottom) p.push('margin-left:auto;margin-right:auto')
-    else p.push('margin-left:auto;margin-right:auto')
+    p.push('margin-left:auto;margin-right:auto')
   }
-  if (s.borderRadius) p.push(`border-radius:${s.borderRadius}px`)
-  if (s.borderWidth && s.borderColor) p.push(`border:${s.borderWidth}px solid ${s.borderColor}`)
+  if (s.borderRadius) p.push(`border-radius:${addPxIfNeeded(s.borderRadius)}`)
+  if (s.borderWidth && s.borderColor) p.push(`border:${addPxIfNeeded(s.borderWidth)} solid ${s.borderColor}`)
   if (s.boxShadow) p.push(`box-shadow:${s.boxShadow}`)
+  if (s.customCss) p.push(s.customCss)
   return p.join(';')
 }
 

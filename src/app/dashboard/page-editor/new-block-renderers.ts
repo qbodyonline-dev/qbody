@@ -101,8 +101,13 @@ export function renderSliderHTML(data: SliderData, lang: 'en' | 'ru'): string {
   }
 
   const arrows = data.showArrows && data.variant !== 'logo' ? `
-    <div role="button" tabindex="0" data-nb-prev="${id}" style="position:absolute;left:12px;top:50%;transform:translateY(-50%);z-index:10;width:44px;height:44px;border-radius:50%;background:rgba(0,0,0,0.6);border:1px solid rgba(255,255,255,0.1);color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:20px;backdrop-filter:blur(8px);user-select:none;">&#8249;</div>
-    <div role="button" tabindex="0" data-nb-next="${id}" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);z-index:10;width:44px;height:44px;border-radius:50%;background:rgba(0,0,0,0.6);border:1px solid rgba(255,255,255,0.1);color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:20px;backdrop-filter:blur(8px);user-select:none;">&#8250;</div>` : ''
+    <div role="button" tabindex="0" onclick="var t=this.parentElement.querySelector('.${id}-track');if(t)t.scrollBy({left:-t.clientWidth,behavior:'smooth'})" style="position:absolute;left:12px;top:50%;transform:translateY(-50%);z-index:10;width:44px;height:44px;border-radius:50%;background:rgba(0,0,0,0.6);border:1px solid rgba(255,255,255,0.1);color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:20px;backdrop-filter:blur(8px);user-select:none;">&#8249;</div>
+    <div role="button" tabindex="0" onclick="var t=this.parentElement.querySelector('.${id}-track');if(t)t.scrollBy({left:t.clientWidth,behavior:'smooth'})" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);z-index:10;width:44px;height:44px;border-radius:50%;background:rgba(0,0,0,0.6);border:1px solid rgba(255,255,255,0.1);color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:20px;backdrop-filter:blur(8px);user-select:none;">&#8250;</div>` : ''
+
+  const dots = data.showDots && data.variant !== 'logo' && slides.length > 1 ? `
+    <div style="display:flex;justify-content:center;gap:8px;padding:16px 0;">
+      ${slides.map((_, i) => `<div style="width:8px;height:8px;border-radius:50%;background:${i === 0 ? '#14b8a6' : 'rgba(255,255,255,0.3)'};cursor:pointer;transition:background 0.2s;" onclick="var t=this.closest('#${id}').querySelector('.${id}-track');if(t){t.scrollTo({left:t.clientWidth*${i},behavior:'smooth'});this.parentElement.querySelectorAll('div').forEach(function(d,j){d.style.background=j===${i}?'#14b8a6':'rgba(255,255,255,0.3)'})}"></div>`).join('')}
+    </div>` : ''
 
   return `<style>${css}${animKeyframes()}</style>
 <div id="${id}" style="background:${data.bgColor || '#09090b'};padding:${data.variant === 'fullscreen' ? '0' : '60px 0'};position:relative;overflow:hidden;">
@@ -113,6 +118,7 @@ export function renderSliderHTML(data: SliderData, lang: 'en' | 'ru'): string {
     </div>
     ${arrows}
   </div>
+  ${dots}
 </div>`
 }
 
