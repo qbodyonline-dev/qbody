@@ -1,19 +1,26 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase-server'
 import { requireAdmin, authenticateRequest } from '@/lib/api-auth'
+import { isValidUUID } from '@/lib/security'
 
 // GET — get questionnaire for a client
 export async function GET(
   request: NextRequest,
-  { params }: { params: { clientId: string } }
+  { params }: { params: Promise<{ clientId: string }> }
 ) {
   const auth = await authenticateRequest(request)
   if (!auth.success) {
     return NextResponse.json({ error: auth.error.error }, { status: auth.error.status })
   }
 
+  const { clientId } = await params
+
+  if (!isValidUUID(clientId)) {
+    return NextResponse.json({ error: 'Invalid client ID' }, { status: 400 })
+  }
+
   const isAdmin = ['admin', 'trainer'].includes(auth.data.profile.role)
-  if (!isAdmin && auth.data.user.id !== params.clientId) {
+  if (!isAdmin && auth.data.user.id !== clientId) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
@@ -22,7 +29,7 @@ export async function GET(
     const { data, error } = await supabase
       .from('client_questionnaires')
       .select('*')
-      .eq('client_id', params.clientId)
+      .eq('client_id', clientId)
       .maybeSingle()
 
     if (error) {
@@ -40,15 +47,21 @@ export async function GET(
 // PUT — create or update questionnaire
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { clientId: string } }
+  { params }: { params: Promise<{ clientId: string }> }
 ) {
   const auth = await authenticateRequest(request)
   if (!auth.success) {
     return NextResponse.json({ error: auth.error.error }, { status: auth.error.status })
   }
 
+  const { clientId } = await params
+
+  if (!isValidUUID(clientId)) {
+    return NextResponse.json({ error: 'Invalid client ID' }, { status: 400 })
+  }
+
   const isAdmin = ['admin', 'trainer'].includes(auth.data.profile.role)
-  if (!isAdmin && auth.data.user.id !== params.clientId) {
+  if (!isAdmin && auth.data.user.id !== clientId) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
@@ -57,7 +70,7 @@ export async function PUT(
     const body = await request.json()
 
     const fields = {
-      client_id: params.clientId,
+      client_id: clientId,
       primary_goal: body.primary_goal || null,
       secondary_goals: body.secondary_goals || [],
       target_weight: body.target_weight || null,
@@ -103,11 +116,17 @@ export async function PUT(
 // DELETE — remove questionnaire
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { clientId: string } }
+  { params }: { params: Promise<{ clientId: string }> }
 ) {
   const auth = await requireAdmin(request)
   if (!auth.success) {
     return NextResponse.json({ error: auth.error.error }, { status: auth.error.status })
+  }
+
+  const { clientId } = await params
+
+  if (!isValidUUID(clientId)) {
+    return NextResponse.json({ error: 'Invalid client ID' }, { status: 400 })
   }
 
   try {
@@ -115,7 +134,7 @@ export async function DELETE(
     const { error } = await supabase
       .from('client_questionnaires')
       .delete()
-      .eq('client_id', params.clientId)
+      .eq('client_id', clientId)
 
     if (error) {
       console.error('Delete questionnaire error:', error)

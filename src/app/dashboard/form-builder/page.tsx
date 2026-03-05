@@ -8,14 +8,13 @@ import { Modal } from '@/components/ui/modal'
 import { useTranslation } from '@/lib/i18n'
 import { fetchWithAuth } from '@/lib/api'
 import {
-  Plus, Trash2, GripVertical, Save, Eye, Copy, Settings,
+  Plus, Trash2, Save, Eye, Copy, Settings,
   Type, Hash, Star, List, Camera, Calendar, ToggleLeft, AlignLeft,
   ChevronDown, ChevronUp, Edit, Check, X, FileText, ClipboardCheck, Loader2
 } from 'lucide-react'
 import { toast } from 'sonner'
 
 import type { FieldType, FormField, FormTemplate } from '@/lib/form-types'
-export type { FormField } from '@/lib/form-types'
 
 const fieldTypeConfig: Record<FieldType, { icon: any; labelEn: string; labelRu: string; color: string }> = {
   text: { icon: Type, labelEn: 'Short text', labelRu: 'Короткий текст', color: 'bg-blue-100 text-blue-600' },
@@ -137,7 +136,7 @@ export default function FormBuilderPage() {
   const fields = template?.fields || []
 
   const setFields = (newFields: FormField[]) => {
-    setTemplates(templates.map(t => t.id === activeTemplate ? { ...t, fields: newFields } : t))
+    setTemplates(prev => prev.map(t => t.id === activeTemplate ? { ...t, fields: newFields } : t))
   }
 
   const addField = (type: FieldType) => {
@@ -308,9 +307,9 @@ export default function FormBuilderPage() {
                 <div className="flex items-center gap-4">
                   <div className="flex-1 grid sm:grid-cols-2 gap-3">
                     <Input label={ru ? 'Название (EN)' : 'Name (EN)'} value={template.name_en}
-                      onChange={e => setTemplates(templates.map(t => t.id === activeTemplate ? { ...t, name_en: e.target.value } : t))} />
+                      onChange={e => { const v = e.target.value; setTemplates(prev => prev.map(t => t.id === activeTemplate ? { ...t, name_en: v } : t)) }} />
                     <Input label={ru ? 'Название (RU)' : 'Name (RU)'} value={template.name_ru}
-                      onChange={e => setTemplates(templates.map(t => t.id === activeTemplate ? { ...t, name_ru: e.target.value } : t))} />
+                      onChange={e => { const v = e.target.value; setTemplates(prev => prev.map(t => t.id === activeTemplate ? { ...t, name_ru: v } : t)) }} />
                   </div>
                   <div className="flex gap-2">
                     <Button variant="outline" size="sm" onClick={duplicateTemplate} title={ru ? 'Дублировать' : 'Duplicate'}><Copy className="w-4 h-4" /></Button>
@@ -324,14 +323,22 @@ export default function FormBuilderPage() {
                 <div className="flex items-center gap-3 mt-3">
                   <div
                     className="flex items-center gap-2 cursor-pointer"
-                    onClick={() => setTemplates(templates.map(t => t.id === activeTemplate ? { ...t, active: !t.active } : t))}
+                    onClick={() => setTemplates(prev => prev.map(t => t.id === activeTemplate ? { ...t, active: !t.active } : t))}
                   >
                     <div className={`w-10 h-6 rounded-full transition-colors flex items-center px-0.5 ${template.active ? 'bg-teal-500' : 'bg-zinc-300 dark:bg-zinc-600'}`}>
                       <div className={`w-5 h-5 bg-white rounded-full shadow transition-transform ${template.active ? 'translate-x-4' : ''}`} />
                     </div>
                     <span className="text-sm text-zinc-600 dark:text-zinc-400 select-none">{ru ? 'Активна' : 'Active'}</span>
                   </div>
-                  <Badge variant="secondary">{template.type}</Badge>
+                  <select
+                    value={template.type}
+                    onChange={e => { const v = e.target.value as 'checkin' | 'onboarding' | 'custom'; setTemplates(prev => prev.map(t => t.id === activeTemplate ? { ...t, type: v } : t)) }}
+                    className="h-7 px-2 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-xs font-medium text-zinc-600 dark:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-teal-500/30"
+                  >
+                    <option value="checkin">checkin</option>
+                    <option value="onboarding">onboarding</option>
+                    <option value="custom">custom</option>
+                  </select>
                 </div>
               </CardContent></Card>
 
@@ -352,7 +359,7 @@ export default function FormBuilderPage() {
                   <Card key={field.id} className={isEditing ? 'ring-2 ring-teal-500/30' : ''}>
                     <CardContent className="p-0">
                       <div className="flex items-center gap-3 px-4 py-3">
-                        <GripVertical className="w-4 h-4 text-zinc-300 flex-shrink-0" />
+                        {/* Field icon + content */}
                         <div className={`w-8 h-8 rounded-lg ${cfg.color} flex items-center justify-center flex-shrink-0`}><Icon className="w-4 h-4" /></div>
                         <div className="flex-1 min-w-0">
                           <p className="font-medium text-sm text-zinc-900 dark:text-zinc-100 truncate">{ru ? field.labelRu : field.labelEn}</p>

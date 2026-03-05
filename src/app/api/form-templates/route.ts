@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase-server'
 import { requireAdmin, authenticateRequest } from '@/lib/api-auth'
+import { isValidUUID } from '@/lib/security'
+
+const VALID_TEMPLATE_TYPES = ['checkin', 'onboarding', 'custom'] as const
 
 /**
  * GET /api/form-templates — list all templates
@@ -23,6 +26,9 @@ export async function GET(request: NextRequest) {
       .order('created_at', { ascending: true })
 
     if (type) {
+      if (!VALID_TEMPLATE_TYPES.includes(type as any)) {
+        return NextResponse.json({ error: 'Invalid type filter' }, { status: 400 })
+      }
       query = query.eq('type', type)
     }
 
@@ -59,12 +65,17 @@ export async function POST(request: NextRequest) {
     const supabase = createServerClient()
     const body = await request.json()
 
+    const type = body.type || 'custom'
+    if (!VALID_TEMPLATE_TYPES.includes(type)) {
+      return NextResponse.json({ error: 'Invalid type. Must be: checkin, onboarding, or custom' }, { status: 400 })
+    }
+
     const { data, error } = await supabase
       .from('form_templates')
       .insert({
         name_en: body.name_en || 'New Form',
         name_ru: body.name_ru || 'Новая форма',
-        type: body.type || 'custom',
+        type,
         fields: body.fields || [],
         active: body.active !== false,
       })
@@ -98,6 +109,14 @@ export async function PUT(request: NextRequest) {
 
     if (!body.id) {
       return NextResponse.json({ error: 'id required' }, { status: 400 })
+    }
+
+    if (!isValidUUID(body.id)) {
+      return NextResponse.json({ error: 'Invalid id format' }, { status: 400 })
+    }
+
+    if (body.type !== undefined && !VALID_TEMPLATE_TYPES.includes(body.type)) {
+      return NextResponse.json({ error: 'Invalid type. Must be: checkin, onboarding, or custom' }, { status: 400 })
     }
 
     const updates: Record<string, any> = {}
@@ -141,8 +160,8 @@ export async function DELETE(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const id = searchParams.get('id')
 
-    if (!id) {
-      return NextResponse.json({ error: 'id required' }, { status: 400 })
+    if (!id || !isValidUUID(id)) {
+      return NextResponse.json({ error: 'Valid id required' }, { status: 400 })
     }
 
     const { error } = await supabase

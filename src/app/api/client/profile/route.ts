@@ -36,28 +36,31 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
     }
 
+    // Cast once — these columns exist in the .select() above but are not in generated Supabase types
+    const p = profile as Record<string, any>
+
     return NextResponse.json({
       profile: {
-        id: profile.id,
-        full_name: profile.full_name,
-        email: profile.email,
-        phone: profile.phone,
-        avatar_url: profile.avatar_url,
-        role: profile.role,
-        locale: profile.locale,
-        member_since: profile.created_at,
-        onboarding_completed: (profile as any).onboarding_completed,
-        gender: (profile as any).gender,
-        date_of_birth: (profile as any).date_of_birth,
-        height: (profile as any).height,
-        current_weight: (profile as any).current_weight,
-        target_weight: (profile as any).target_weight,
-        primary_goal: (profile as any).primary_goal,
-        training_experience: (profile as any).training_experience,
-        training_location: (profile as any).training_location,
-        activity_level: (profile as any).activity_level,
-        medical_conditions: (profile as any).medical_conditions,
-        photo_front: (profile as any).photo_front,
+        id: p.id,
+        full_name: p.full_name,
+        email: p.email,
+        phone: p.phone,
+        avatar_url: p.avatar_url,
+        role: p.role,
+        locale: p.locale,
+        member_since: p.created_at,
+        onboarding_completed: p.onboarding_completed,
+        gender: p.gender,
+        date_of_birth: p.date_of_birth,
+        height: p.height,
+        current_weight: p.current_weight,
+        target_weight: p.target_weight,
+        primary_goal: p.primary_goal,
+        training_experience: p.training_experience,
+        training_location: p.training_location,
+        activity_level: p.activity_level,
+        medical_conditions: p.medical_conditions,
+        photo_front: p.photo_front,
       },
       questionnaire: questionnaire || null,
       program: cp ? {
