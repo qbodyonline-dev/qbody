@@ -234,15 +234,15 @@ export default function AnalyticsPage() {
     const lines: string[] = []
     if (bizData) {
       const m = bizData.metrics
-      lines.push('=== BUSINESS METRICS ===')
-      lines.push(`Total Clients,${m.totalClients}`, `Active Clients,${m.activeClients}`, `Total Revenue,$${(m.totalRevenue / 100).toFixed(2)}`, '')
+      lines.push(ru ? '=== БИЗНЕС-МЕТРИКИ ===' : '=== BUSINESS METRICS ===')
+      lines.push(`${ru ? 'Всего клиентов' : 'Total Clients'},${m.totalClients}`, `${ru ? 'Активных клиентов' : 'Active Clients'},${m.activeClients}`, `${ru ? 'Общий доход' : 'Total Revenue'},$${(m.totalRevenue / 100).toFixed(2)}`, '')
     }
     if (trainingData) {
       const m = trainingData.metrics
-      lines.push('=== TRAINING METRICS ===')
-      lines.push(`Active Programs,${m.activePrograms}`, `Total Workouts,${m.totalWorkoutsCompleted}`, `Avg Compliance,${m.avgCompliancePct}%`, '')
-      lines.push('=== CLIENT DETAIL ===')
-      lines.push('Client,Program,Compliance %,Workouts,RPE,Weight,Weight Change,Checkins 30d,Flagged')
+      lines.push(ru ? '=== МЕТРИКИ ТРЕНИРОВОК ===' : '=== TRAINING METRICS ===')
+      lines.push(`${ru ? 'Активных программ' : 'Active Programs'},${m.activePrograms}`, `${ru ? 'Всего тренировок' : 'Total Workouts'},${m.totalWorkoutsCompleted}`, `${ru ? 'Ср. соблюдение' : 'Avg Compliance'},${m.avgCompliancePct}%`, '')
+      lines.push(ru ? '=== ДЕТАЛИ ПО КЛИЕНТАМ ===' : '=== CLIENT DETAIL ===')
+      lines.push(ru ? 'Клиент,Программа,Соблюдение %,Тренировки,RPE,Вес,Изменение веса,Чек-ины 30д,Отмечены' : 'Client,Program,Compliance %,Workouts,RPE,Weight,Weight Change,Checkins 30d,Flagged')
       for (const c of clientSummaries) {
         lines.push(`"${c.name}","${c.programName}",${c.compliancePct ?? ''},${c.completed}/${c.totalScheduled},${c.avgRpe || ''},${c.latestWeight || ''},${c.weightChange || ''},${c.checkins30d},${c.flaggedCheckins}`)
       }

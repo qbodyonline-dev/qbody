@@ -89,7 +89,7 @@ export default function CoursePageEditorPage() {
         cta_title_secondary: data.cta_title_secondary || '',
         cta_subtitle: data.cta_subtitle || '',
         cta_subtitle_secondary: data.cta_subtitle_secondary || '',
-        cta_button_text: data.cta_button_text || 'Start Now',
+        cta_button_text: data.cta_button_text || (ru ? 'Начать' : 'Start Now'),
         cta_button_text_secondary: data.cta_button_text_secondary || '',
         guarantee_text: data.guarantee_text || '',
         guarantee_text_secondary: data.guarantee_text_secondary || '',

@@ -136,7 +136,7 @@ function ProgramsPage() {
       const data = await res.json()
       setPrograms(data.programs || [])
       setTotal(data.total || 0)
-    } catch { toast.error('Failed to load') }
+    } catch { toast.error(ru ? 'Ошибка загрузки' : 'Failed to load') }
     finally { setLoading(false) }
   }, [])
 
@@ -304,7 +304,7 @@ function ProgramsPage() {
       const res = await fetchWithAuth(`/api/programs/${deleteId}`, { method: 'DELETE' })
       if (!res.ok) {
         const data = await res.json()
-        toast.error(data.error || 'Failed')
+        toast.error(data.error || (ru ? 'Ошибка' : 'Failed'))
         return
       }
       toast.success(ru ? 'Удалено' : 'Deleted')

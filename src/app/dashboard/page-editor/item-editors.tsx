@@ -184,7 +184,7 @@ export function CourseItemEditor({
           {/* Row 2: Titles */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-xs text-zinc-500 block mb-1">Title (EN)</label>
+              <label className="text-xs text-zinc-500 block mb-1">{lang === 'ru' ? 'Название (EN)' : 'Title (EN)'}</label>
               <Input value={item.title} onChange={e => u('title', e.target.value)} className="text-sm h-9" />
             </div>
             <div>
@@ -196,7 +196,7 @@ export function CourseItemEditor({
           {/* Row 3: Descriptions */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-xs text-zinc-500 block mb-1">Description (EN)</label>
+              <label className="text-xs text-zinc-500 block mb-1">{lang === 'ru' ? 'Описание (EN)' : 'Description (EN)'}</label>
               <textarea value={item.description} onChange={e => u('description', e.target.value)} className="w-full p-2 text-sm border border-zinc-200 dark:border-zinc-700 dark:bg-zinc-800 rounded-xl h-16 resize-none" />
             </div>
             <div>
@@ -277,7 +277,7 @@ export function ProgramItemEditor({
         <div className="w-8 h-8 rounded-lg flex items-center justify-center text-lg" style={{ background: item.gradient }}>{item.icon}</div>
         <span className="text-sm font-medium text-zinc-800 dark:text-zinc-200 flex-1 truncate">{title || (lang === 'ru' ? 'Новая программа' : 'New program')}</span>
         {item.popular && <span className="text-[10px] bg-teal-500 text-white px-2 py-0.5 rounded-full">{lang === 'ru' ? 'Хит' : 'Popular'}</span>}
-        {item.soon && <span className="text-[10px] bg-amber-500 text-white px-2 py-0.5 rounded-full">Soon</span>}
+        {item.soon && <span className="text-[10px] bg-amber-500 text-white px-2 py-0.5 rounded-full">{lang === 'ru' ? 'Скоро' : 'Soon'}</span>}
         <span className="text-xs text-zinc-500">${item.price}</span>
         <div className="flex gap-0.5">
           <button onClick={e => { e.stopPropagation(); onDuplicate() }} className="p-1 rounded hover:bg-zinc-200 dark:hover:bg-zinc-700"><Copy className="w-3.5 h-3.5 text-zinc-400" /></button>
@@ -307,14 +307,14 @@ export function ProgramItemEditor({
             </label>
             <label className="flex items-center gap-2 cursor-pointer">
               <input type="checkbox" checked={item.soon || false} onChange={e => u('soon', e.target.checked)} className="w-4 h-4 rounded border-zinc-300 text-amber-500 focus:ring-amber-500" />
-              <span className="text-sm text-zinc-700 dark:text-zinc-300">Soon</span>
+              <span className="text-sm text-zinc-700 dark:text-zinc-300">{lang === 'ru' ? 'Скоро' : 'Soon'}</span>
             </label>
           </div>
 
           {/* Row 2: Titles */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-xs text-zinc-500 block mb-1">Title (EN)</label>
+              <label className="text-xs text-zinc-500 block mb-1">{lang === 'ru' ? 'Название (EN)' : 'Title (EN)'}</label>
               <Input value={item.title} onChange={e => u('title', e.target.value)} className="text-sm h-9" />
             </div>
             <div>
@@ -326,7 +326,7 @@ export function ProgramItemEditor({
           {/* Row 3: Descriptions */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-xs text-zinc-500 block mb-1">Description (EN)</label>
+              <label className="text-xs text-zinc-500 block mb-1">{lang === 'ru' ? 'Описание (EN)' : 'Description (EN)'}</label>
               <textarea value={item.description} onChange={e => u('description', e.target.value)} className="w-full p-2 text-sm border border-zinc-200 dark:border-zinc-700 dark:bg-zinc-800 rounded-xl h-16 resize-none" />
             </div>
             <div>
@@ -431,7 +431,7 @@ export function ResultItemEditor({
           {/* Row 2: Names */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-xs text-zinc-500 block mb-1">Name (EN)</label>
+              <label className="text-xs text-zinc-500 block mb-1">{lang === 'ru' ? 'Имя (EN)' : 'Name (EN)'}</label>
               <Input value={item.name} onChange={e => u('name', e.target.value)} className="text-sm h-9" />
             </div>
             <div>
@@ -443,7 +443,7 @@ export function ResultItemEditor({
           {/* Row 3: Results */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-xs text-zinc-500 block mb-1">Result (EN)</label>
+              <label className="text-xs text-zinc-500 block mb-1">{lang === 'ru' ? 'Результат (EN)' : 'Result (EN)'}</label>
               <Input value={item.result} onChange={e => u('result', e.target.value)} className="text-sm h-9" placeholder="-16 kg in 4 months" />
             </div>
             <div>
@@ -455,7 +455,7 @@ export function ResultItemEditor({
           {/* Row 4: Quotes */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-xs text-zinc-500 block mb-1">Quote (EN)</label>
+              <label className="text-xs text-zinc-500 block mb-1">{lang === 'ru' ? 'Цитата (EN)' : 'Quote (EN)'}</label>
               <textarea value={item.quote} onChange={e => u('quote', e.target.value)} className="w-full p-2 text-sm border border-zinc-200 dark:border-zinc-700 dark:bg-zinc-800 rounded-xl h-16 resize-none" placeholder="Amazing experience!" />
             </div>
             <div>

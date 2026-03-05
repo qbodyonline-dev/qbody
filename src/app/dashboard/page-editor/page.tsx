@@ -433,7 +433,7 @@ function PageEditorInner() {
           const valid = d.every((b: any) => b && typeof b.id === 'string' && typeof b.type === 'string')
           if (!valid) { toast.error(lang === 'ru' ? 'Блоки должны иметь id и type' : 'Blocks must have id and type'); return }
           push(d); toast.success(lang === 'ru' ? 'Импорт!' : 'Imported!')
-        } catch { toast.error('Invalid JSON') }
+        } catch { toast.error(lang === 'ru' ? 'Неверный JSON' : 'Invalid JSON') }
       }
       r.readAsText(f)
     }

@@ -62,9 +62,9 @@ function ImageField({ value, onChange, folder, label, lang }: {
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0]
     if (!f) return
-    if (f.size > 10 * 1024 * 1024) { toast.error('Max 10MB'); return }
+    if (f.size > 10 * 1024 * 1024) { toast.error(lang === 'ru' ? 'Макс 10МБ' : 'Max 10MB'); return }
     setUploading(true)
-    try { const url = await uploadFile(f, folder); onChange(url); toast.success('Uploaded!') }
+    try { const url = await uploadFile(f, folder); onChange(url); toast.success(lang === 'ru' ? 'Загружено!' : 'Uploaded!') }
     catch (err: any) { toast.error(err.message) }
     finally { setUploading(false); if (ref.current) ref.current.value = '' }
   }
@@ -72,7 +72,7 @@ function ImageField({ value, onChange, folder, label, lang }: {
     <div>
       <label className="text-xs text-zinc-500 block mb-1">{label}</label>
       <div className="flex gap-2">
-        <Input value={value} onChange={e => onChange(e.target.value)} placeholder="URL or upload" className="text-xs h-8 flex-1" />
+        <Input value={value} onChange={e => onChange(e.target.value)} placeholder={lang === 'ru' ? 'URL или загрузите' : 'URL or upload'} className="text-xs h-8 flex-1" />
         <button onClick={() => ref.current?.click()} disabled={uploading}
           className="h-8 px-3 rounded-lg bg-teal-500 hover:bg-teal-600 text-white text-xs font-medium flex items-center gap-1.5 disabled:opacity-50">
           {uploading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Upload className="w-3 h-3" />}
@@ -397,7 +397,7 @@ function SlideEditor({ slide, index, variant, isExpanded, onToggle, onChange, on
       <div className="flex items-center gap-2 px-3 py-2 bg-zinc-50 dark:bg-zinc-800 cursor-pointer" onClick={onToggle}>
         <GripVertical className="w-3 h-3 text-zinc-400" />
         {slide.image && <img src={slide.image} className="w-6 h-6 rounded object-cover" alt="" />}
-        <span className="text-xs font-medium text-zinc-700 dark:text-zinc-300 flex-1 truncate">#{index + 1}: {ru ? slide.titleRu : slide.title || 'Untitled'}</span>
+        <span className="text-xs font-medium text-zinc-700 dark:text-zinc-300 flex-1 truncate">#{index + 1}: {ru ? (slide.titleRu || 'Без названия') : (slide.title || 'Untitled')}</span>
         <div className="flex gap-0.5">
           <button onClick={e => { e.stopPropagation(); onMove(-1) }} className="p-1 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded"><ChevronUp className="w-3 h-3" /></button>
           <button onClick={e => { e.stopPropagation(); onMove(1) }} className="p-1 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded"><ChevronDown className="w-3 h-3" /></button>
@@ -410,22 +410,22 @@ function SlideEditor({ slide, index, variant, isExpanded, onToggle, onChange, on
         <div className="p-3 space-y-3">
           <ImageField value={slide.image} onChange={url => onChange({ image: url })} folder="slides" label={ru ? 'Изображение' : 'Image'} lang={lang} />
           <div className="grid grid-cols-2 gap-2">
-            <div><label className="text-[10px] text-zinc-500 block mb-0.5">Title EN</label>
+            <div><label className="text-[10px] text-zinc-500 block mb-0.5">{ru ? 'Заголовок EN' : 'Title EN'}</label>
               <Input value={slide.title} onChange={e => onChange({ title: e.target.value })} className="text-xs h-7" /></div>
-            <div><label className="text-[10px] text-zinc-500 block mb-0.5">Title RU</label>
+            <div><label className="text-[10px] text-zinc-500 block mb-0.5">{ru ? 'Заголовок RU' : 'Title RU'}</label>
               <Input value={slide.titleRu} onChange={e => onChange({ titleRu: e.target.value })} className="text-xs h-7" /></div>
           </div>
           <div className="grid grid-cols-2 gap-2">
-            <div><label className="text-[10px] text-zinc-500 block mb-0.5">Description EN</label>
+            <div><label className="text-[10px] text-zinc-500 block mb-0.5">{ru ? 'Описание EN' : 'Description EN'}</label>
               <textarea value={slide.description} onChange={e => onChange({ description: e.target.value })} className="w-full text-xs p-2 rounded-lg border border-zinc-200 dark:border-zinc-700 dark:bg-zinc-900 resize-none" rows={2} /></div>
-            <div><label className="text-[10px] text-zinc-500 block mb-0.5">Description RU</label>
+            <div><label className="text-[10px] text-zinc-500 block mb-0.5">{ru ? 'Описание RU' : 'Description RU'}</label>
               <textarea value={slide.descriptionRu} onChange={e => onChange({ descriptionRu: e.target.value })} className="w-full text-xs p-2 rounded-lg border border-zinc-200 dark:border-zinc-700 dark:bg-zinc-900 resize-none" rows={2} /></div>
           </div>
           {variant !== 'logo' && (
             <div className="grid grid-cols-2 gap-2">
-              <div><label className="text-[10px] text-zinc-500 block mb-0.5">Button EN</label>
+              <div><label className="text-[10px] text-zinc-500 block mb-0.5">{ru ? 'Кнопка EN' : 'Button EN'}</label>
                 <Input value={slide.buttonText} onChange={e => onChange({ buttonText: e.target.value })} className="text-xs h-7" /></div>
-              <div><label className="text-[10px] text-zinc-500 block mb-0.5">Button RU</label>
+              <div><label className="text-[10px] text-zinc-500 block mb-0.5">{ru ? 'Кнопка RU' : 'Button RU'}</label>
                 <Input value={slide.buttonTextRu} onChange={e => onChange({ buttonTextRu: e.target.value })} className="text-xs h-7" /></div>
             </div>
           )}
@@ -499,9 +499,9 @@ export function HeroTemplateEditor({ data, onChange, lang }: HeroTemplateEditorP
 
         {/* Badge */}
         <div className="grid grid-cols-2 gap-3">
-          <div><label className="text-xs text-zinc-500 block mb-1">Badge EN</label>
+          <div><label className="text-xs text-zinc-500 block mb-1">{ru ? 'Бейдж EN' : 'Badge EN'}</label>
             <Input value={data.badge} onChange={e => upd({ badge: e.target.value })} className="text-xs h-8" /></div>
-          <div><label className="text-xs text-zinc-500 block mb-1">Badge RU</label>
+          <div><label className="text-xs text-zinc-500 block mb-1">{ru ? 'Бейдж RU' : 'Badge RU'}</label>
             <Input value={data.badgeRu} onChange={e => upd({ badgeRu: e.target.value })} className="text-xs h-8" /></div>
         </div>
 
@@ -535,7 +535,7 @@ export function HeroTemplateEditor({ data, onChange, lang }: HeroTemplateEditorP
         <div className="p-3 bg-zinc-50 dark:bg-zinc-800 rounded-lg space-y-3">
           <div className="flex items-center justify-between">
             <label className="text-xs font-medium text-zinc-500">{ru ? 'Кнопки' : 'Buttons'} ({data.buttons.length})</label>
-            <button onClick={addButton} className="text-xs text-teal-500 flex items-center gap-1"><Plus className="w-3 h-3" /> Add</button>
+            <button onClick={addButton} className="text-xs text-teal-500 flex items-center gap-1"><Plus className="w-3 h-3" /> {ru ? 'Добавить' : 'Add'}</button>
           </div>
           {data.buttons.map((btn, i) => (
             <div key={i} className="grid grid-cols-[1fr_1fr_auto_auto_auto] gap-2 items-center">
@@ -544,10 +544,10 @@ export function HeroTemplateEditor({ data, onChange, lang }: HeroTemplateEditorP
               <Input value={btn.link} onChange={e => updateButton(i, { link: e.target.value })} placeholder="/link" className="text-xs h-7 w-24" />
               <select value={btn.variant} onChange={e => updateButton(i, { variant: e.target.value as any })}
                 className="h-7 px-1 text-[10px] border border-zinc-200 dark:border-zinc-700 dark:bg-zinc-900 rounded">
-                <option value="primary">Primary</option>
-                <option value="secondary">Secondary</option>
-                <option value="outline">Outline</option>
-                <option value="ghost">Ghost</option>
+                <option value="primary">{ru ? 'Основная' : 'Primary'}</option>
+                <option value="secondary">{ru ? 'Вторичная' : 'Secondary'}</option>
+                <option value="outline">{ru ? 'Контур' : 'Outline'}</option>
+                <option value="ghost">{ru ? 'Призрачная' : 'Ghost'}</option>
               </select>
               <button onClick={() => removeButton(i)} className="text-red-400 p-1"><Trash2 className="w-3 h-3" /></button>
             </div>

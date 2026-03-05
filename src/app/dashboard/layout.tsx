@@ -349,7 +349,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <Avatar fallback={initials} size="sm" />
           {(mobile || isSidebarOpen) && (
             <div className="flex-1 min-w-0">
-              <p className="font-medium text-zinc-900 dark:text-zinc-100 text-sm truncate">{profile?.full_name || profile?.email || 'User'}</p>
+              <p className="font-medium text-zinc-900 dark:text-zinc-100 text-sm truncate">{profile?.full_name || profile?.email || (ru ? 'Пользователь' : 'User')}</p>
               <p className="text-xs text-zinc-500 dark:text-zinc-400 truncate">{profile?.role || 'user'}</p>
             </div>
           )}
@@ -389,7 +389,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   )}
                 </Button>
               </Link>
-              <Button variant="ghost" size="icon" onClick={() => setIsDark(!isDark)} title={isDark ? 'Light mode' : 'Dark mode'}>
+              <Button variant="ghost" size="icon" onClick={() => setIsDark(!isDark)} title={isDark ? (ru ? 'Светлая тема' : 'Light mode') : (ru ? 'Тёмная тема' : 'Dark mode')}>
                 {isDark ? <Sun className="w-5 h-5 text-yellow-400" /> : <Moon className="w-5 h-5" />}
               </Button>
               <div className="hidden sm:block h-8 w-px bg-zinc-200 dark:bg-zinc-700 mx-2" />
