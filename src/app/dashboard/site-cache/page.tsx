@@ -22,6 +22,7 @@ interface CacheSettings {
 
 interface CacheStatus {
   pageBlocksCacheEntries: number
+  imageCacheEntries: number
   serverTime: string
 }
 
@@ -51,13 +52,20 @@ export default function SiteCachePage() {
         const data = await res.json()
         setSettings(data.settings)
         setStatus(data.status)
+      } else if (res.status === 403) {
+        // ✅ Bug 7: Показываем ошибку доступа (тренеры больше не имеют доступа)
+        toast.error(ru ? 'Нет доступа. Только администратор.' : 'Access denied. Admin only.')
+      } else {
+        toast.error(ru ? 'Ошибка загрузки статуса кеша' : 'Failed to load cache status')
       }
     } catch (err) {
+      // ✅ Bug 7: Уведомление об ошибках сети
       console.error('Failed to fetch cache status:', err)
+      toast.error(ru ? 'Ошибка сети. Проверьте подключение.' : 'Network error. Check your connection.')
     } finally {
       setLoading(false)
     }
-  }, [session?.access_token])
+  }, [session?.access_token, ru])
 
   useEffect(() => {
     fetchStatus()
@@ -77,11 +85,15 @@ export default function SiteCachePage() {
       })
       if (res.ok) {
         toast.success(ru ? 'Настройки кеша сохранены' : 'Cache settings saved')
+        // ✅ Bug 5 fix: Перезагружаем статус после сохранения (обновляет карточки)
+        await fetchStatus()
       } else {
-        throw new Error()
+        const data = await res.json().catch(() => ({}))
+        toast.error(data.error || (ru ? 'Ошибка сохранения' : 'Failed to save'))
       }
     } catch {
-      toast.error(ru ? 'Ошибка сохранения' : 'Failed to save')
+      // ✅ Bug 7: Уведомление об ошибке сети
+      toast.error(ru ? 'Ошибка сети. Проверьте подключение.' : 'Network error. Check your connection.')
     } finally {
       setSaving(false)
     }
@@ -101,12 +113,14 @@ export default function SiteCachePage() {
       })
       if (res.ok) {
         toast.success(ru ? `${label}: кеш очищен` : `${label}: cache purged`)
-        fetchStatus()
+        await fetchStatus()
       } else {
-        throw new Error()
+        const data = await res.json().catch(() => ({}))
+        toast.error(data.error || (ru ? 'Ошибка очистки' : 'Purge failed'))
       }
     } catch {
-      toast.error(ru ? 'Ошибка очистки' : 'Purge failed')
+      // ✅ Bug 7: Уведомление об ошибке сети
+      toast.error(ru ? 'Ошибка сети. Проверьте подключение.' : 'Network error. Check your connection.')
     } finally {
       setPurging(null)
     }
@@ -180,9 +194,9 @@ export default function SiteCachePage() {
             </div>
             <div>
               <div className="text-xl font-bold text-zinc-900 dark:text-zinc-100">
-                {formatTTL(settings.imgCacheTTL)}
+                {status?.imageCacheEntries || 0}
               </div>
-              <div className="text-xs text-zinc-500">{ru ? 'Кеш фото' : 'Image TTL'}</div>
+              <div className="text-xs text-zinc-500">{ru ? 'Фото' : 'Images'}</div>
             </div>
           </CardContent>
         </Card>
