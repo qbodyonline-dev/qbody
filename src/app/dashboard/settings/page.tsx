@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useTranslation } from '@/lib/i18n'
-import { Save, Globe, Palette, FileText, Instagram, Upload, Eye, Image, Edit, Languages, Search, AlertCircle, CheckCircle2, X, Loader2 } from 'lucide-react'
+import { Save, Globe, Palette, FileText, Instagram, Upload, Eye, Image, Edit, Languages, Search, AlertCircle, CheckCircle2, X, Loader2, Smartphone } from 'lucide-react'
 import { toast } from 'sonner'
 import { fetchWithAuth, fetchWithAuthUpload } from '@/lib/api'
 import LanguageSettingsTab from './LanguageSettingsTab'
@@ -16,6 +16,7 @@ const tabs = [
   { id: 'content', icon: FileText },
   { id: 'social', icon: Instagram },
   { id: 'translations', icon: Languages },
+  { id: 'app', icon: Smartphone },
 ]
 
 export default function SettingsPage() {
@@ -26,10 +27,16 @@ export default function SettingsPage() {
   const [uploadingLogo, setUploadingLogo] = useState(false)
   const [uploadingHero, setUploadingHero] = useState(false)
   const [uploadingOg, setUploadingOg] = useState(false)
-  
+  const [uploadingAppBg, setUploadingAppBg] = useState(false)
+  const [uploadingAppLoading, setUploadingAppLoading] = useState(false)
+  const [uploadingAppIcon, setUploadingAppIcon] = useState(false)
+
   const logoInputRef = useRef<HTMLInputElement>(null)
   const heroInputRef = useRef<HTMLInputElement>(null)
   const ogInputRef = useRef<HTMLInputElement>(null)
+  const appBgInputRef = useRef<HTMLInputElement>(null)
+  const appLoadingInputRef = useRef<HTMLInputElement>(null)
+  const appIconInputRef = useRef<HTMLInputElement>(null)
   
   const [settings, setSettings] = useState({
     // General
@@ -67,6 +74,12 @@ export default function SettingsPage() {
     enableSitemap: true,
     gaTrackingId: '',
     gtmId: '',
+    // App
+    appName: '',
+    appColor: '',
+    appBackgroundUrl: '',
+    appLoadingUrl: '',
+    appIconUrl: '',
   })
 
   // Load settings from API
@@ -115,6 +128,12 @@ export default function SettingsPage() {
           enableSitemap: data.seo?.enableSitemap ?? prev.enableSitemap,
           gaTrackingId: data.seo?.gaTrackingId || prev.gaTrackingId,
           gtmId: data.seo?.gtmId || prev.gtmId,
+          // App — используем ?? чтобы пустая строка "" (удалённый фон) не откатывалась к prev
+          appName: data.app?.appName ?? prev.appName,
+          appColor: data.app?.appColor ?? prev.appColor,
+          appBackgroundUrl: data.app?.appBackgroundUrl ?? prev.appBackgroundUrl,
+          appLoadingUrl: data.app?.appLoadingUrl ?? prev.appLoadingUrl,
+          appIconUrl: data.app?.appIconUrl ?? prev.appIconUrl,
         }))
       } catch (err) {
         console.error('Failed to load settings:', err)
@@ -189,6 +208,45 @@ export default function SettingsPage() {
     setUploadingOg(false)
   }
 
+  // Handle app background upload
+  const handleAppBgUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setUploadingAppBg(true)
+    const url = await uploadFile(file, 'app')
+    if (url) {
+      setSettings(prev => ({ ...prev, appBackgroundUrl: url }))
+      toast.success(locale === 'ru' ? 'Фон загружен' : 'Background uploaded')
+    }
+    setUploadingAppBg(false)
+  }
+
+  // Handle app loading image upload
+  const handleAppLoadingUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setUploadingAppLoading(true)
+    const url = await uploadFile(file, 'app')
+    if (url) {
+      setSettings(prev => ({ ...prev, appLoadingUrl: url }))
+      toast.success(locale === 'ru' ? 'Изображение загрузки загружено' : 'Loading image uploaded')
+    }
+    setUploadingAppLoading(false)
+  }
+
+  // Handle app icon upload
+  const handleAppIconUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setUploadingAppIcon(true)
+    const url = await uploadFile(file, 'app')
+    if (url) {
+      setSettings(prev => ({ ...prev, appIconUrl: url }))
+      toast.success(locale === 'ru' ? 'Иконка загружена' : 'Icon uploaded')
+    }
+    setUploadingAppIcon(false)
+  }
+
   // Save all settings
   const handleSave = async () => {
     setIsSaving(true)
@@ -234,6 +292,13 @@ export default function SettingsPage() {
           gaTrackingId: settings.gaTrackingId,
           gtmId: settings.gtmId,
         },
+        app: {
+          appName: settings.appName,
+          appColor: settings.appColor,
+          appBackgroundUrl: settings.appBackgroundUrl,
+          appLoadingUrl: settings.appLoadingUrl,
+          appIconUrl: settings.appIconUrl,
+        },
       }
 
       const res = await fetchWithAuth('/api/settings', {
@@ -266,6 +331,9 @@ export default function SettingsPage() {
       <input type="file" ref={logoInputRef} className="hidden" accept="image/*" onChange={handleLogoUpload} />
       <input type="file" ref={heroInputRef} className="hidden" accept="image/*" onChange={handleHeroUpload} />
       <input type="file" ref={ogInputRef} className="hidden" accept="image/*" onChange={handleOgUpload} />
+      <input type="file" ref={appBgInputRef} className="hidden" accept="image/*" onChange={handleAppBgUpload} />
+      <input type="file" ref={appLoadingInputRef} className="hidden" accept="image/*" onChange={handleAppLoadingUpload} />
+      <input type="file" ref={appIconInputRef} className="hidden" accept="image/*" onChange={handleAppIconUpload} />
       
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div><h1 className="text-2xl font-bold text-zinc-900">{t('settings.title')}</h1><p className="text-zinc-500 mt-1">{t('settings.subtitle')}</p></div>
@@ -658,6 +726,186 @@ export default function SettingsPage() {
 
           {activeTab === 'translations' && (
             <LanguageSettingsTab locale={locale} />
+          )}
+
+          {activeTab === 'app' && (
+            <>
+              {/* App Name */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>{t('settings.app.appName')}</CardTitle>
+                  <CardDescription>{t('settings.app.appNameHelp')}</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Input
+                    label={t('settings.app.appName')}
+                    value={settings.appName}
+                    onChange={(e) => setSettings(prev => ({ ...prev, appName: e.target.value }))}
+                    placeholder={locale === 'ru' ? 'Моё приложение' : 'My App'}
+                  />
+                </CardContent>
+              </Card>
+
+              {/* App Color */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>{t('settings.app.appColor')}</CardTitle>
+                  <CardDescription>{t('settings.app.appColorHelp')}</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex items-center gap-4">
+                    <input
+                      type="color"
+                      value={settings.appColor || '#000000'}
+                      onChange={(e) => setSettings(prev => ({ ...prev, appColor: e.target.value }))}
+                      className="w-12 h-12 rounded-xl border-2 border-zinc-200 cursor-pointer"
+                    />
+                    <Input
+                      value={settings.appColor}
+                      onChange={(e) => setSettings(prev => ({ ...prev, appColor: e.target.value }))}
+                      placeholder="#000000"
+                      className="w-32"
+                    />
+                    {settings.appColor && (
+                      <button
+                        type="button"
+                        onClick={() => setSettings(prev => ({ ...prev, appColor: '' }))}
+                        className="text-sm text-zinc-500 hover:text-zinc-800 underline"
+                      >
+                        {t('settings.app.resetColor')}
+                      </button>
+                    )}
+                    {settings.appColor && (
+                      <div
+                        className="w-12 h-12 rounded-xl border-2 border-zinc-200"
+                        style={{ backgroundColor: settings.appColor }}
+                      />
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Background Image */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>{t('settings.app.backgroundImage')}</CardTitle>
+                  <CardDescription>{t('settings.app.backgroundImageHelp')}</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="border-2 border-dashed border-zinc-300 rounded-2xl overflow-hidden">
+                    {settings.appBackgroundUrl ? (
+                      <div className="relative aspect-[9/16] max-h-80">
+                        <img src={settings.appBackgroundUrl} alt="App Background" className="w-full h-full object-cover" />
+                        <button
+                          onClick={() => setSettings(prev => ({ ...prev, appBackgroundUrl: '' }))}
+                          className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-full hover:bg-red-600"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="p-8 text-center">
+                        <Image className="w-12 h-12 text-zinc-400 mx-auto mb-4" />
+                        <p className="text-zinc-500 text-sm mb-4">1080 × 1920px</p>
+                        <Button
+                          variant="outline"
+                          onClick={() => appBgInputRef.current?.click()}
+                          disabled={uploadingAppBg}
+                        >
+                          {uploadingAppBg ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Upload className="w-4 h-4 mr-2" />}
+                          {t('settings.app.uploadImage')}
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                  {settings.appBackgroundUrl && (
+                    <p className="text-xs text-zinc-500 mt-2 truncate">{settings.appBackgroundUrl}</p>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Loading Image */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>{t('settings.app.loadingImage')}</CardTitle>
+                  <CardDescription>{t('settings.app.loadingImageHelp')}</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex items-start gap-6">
+                    <div className="w-32 h-32 rounded-2xl bg-zinc-100 flex items-center justify-center overflow-hidden relative border-2 border-dashed border-zinc-300">
+                      {settings.appLoadingUrl ? (
+                        <>
+                          <img src={settings.appLoadingUrl} alt="Loading" className="w-full h-full object-contain" />
+                          <button
+                            onClick={() => setSettings(prev => ({ ...prev, appLoadingUrl: '' }))}
+                            className="absolute top-1 right-1 p-1 bg-red-500 text-white rounded-full hover:bg-red-600"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </>
+                      ) : (
+                        <Image className="w-8 h-8 text-zinc-400" />
+                      )}
+                    </div>
+                    <div className="space-y-3">
+                      <p className="text-sm text-zinc-500">512 × 512px</p>
+                      <Button
+                        variant="outline"
+                        onClick={() => appLoadingInputRef.current?.click()}
+                        disabled={uploadingAppLoading}
+                      >
+                        {uploadingAppLoading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Upload className="w-4 h-4 mr-2" />}
+                        {t('settings.app.uploadImage')}
+                      </Button>
+                      {settings.appLoadingUrl && (
+                        <p className="text-xs text-zinc-500 truncate max-w-xs">{settings.appLoadingUrl}</p>
+                      )}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* App Icon */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>{t('settings.app.appIcon')}</CardTitle>
+                  <CardDescription>{t('settings.app.appIconHelp')}</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex items-start gap-6">
+                    <div className="w-24 h-24 rounded-2xl bg-zinc-100 flex items-center justify-center overflow-hidden relative border-2 border-dashed border-zinc-300">
+                      {settings.appIconUrl ? (
+                        <>
+                          <img src={settings.appIconUrl} alt="App Icon" className="w-full h-full object-cover" />
+                          <button
+                            onClick={() => setSettings(prev => ({ ...prev, appIconUrl: '' }))}
+                            className="absolute top-1 right-1 p-1 bg-red-500 text-white rounded-full hover:bg-red-600"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </>
+                      ) : (
+                        <Smartphone className="w-8 h-8 text-zinc-400" />
+                      )}
+                    </div>
+                    <div className="space-y-3">
+                      <p className="text-sm text-zinc-500">1024 × 1024px PNG</p>
+                      <Button
+                        variant="outline"
+                        onClick={() => appIconInputRef.current?.click()}
+                        disabled={uploadingAppIcon}
+                      >
+                        {uploadingAppIcon ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Upload className="w-4 h-4 mr-2" />}
+                        {t('settings.app.uploadImage')}
+                      </Button>
+                      {settings.appIconUrl && (
+                        <p className="text-xs text-zinc-500 truncate max-w-xs">{settings.appIconUrl}</p>
+                      )}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </>
           )}
         </div>
       </div>

@@ -17,7 +17,11 @@ import {
   getClientOnboardedTemplate,
 } from './email-templates'
 
-const resend = new Resend(process.env.RESEND_API_KEY)
+let _resend: Resend | null = null
+function getResend() {
+  if (!_resend) _resend = new Resend(process.env.RESEND_API_KEY)
+  return _resend
+}
 
 const FROM_EMAIL = process.env.EMAIL_FROM || 'Qbody <noreply@qbody.fit>'
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@qbody.fit'
@@ -33,7 +37,7 @@ interface SendEmailOptions {
 
 async function sendEmail({ to, subject, html, replyTo }: SendEmailOptions) {
   try {
-    const { data, error } = await resend.emails.send({
+    const { data, error } = await getResend().emails.send({
       from: FROM_EMAIL,
       to: Array.isArray(to) ? to : [to],
       subject,
