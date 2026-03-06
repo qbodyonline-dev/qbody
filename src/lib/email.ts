@@ -20,10 +20,8 @@ import {
 // Lazy-init: Resend is created on first use, not at import time.
 // This prevents build-time crashes when RESEND_API_KEY isn't available.
 let _resend: Resend | null = null
-function getResend(): Resend {
-  if (!_resend) {
-    _resend = new Resend(process.env.RESEND_API_KEY)
-  }
+function getResend() {
+  if (!_resend) _resend = new Resend(process.env.RESEND_API_KEY)
   return _resend
 }
 
