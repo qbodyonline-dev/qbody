@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import sharp from 'sharp'
+import { imageCache, getImgCacheTTL, isCacheEnabled } from '@/lib/cache'
 
-// In-memory cache for optimized images (survives within a single serverless invocation)
-const cache = new Map<string, { buffer: Uint8Array; etag: string; ts: number }>()
+// Use shared imageCache from cache.ts so Purge All can clear it
+const cache = imageCache
 const MAX_CACHE = 50
-const CACHE_TTL = 10 * 60 * 1000 // 10 min in-memory
 
 // Allowed source hosts (prevent open proxy abuse)
 const ALLOWED_HOSTS = ['crybeycjfpyyxjgszcpu.supabase.co']
@@ -42,9 +42,10 @@ export async function GET(request: NextRequest) {
   // Check ETag / If-None-Match
   const ifNoneMatch = request.headers.get('if-none-match')
 
-  // Check in-memory cache
+  // Check in-memory cache (respects dynamic TTL from admin settings)
+  const imgTTL = getImgCacheTTL()
   const cached = cache.get(cacheKey)
-  if (cached && Date.now() - cached.ts < CACHE_TTL) {
+  if (isCacheEnabled() && imgTTL > 0 && cached && Date.now() - cached.ts < imgTTL) {
     if (ifNoneMatch === cached.etag) {
       return new NextResponse(null, { status: 304 })
     }

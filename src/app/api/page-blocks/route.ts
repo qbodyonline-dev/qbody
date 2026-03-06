@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { requireAdmin } from '@/lib/api-auth'
 import { sanitizeString, sanitizeHTMLContent } from '@/lib/security'
-import { pageBlocksCache, PAGE_CACHE_TTL } from '@/lib/cache'
+import { pageBlocksCache, getPageCacheTTL, isCacheEnabled } from '@/lib/cache'
 
 export const dynamic = 'force-dynamic'
 
@@ -48,8 +48,9 @@ export async function GET(request: Request) {
 
     // ✅ CACHE: Check in-memory cache first
     const cacheKey = `blocks:${cleanSlug}`
+    const pageTTL = getPageCacheTTL()
     const cached = pageBlocksCache.get(cacheKey)
-    if (cached && Date.now() - cached.ts < PAGE_CACHE_TTL) {
+    if (isCacheEnabled() && pageTTL > 0 && cached && Date.now() - cached.ts < pageTTL) {
       return NextResponse.json(cached.data, {
         headers: {
           'X-Cache': 'HIT',
