@@ -48,11 +48,12 @@ export async function POST(request: NextRequest) {
 
         if (courseSlug && userId) {
           // ✅ Bug 1 fix: Idempotency — check if this order was already processed
+          // Use maybeSingle() — order might not exist yet in extreme race conditions
           const { data: existingOrder } = await supabase
             .from('orders')
             .select('id, status')
             .eq('stripe_session_id', session.id)
-            .single()
+            .maybeSingle()
 
           if (existingOrder?.status === 'paid') {
             console.log(`[Webhook] ⚠️ Order already processed (idempotent skip): ${session.id}`)
