@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
       process.env.STRIPE_WEBHOOK_SECRET!
     )
   } catch (err: any) {
-    console.error('Webhook signature verification failed:', err.message)
+    console.error('[Webhook] Signature verification failed:', err.message)
     return NextResponse.json({ error: 'Invalid signature' }, { status: 400 })
   }
 
@@ -47,6 +47,18 @@ export async function POST(request: NextRequest) {
         const programId = session.metadata?.program_id
 
         if (courseSlug && userId) {
+          // ✅ Bug 1 fix: Idempotency — check if this order was already processed
+          const { data: existingOrder } = await supabase
+            .from('orders')
+            .select('id, status')
+            .eq('stripe_session_id', session.id)
+            .single()
+
+          if (existingOrder?.status === 'paid') {
+            console.log(`[Webhook] ⚠️ Order already processed (idempotent skip): ${session.id}`)
+            break
+          }
+
           // Update order status to paid
           const { data: orderData, error: updateError } = await supabase
             .from('orders')
@@ -60,7 +72,7 @@ export async function POST(request: NextRequest) {
             .single()
 
           if (updateError) {
-            console.error('Error updating order:', updateError)
+            console.error('[Webhook] Error updating order:', updateError)
           }
 
           if (purchaseType === 'program' && programId) {
@@ -112,9 +124,9 @@ export async function POST(request: NextRequest) {
               }
 
               if (enrollError) {
-                console.error('Error enrolling client in program:', enrollError)
+                console.error('[Webhook] Error enrolling client in program:', enrollError)
               } else {
-                console.log(`✅ Program enrollment: ${userId} → ${programId}`)
+                console.log(`[Webhook] ✅ Program enrollment: user=${userId} program=${programId}`)
               }
             }
           } else {
@@ -130,7 +142,7 @@ export async function POST(request: NextRequest) {
               })
 
             if (accessError) {
-              console.error('Error granting course access:', accessError)
+              console.error('[Webhook] Error granting course access:', accessError)
             }
           }
 
@@ -158,27 +170,37 @@ export async function POST(request: NextRequest) {
             productName = course?.name || courseSlug
           }
 
-          // Send email notifications
+          // ✅ Bug 10 fix: Send emails fire-and-forget (don't block webhook response)
           if (clientEmail) {
-            await sendPaymentSuccessClient(clientEmail, clientName, {
+            const emailData = {
               courseName: productName,
               courseSlug,
               amount: orderData?.amount || session.amount_total || 0,
               currency: orderData?.currency || 'usd',
               orderId: orderData?.id || session.id,
-            })
+            }
 
-            await sendPaymentSuccessAdmin({
-              clientName,
-              clientEmail,
-              courseName: productName,
-              amount: orderData?.amount || session.amount_total || 0,
-              currency: orderData?.currency || 'usd',
-              orderId: orderData?.id || session.id,
+            Promise.allSettled([
+              sendPaymentSuccessClient(clientEmail, clientName, emailData),
+              sendPaymentSuccessAdmin({
+                clientName,
+                clientEmail,
+                courseName: productName,
+                amount: emailData.amount,
+                currency: emailData.currency,
+                orderId: emailData.orderId,
+              }),
+            ]).then(results => {
+              results.forEach((r, i) => {
+                if (r.status === 'rejected') {
+                  console.error(`[Webhook] Email ${i} failed:`, r.reason)
+                }
+              })
             })
           }
 
-          console.log(`✅ Payment completed: ${userId} → ${courseSlug}`)
+          // ✅ Bug 14: Structured payment log
+          console.log(`[Webhook] ✅ Payment completed: user=${userId} product=${productName} amount=${orderData?.amount || session.amount_total} session=${session.id}`)
         }
       }
       break
@@ -187,11 +209,14 @@ export async function POST(request: NextRequest) {
     case 'checkout.session.expired': {
       const session = event.data.object as Stripe.Checkout.Session
 
+      // ✅ Bug 1 fix: Only update if not already paid (idempotency)
       await supabase
         .from('orders')
         .update({ status: 'expired' })
         .eq('stripe_session_id', session.id)
+        .neq('status', 'paid')
 
+      console.log(`[Webhook] ⏳ Session expired: ${session.id}`)
       break
     }
 
@@ -200,12 +225,17 @@ export async function POST(request: NextRequest) {
       const paymentIntentId = charge.payment_intent as string
 
       if (paymentIntentId) {
-        // Mark order as refunded and get order details
+        // ✅ Bug 1 fix: Check if already refunded (idempotency)
         const { data: order } = await supabase
           .from('orders')
-          .select('user_id, course_slug, amount, currency')
+          .select('user_id, course_slug, amount, currency, status')
           .eq('stripe_payment_intent_id', paymentIntentId)
           .single()
+
+        if (order?.status === 'refunded') {
+          console.log(`[Webhook] ⚠️ Refund already processed (idempotent skip): ${paymentIntentId}`)
+          break
+        }
 
         await supabase
           .from('orders')
@@ -257,27 +287,74 @@ export async function POST(request: NextRequest) {
             courseName = course?.name || order.course_slug
           }
 
-          // Send email notifications
+          // ✅ Bug 10 fix: Fire-and-forget emails
           if (clientEmail) {
-            // Send to client
-            await sendPaymentRefundedClient(clientEmail, clientName, {
-              courseName,
-              amount: order.amount || charge.amount_refunded,
-              currency: order.currency || charge.currency,
-            })
-
-            // Send to admin
-            await sendPaymentRefundedAdmin({
-              clientName,
-              clientEmail,
-              courseName,
-              amount: order.amount || charge.amount_refunded,
-              currency: order.currency || charge.currency,
+            Promise.allSettled([
+              sendPaymentRefundedClient(clientEmail, clientName, {
+                courseName,
+                amount: order.amount || charge.amount_refunded,
+                currency: order.currency || charge.currency,
+              }),
+              sendPaymentRefundedAdmin({
+                clientName,
+                clientEmail,
+                courseName,
+                amount: order.amount || charge.amount_refunded,
+                currency: order.currency || charge.currency,
+              }),
+            ]).then(results => {
+              results.forEach((r, i) => {
+                if (r.status === 'rejected') {
+                  console.error(`[Webhook] Refund email ${i} failed:`, r.reason)
+                }
+              })
             })
           }
         }
 
-        console.log(`🔄 Refund processed: ${paymentIntentId}`)
+        console.log(`[Webhook] 🔄 Refund processed: payment=${paymentIntentId} user=${order?.user_id}`)
+      }
+      break
+    }
+
+    // ✅ Bug 11: Handle chargeback (dispute) events
+    case 'charge.dispute.created': {
+      const dispute = event.data.object as Stripe.Dispute
+      const paymentIntentId = dispute.payment_intent as string
+
+      if (paymentIntentId) {
+        // Mark order as refunded (chargeback = forced refund)
+        const { data: order } = await supabase
+          .from('orders')
+          .select('user_id, course_slug')
+          .eq('stripe_payment_intent_id', paymentIntentId)
+          .single()
+
+        await supabase
+          .from('orders')
+          .update({ status: 'refunded' })
+          .eq('stripe_payment_intent_id', paymentIntentId)
+
+        // Revoke access
+        if (order) {
+          const isProgram = order.course_slug?.startsWith('program:')
+          if (isProgram) {
+            const progId = order.course_slug.replace('program:', '')
+            await supabase
+              .from('client_programs')
+              .update({ status: 'cancelled' })
+              .eq('client_id', order.user_id)
+              .eq('program_id', progId)
+          } else {
+            await supabase
+              .from('course_access')
+              .delete()
+              .eq('user_id', order.user_id)
+              .eq('course_slug', order.course_slug)
+          }
+        }
+
+        console.error(`[Webhook] ⚠️ DISPUTE/CHARGEBACK: payment=${paymentIntentId} user=${order?.user_id} amount=${dispute.amount}`)
       }
       break
     }

@@ -25,6 +25,8 @@ type Order = {
   user_name: string
   user_avatar_url: string | null
   course_slug: string
+  program_id: string | null
+  program_name: string | null
   amount: number
   currency: string
   status: OrderStatus
@@ -119,10 +121,20 @@ export default function PaymentsPage() {
     { label: locale === 'ru' ? 'За этот месяц' : 'This Month', value: formatAmount(thisMonthRevenue), icon: TrendingUp, color: 'bg-purple-500' },
   ]
 
-  const getCourseName = (slug: string) => {
-    const names = courseNames[slug]
-    if (!names) return slug
-    return locale === 'ru' ? names.ru : names.en
+  // ✅ Bug 6 fix: Resolve product names for both courses and programs
+  const getProductName = (order: Order) => {
+    // Program: use resolved program_name from API
+    if (order.program_name) {
+      return order.program_name
+    }
+    // Course: use hardcoded names map
+    const names = courseNames[order.course_slug]
+    if (names) return locale === 'ru' ? names.ru : names.en
+    // Fallback: clean up slug
+    if (order.course_slug?.startsWith('program:')) {
+      return locale === 'ru' ? 'Программа тренировок' : 'Training Program'
+    }
+    return order.course_slug
   }
 
   const getInitials = (name: string) => {
@@ -194,7 +206,7 @@ export default function PaymentsPage() {
             <table className="w-full">
               <thead><tr className="border-b border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800/50">
                 <th className="text-left py-4 px-6 text-sm font-semibold text-zinc-600 dark:text-zinc-400">{t('payments.table.client')}</th>
-                <th className="text-left py-4 px-6 text-sm font-semibold text-zinc-600 dark:text-zinc-400">{locale === 'ru' ? 'Курс' : 'Course'}</th>
+                <th className="text-left py-4 px-6 text-sm font-semibold text-zinc-600 dark:text-zinc-400">{locale === 'ru' ? 'Продукт' : 'Product'}</th>
                 <th className="text-left py-4 px-6 text-sm font-semibold text-zinc-600 dark:text-zinc-400">{t('payments.table.amount')}</th>
                 <th className="text-left py-4 px-6 text-sm font-semibold text-zinc-600 dark:text-zinc-400">{t('payments.table.status')}</th>
                 <th className="text-left py-4 px-6 text-sm font-semibold text-zinc-600 dark:text-zinc-400">{t('payments.table.date')}</th>
@@ -219,7 +231,7 @@ export default function PaymentsPage() {
                       </div>
                     </td>
                     <td className="py-4 px-6">
-                      <span className="text-sm text-zinc-700 dark:text-zinc-300">{getCourseName(order.course_slug)}</span>
+                      <span className="text-sm text-zinc-700 dark:text-zinc-300">{getProductName(order)}</span>
                     </td>
                     <td className="py-4 px-6 font-semibold text-zinc-900 dark:text-zinc-100">{formatAmount(order.amount)}</td>
                     <td className="py-4 px-6">
@@ -281,7 +293,7 @@ export default function PaymentsPage() {
 
             <div className="grid grid-cols-2 gap-4">
               {[
-                { label: locale === 'ru' ? 'Курс' : 'Course', value: getCourseName(viewOrder.course_slug) },
+                { label: locale === 'ru' ? 'Продукт' : 'Product', value: getProductName(viewOrder) },
                 { label: locale === 'ru' ? 'Сумма' : 'Amount', value: formatAmount(viewOrder.amount) },
                 { label: locale === 'ru' ? 'Создан' : 'Created', value: formatDate(viewOrder.created_at) },
                 { label: locale === 'ru' ? 'Оплачен' : 'Paid', value: formatDate(viewOrder.paid_at) },

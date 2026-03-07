@@ -55,17 +55,24 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'You already have an active enrollment for this program' }, { status: 400 })
     }
 
-    // Check for existing paid order for this program
+    // ✅ Bug 2 fix: Check for existing paid OR pending orders (prevents race condition / duplicate sessions)
     const { data: existingOrder } = await supabase
       .from('orders')
-      .select('id')
+      .select('id, status')
       .eq('user_id', userId)
       .eq('course_slug', `program:${programId}`)
-      .eq('status', 'paid')
+      .in('status', ['paid', 'pending'])
       .maybeSingle()
 
     if (existingOrder) {
-      return NextResponse.json({ error: 'Program already purchased' }, { status: 400 })
+      if (existingOrder.status === 'paid') {
+        return NextResponse.json({ error: 'Program already purchased' }, { status: 400 })
+      }
+      // Pending order exists — expire old one, create fresh session
+      await supabase
+        .from('orders')
+        .update({ status: 'expired' })
+        .eq('id', existingOrder.id)
     }
 
     // Find or create Stripe customer
