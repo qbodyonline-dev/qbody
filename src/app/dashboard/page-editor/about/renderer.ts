@@ -9,13 +9,10 @@ function sectionBg(s: AboutSectionData): string {
 }
 
 function animCSS(id: string, anim: string): string {
+  // Use IntersectionObserver-based reveal (handled in page.tsx) instead of CSS keyframes.
+  // This avoids race conditions where animations fire before the section is visible.
   if (anim === 'none') return ''
-  const kf = anim === 'fade-up'
-    ? `@keyframes ${id}A{from{opacity:0;transform:translateY(40px)}to{opacity:1;transform:translateY(0)}}`
-    : anim === 'slide-in'
-    ? `@keyframes ${id}A{from{opacity:0;transform:translateX(-40px)}to{opacity:1;transform:translateX(0)}}`
-    : `@keyframes ${id}A{from{opacity:0;transform:scale(0.92)}to{opacity:1;transform:scale(1)}}`
-  return `${kf}\n#${id} .ab-anim{opacity:0;animation:${id}A 0.7s ease forwards;}\n#${id} .ab-anim:nth-child(1){animation-delay:0.1s;}#${id} .ab-anim:nth-child(2){animation-delay:0.25s;}#${id} .ab-anim:nth-child(3){animation-delay:0.4s;}#${id} .ab-anim:nth-child(4){animation-delay:0.55s;}`
+  return `#${id} .ab-anim{opacity:0;transform:translateY(30px);transition:opacity 0.6s ease,transform 0.6s ease;}#${id} .ab-anim:nth-child(1){transition-delay:0.05s;}#${id} .ab-anim:nth-child(2){transition-delay:0.15s;}#${id} .ab-anim:nth-child(3){transition-delay:0.25s;}#${id} .ab-anim:nth-child(4){transition-delay:0.35s;}#${id}.is-visible .ab-anim{opacity:1;transform:translateY(0);}`
 }
 
 function renderBlock(b: AboutContentBlock, s: AboutSectionData, lang: 'en' | 'ru'): string {

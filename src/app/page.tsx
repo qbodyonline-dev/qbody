@@ -666,6 +666,15 @@ export default function HomePage() {
         observer.observe(htmlEl)
       })
 
+      // Handle about2 .ab-anim containers (add is-visible to their parent section)
+      document.querySelectorAll('[id^="ab"] .ab-anim').forEach(el => {
+        const wrapper = el.closest('[id^="ab"]') as HTMLElement
+        if (wrapper && !wrapper.classList.contains('reveal-target')) {
+          wrapper.classList.add('reveal-target')
+          observer.observe(wrapper)
+        }
+      })
+
       return () => observer.disconnect()
     }, 50)
     return () => clearTimeout(timer)
