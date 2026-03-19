@@ -1,13 +1,13 @@
 'use client'
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Modal } from '@/components/ui/modal'
 import { useTranslation } from '@/lib/i18n'
-import { fetchWithAuth } from '@/lib/api'
-import { Search, Plus, Play, Edit, Trash2, Video, Loader2, Dumbbell, ExternalLink } from 'lucide-react'
+import { fetchWithAuth, fetchWithAuthUpload } from '@/lib/api'
+import { Search, Plus, Play, Edit, Trash2, Video, Loader2, Dumbbell, ExternalLink, Upload, X } from 'lucide-react'
 import { toast } from 'sonner'
 import { useLanguageConfig } from '@/lib/useLanguageConfig'
 
@@ -89,6 +89,9 @@ export default function ExercisesPage() {
   const [editingId, setEditingId] = useState<string | null>(null)
   const [formData, setFormData] = useState<FormData>({ ...EMPTY_FORM })
   const [activeTab, setActiveTab] = useState<'basic' | 'technique' | 'video'>('basic')
+  const [uploading, setUploading] = useState(false)
+  const [uploadProgress, setUploadProgress] = useState(0)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   /* ─── FETCH ─── */
   const fetchExercises = useCallback(async () => {
@@ -223,6 +226,58 @@ export default function ExercisesPage() {
     } finally {
       setSaving(false)
     }
+  }
+
+  /* ─── VIDEO UPLOAD ─── */
+  const handleVideoUpload = async (file: File) => {
+    const allowedTypes = ['video/mp4', 'video/webm', 'video/quicktime', 'video/x-msvideo', 'video/x-matroska']
+    if (!allowedTypes.includes(file.type)) {
+      toast.error(ru ? 'Неподдерживаемый формат. Используйте MP4, WebM, MOV, AVI или MKV' : 'Unsupported format. Use MP4, WebM, MOV, AVI or MKV')
+      return
+    }
+    const maxSize = 100 * 1024 * 1024 // 100 MB
+    if (file.size > maxSize) {
+      toast.error(ru ? 'Файл слишком большой (макс. 100 МБ)' : 'File too large (max 100 MB)')
+      return
+    }
+
+    setUploading(true)
+    setUploadProgress(0)
+
+    // Simulate progress while uploading
+    const progressInterval = setInterval(() => {
+      setUploadProgress(prev => Math.min(prev + Math.random() * 15, 90))
+    }, 500)
+
+    try {
+      const fd = new window.FormData()
+      fd.append('file', file)
+      fd.append('folder', 'exercises')
+
+      const res = await fetchWithAuthUpload('/api/upload', { method: 'POST', body: fd })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        throw new Error(data.error || 'Upload failed')
+      }
+
+      const { url } = await res.json()
+      setFormData(prev => ({ ...prev, video_url: url }))
+      setUploadProgress(100)
+      toast.success(ru ? 'Видео загружено!' : 'Video uploaded!')
+    } catch (err: any) {
+      toast.error(err.message || (ru ? 'Ошибка загрузки' : 'Upload failed'))
+    } finally {
+      clearInterval(progressInterval)
+      setUploading(false)
+      setUploadProgress(0)
+      if (fileInputRef.current) fileInputRef.current.value = ''
+    }
+  }
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault()
+    const file = e.dataTransfer.files?.[0]
+    if (file) handleVideoUpload(file)
   }
 
   const toggleMuscle = (g: string) => {
@@ -470,10 +525,65 @@ export default function ExercisesPage() {
           {/* TAB: Video */}
           {activeTab === 'video' && (
             <div className="space-y-4">
-              <Input label={ru ? 'Ссылка на видео (YouTube / Vimeo / CDN)' : 'Video URL (YouTube / Vimeo / CDN)'} placeholder="https://youtube.com/watch?v=..." value={formData.video_url} onChange={e => setFormData({...formData, video_url: e.target.value})} />
-              
+              {/* URL input */}
+              <Input label={ru ? 'Ссылка на видео (YouTube / Vimeo / CDN)' : 'Video URL (YouTube / Vimeo / CDN)'} placeholder="https://youtube.com/watch?v=..." value={formData.video_url} onChange={e => setFormData({...formData, video_url: e.target.value})} disabled={uploading} />
+
+              {/* Divider */}
+              <div className="flex items-center gap-3">
+                <div className="flex-1 h-px bg-zinc-200 dark:bg-zinc-700" />
+                <span className="text-xs text-zinc-400 uppercase font-medium">{ru ? 'или загрузите файл' : 'or upload a file'}</span>
+                <div className="flex-1 h-px bg-zinc-200 dark:bg-zinc-700" />
+              </div>
+
+              {/* Upload area */}
+              <div
+                onDrop={handleDrop}
+                onDragOver={e => e.preventDefault()}
+                onClick={() => !uploading && fileInputRef.current?.click()}
+                className={`relative p-6 border-2 border-dashed rounded-xl text-center cursor-pointer transition-colors ${
+                  uploading
+                    ? 'border-teal-300 bg-teal-50/50 dark:bg-teal-900/10'
+                    : 'border-zinc-200 dark:border-zinc-700 hover:border-teal-400 hover:bg-teal-50/30 dark:hover:bg-teal-900/10'
+                }`}
+              >
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="video/mp4,video/webm,video/quicktime,video/x-msvideo,video/x-matroska"
+                  className="hidden"
+                  onChange={e => {
+                    const file = e.target.files?.[0]
+                    if (file) handleVideoUpload(file)
+                  }}
+                />
+                {uploading ? (
+                  <div className="space-y-3">
+                    <Loader2 className="w-8 h-8 animate-spin text-teal-500 mx-auto" />
+                    <p className="text-sm font-medium text-teal-600">{ru ? 'Загрузка...' : 'Uploading...'}</p>
+                    <div className="w-full max-w-xs mx-auto bg-zinc-200 dark:bg-zinc-700 rounded-full h-2 overflow-hidden">
+                      <div className="h-full bg-teal-500 rounded-full transition-all duration-300" style={{ width: `${uploadProgress}%` }} />
+                    </div>
+                    <p className="text-xs text-zinc-400">{Math.round(uploadProgress)}%</p>
+                  </div>
+                ) : (
+                  <>
+                    <Upload className="w-8 h-8 text-zinc-400 mx-auto mb-2" />
+                    <p className="text-sm font-medium text-zinc-600 dark:text-zinc-400">
+                      {ru ? 'Нажмите или перетащите видеофайл' : 'Click or drag & drop a video file'}
+                    </p>
+                    <p className="text-xs text-zinc-400 mt-1">MP4, WebM, MOV, AVI, MKV · {ru ? 'макс.' : 'max'} 100 MB</p>
+                  </>
+                )}
+              </div>
+
+              {/* Preview */}
               {formData.video_url && (
-                <div className="rounded-xl overflow-hidden border border-zinc-200 dark:border-zinc-700">
+                <div className="rounded-xl overflow-hidden border border-zinc-200 dark:border-zinc-700 relative">
+                  {/* Remove button */}
+                  <button type="button" onClick={() => setFormData({...formData, video_url: ''})} className="absolute top-2 right-2 z-10 p-1.5 rounded-full bg-black/50 hover:bg-black/70 text-white transition-colors">
+                    <X className="w-4 h-4" />
+                  </button>
+
                   {formData.video_url.includes('youtube.com') || formData.video_url.includes('youtu.be') ? (
                     <iframe
                       className="w-full aspect-video"
@@ -488,6 +598,13 @@ export default function ExercisesPage() {
                       allow="autoplay; fullscreen; picture-in-picture"
                       allowFullScreen
                     />
+                  ) : isDirectVideo(formData.video_url) ? (
+                    <video
+                      className="w-full aspect-video bg-black"
+                      src={formData.video_url}
+                      controls
+                      preload="metadata"
+                    />
                   ) : (
                     <div className="p-6 text-center">
                       <Video className="w-12 h-12 text-zinc-400 mx-auto mb-3" />
@@ -496,13 +613,6 @@ export default function ExercisesPage() {
                       </a>
                     </div>
                   )}
-                </div>
-              )}
-
-              {!formData.video_url && (
-                <div className="p-8 border-2 border-dashed border-zinc-200 dark:border-zinc-700 rounded-xl text-center">
-                  <Video className="w-12 h-12 text-zinc-300 mx-auto mb-3" />
-                  <p className="text-sm text-zinc-500">{ru ? 'Вставьте ссылку на видео выше' : 'Paste a video URL above'}</p>
                 </div>
               )}
             </div>
@@ -536,8 +646,18 @@ export default function ExercisesPage() {
   )
 }
 
-/* ─── Helper ─── */
+/* ─── Helpers ─── */
 function extractYouTubeId(url: string): string {
   const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([^&?\s]+)/)
   return match?.[1] || ''
+}
+
+function isDirectVideo(url: string): boolean {
+  const videoExtensions = ['.mp4', '.webm', '.mov', '.avi', '.mkv', '.m4v', '.ogv']
+  try {
+    const pathname = new URL(url).pathname.toLowerCase()
+    return videoExtensions.some(ext => pathname.endsWith(ext)) || url.includes('supabase.co/storage')
+  } catch {
+    return false
+  }
 }
