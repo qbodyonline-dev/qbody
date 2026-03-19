@@ -6,7 +6,8 @@ import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Modal } from '@/components/ui/modal'
 import { useTranslation } from '@/lib/i18n'
-import { fetchWithAuth, fetchWithAuthUpload } from '@/lib/api'
+import { fetchWithAuth } from '@/lib/api'
+import { uploadFile as uploadToStorage } from '@/lib/upload'
 import { Search, Plus, Play, Edit, Trash2, Video, Loader2, Dumbbell, ExternalLink, Upload, X } from 'lucide-react'
 import { toast } from 'sonner'
 import { useLanguageConfig } from '@/lib/useLanguageConfig'
@@ -230,37 +231,15 @@ export default function ExercisesPage() {
 
   /* ─── VIDEO UPLOAD ─── */
   const handleVideoUpload = async (file: File) => {
-    const allowedTypes = ['video/mp4', 'video/webm', 'video/quicktime', 'video/x-msvideo', 'video/x-matroska']
-    if (!allowedTypes.includes(file.type)) {
-      toast.error(ru ? 'Неподдерживаемый формат. Используйте MP4, WebM, MOV, AVI или MKV' : 'Unsupported format. Use MP4, WebM, MOV, AVI or MKV')
-      return
-    }
-    const maxSize = 100 * 1024 * 1024 // 100 MB
-    if (file.size > maxSize) {
-      toast.error(ru ? 'Файл слишком большой (макс. 100 МБ)' : 'File too large (max 100 MB)')
-      return
-    }
-
     setUploading(true)
     setUploadProgress(0)
 
-    // Simulate progress while uploading
     const progressInterval = setInterval(() => {
       setUploadProgress(prev => Math.min(prev + Math.random() * 15, 90))
     }, 500)
 
     try {
-      const fd = new window.FormData()
-      fd.append('file', file)
-      fd.append('folder', 'exercises')
-
-      const res = await fetchWithAuthUpload('/api/upload', { method: 'POST', body: fd })
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}))
-        throw new Error(data.error || 'Upload failed')
-      }
-
-      const { url } = await res.json()
+      const url = await uploadToStorage(file, 'exercises')
       setFormData(prev => ({ ...prev, video_url: url }))
       setUploadProgress(100)
       toast.success(ru ? 'Видео загружено!' : 'Video uploaded!')

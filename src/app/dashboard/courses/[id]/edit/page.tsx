@@ -14,7 +14,8 @@ import {
   ListChecks, Save, Upload, Image, GripVertical, X, Check
 } from 'lucide-react'
 import { toast } from 'sonner'
-import { fetchWithAuth, fetchWithAuthUpload } from '@/lib/api'
+import { fetchWithAuth } from '@/lib/api'
+import { uploadFile as uploadToStorage } from '@/lib/upload'
 import { useLanguageConfig } from '@/lib/useLanguageConfig'
 
 type ContentBlock = {
@@ -152,19 +153,12 @@ export default function CourseEditorPage() {
     }
   }
 
-  // === UPLOAD FUNCTIONS ===
+  // === UPLOAD FUNCTIONS (direct to Supabase via signed URL) ===
   const uploadFile = async (file: File, folder: string): Promise<string | null> => {
-    const formData = new FormData()
-    formData.append('file', file)
-    formData.append('folder', folder)
-    
     try {
-      const res = await fetchWithAuthUpload('/api/upload', { method: 'POST', body: formData })
-      if (!res.ok) throw new Error('Upload failed')
-      const data = await res.json()
-      return data.url
-    } catch (err) {
-      toast.error(ru ? 'Ошибка загрузки' : 'Upload failed')
+      return await uploadToStorage(file, folder)
+    } catch (err: any) {
+      toast.error(err.message || (ru ? 'Ошибка загрузки' : 'Upload failed'))
       return null
     }
   }
@@ -185,6 +179,7 @@ export default function CourseEditorPage() {
       toast.success(ru ? 'Видео загружено!' : 'Video uploaded!')
     }
     setUploadingVideo(false)
+    if (videoInputRef.current) videoInputRef.current.value = ''
   }
 
   const handleImageUpload = async (file: File, blockId: string) => {
