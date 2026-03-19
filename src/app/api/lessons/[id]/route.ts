@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase-server'
 import { requireAdmin } from '@/lib/api-auth'
 import { isValidUUID, sanitizeString } from '@/lib/security'
+import { deleteStorageFile, deleteStorageFiles } from '@/lib/storage-cleanup'
 
 export const dynamic = 'force-dynamic'
 
@@ -53,7 +54,19 @@ export async function PATCH(
     if (body.title_secondary !== undefined) updateData.title_secondary = sanitizeString(body.title_secondary, 500)
     if (body.type !== undefined && allowedTypes.includes(body.type)) updateData.type = body.type
     if (body.duration_minutes !== undefined) updateData.duration_minutes = Math.max(0, Math.min(Number(body.duration_minutes) || 0, 600))
-    if (body.video_url !== undefined) updateData.video_url = body.video_url
+    if (body.video_url !== undefined) {
+      // If video_url is changing, delete the old one from storage
+      const { data: existing } = await supabase
+        .from('course_lessons')
+        .select('video_url')
+        .eq('id', params.id)
+        .single()
+
+      if (existing?.video_url && existing.video_url !== body.video_url) {
+        await deleteStorageFile(supabase, existing.video_url)
+      }
+      updateData.video_url = body.video_url
+    }
     if (body.content !== undefined) updateData.content = body.content
     if (body.content_secondary !== undefined) updateData.content_secondary = body.content_secondary
     if (body.is_free !== undefined) updateData.is_free = !!body.is_free
@@ -87,6 +100,13 @@ export async function DELETE(
 
   try {
     const supabase = createServerClient()
+
+    // Fetch lesson data before deleting so we can clean up storage
+    const { data: existing } = await supabase
+      .from('course_lessons')
+      .select('video_url, content')
+      .eq('id', params.id)
+      .single()
     
     const { error } = await supabase
       .from('course_lessons')
@@ -94,6 +114,20 @@ export async function DELETE(
       .eq('id', params.id)
     
     if (error) throw error
+
+    // Clean up storage files (video + images in content blocks)
+    if (existing) {
+      const urlsToDelete: (string | null)[] = [existing.video_url]
+      // Also collect image URLs from content blocks
+      if (Array.isArray(existing.content)) {
+        for (const block of existing.content) {
+          if (block.type === 'image' && block.content) {
+            urlsToDelete.push(block.content)
+          }
+        }
+      }
+      await deleteStorageFiles(supabase, urlsToDelete)
+    }
     
     return NextResponse.json({ success: true })
   } catch (err: any) {

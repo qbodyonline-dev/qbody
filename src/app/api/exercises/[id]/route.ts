@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase-server'
 import { requireAdmin, authenticateRequest } from '@/lib/api-auth'
+import { deleteStorageFile } from '@/lib/storage-cleanup'
 
 // GET — single exercise
 export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
@@ -61,6 +62,19 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
       return NextResponse.json({ error: 'No fields to update' }, { status: 400 })
     }
 
+    // If video_url is changing, delete the old one from storage
+    if ('video_url' in updates) {
+      const { data: existing } = await supabase
+        .from('exercises')
+        .select('video_url')
+        .eq('id', params.id)
+        .single()
+
+      if (existing?.video_url && existing.video_url !== updates.video_url) {
+        await deleteStorageFile(supabase, existing.video_url)
+      }
+    }
+
     const { data, error } = await supabase
       .from('exercises')
       .update(updates)
@@ -90,6 +104,13 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
   try {
     const supabase = createServerClient()
 
+    // Fetch video_url before deleting so we can clean up storage
+    const { data: existing } = await supabase
+      .from('exercises')
+      .select('video_url')
+      .eq('id', params.id)
+      .single()
+
     const { error } = await supabase
       .from('exercises')
       .delete()
@@ -98,6 +119,11 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
     if (error) {
       console.error('Delete exercise error:', error)
       return NextResponse.json({ error: 'Failed to delete exercise' }, { status: 500 })
+    }
+
+    // Clean up video file from storage
+    if (existing?.video_url) {
+      await deleteStorageFile(supabase, existing.video_url)
     }
 
     return NextResponse.json({ success: true })
