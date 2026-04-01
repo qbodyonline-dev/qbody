@@ -104,6 +104,19 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
   try {
     const supabase = createServerClient()
 
+    // Check if exercise is used in any workouts
+    const { count } = await supabase
+      .from('workout_exercises')
+      .select('id', { count: 'exact', head: true })
+      .eq('exercise_id', params.id)
+
+    if (count && count > 0) {
+      return NextResponse.json(
+        { error: `Cannot delete: used in ${count} workout(s)` },
+        { status: 409 }
+      )
+    }
+
     // Fetch video_url before deleting so we can clean up storage
     const { data: existing } = await supabase
       .from('exercises')

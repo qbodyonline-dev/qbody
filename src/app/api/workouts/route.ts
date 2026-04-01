@@ -27,7 +27,8 @@ export async function GET(request: NextRequest) {
       .order('created_at', { ascending: false })
 
     if (search) {
-      query = query.or(`name.ilike.%${search}%,name_secondary.ilike.%${search}%`)
+      const escaped = search.replace(/[%_\\]/g, '\\$&')
+      query = query.or(`name.ilike.%${escaped}%,name_secondary.ilike.%${escaped}%`)
     }
     if (type) {
       query = query.eq('type', type)

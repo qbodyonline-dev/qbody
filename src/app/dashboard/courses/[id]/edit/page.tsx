@@ -198,18 +198,21 @@ export default function CourseEditorPage() {
 
   // === CONTENT BLOCKS ===
   const addContentBlock = (type: ContentBlock['type']) => {
-    const id = `block-${Date.now()}`
+    const id = `block-${crypto.randomUUID()}`
     const newBlock: ContentBlock = {
       id,
       type,
       content: '',
       content_secondary: '',
-      items: type === 'checklist' ? [{ id: `item-${Date.now()}`, text: '', text_secondary: '' }] : undefined
+      items: type === 'checklist' ? [{ id: `item-${crypto.randomUUID()}`, text: '', text_secondary: '' }] : undefined
     }
     setLessonForm({
       ...lessonForm,
       content: [...lessonForm.content, newBlock],
-      content_secondary: [...lessonForm.content_secondary, { ...newBlock }]
+      content_secondary: [...lessonForm.content_secondary, {
+        ...newBlock,
+        items: newBlock.items ? newBlock.items.map(i => ({ ...i })) : undefined
+      }]
     })
   }
 
@@ -230,7 +233,7 @@ export default function CourseEditorPage() {
   }
 
   const addChecklistItem = (blockId: string) => {
-    const newItem = { id: `item-${Date.now()}`, text: '', text_secondary: '' }
+    const newItem = { id: `item-${crypto.randomUUID()}`, text: '', text_secondary: '' }
     const addItem = (blocks: ContentBlock[]) => blocks.map(b => {
       if (b.id === blockId && b.items) {
         return { ...b, items: [...b.items, { ...newItem }] }
@@ -737,6 +740,7 @@ export default function CourseEditorPage() {
                             <input type="file" id={`img-${block.id}`} accept="image/*" className="hidden" onChange={(e) => {
                               const file = e.target.files?.[0]
                               if (file) handleImageUpload(file, block.id)
+                              e.target.value = ''
                             }} />
                             <Button variant="outline" onClick={() => document.getElementById(`img-${block.id}`)?.click()} disabled={uploadingImage === block.id}>
                               {uploadingImage === block.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4 mr-2" />}

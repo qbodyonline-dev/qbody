@@ -27,7 +27,8 @@ export async function GET(request: NextRequest) {
       .range(offset, offset + limit - 1)
 
     if (search) {
-      query = query.or(`name.ilike.%${search}%,name_secondary.ilike.%${search}%`)
+      const escaped = search.replace(/[%_\\]/g, '\\$&')
+      query = query.or(`name.ilike.%${escaped}%,name_secondary.ilike.%${escaped}%`)
     }
     if (muscle) {
       query = query.contains('muscle_groups', [muscle])

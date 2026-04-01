@@ -91,7 +91,6 @@ export default function ExercisesPage() {
   const [formData, setFormData] = useState<FormData>({ ...EMPTY_FORM })
   const [activeTab, setActiveTab] = useState<'basic' | 'technique' | 'video'>('basic')
   const [uploading, setUploading] = useState(false)
-  const [uploadProgress, setUploadProgress] = useState(0)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   /* ─── FETCH ─── */
@@ -232,23 +231,15 @@ export default function ExercisesPage() {
   /* ─── VIDEO UPLOAD ─── */
   const handleVideoUpload = async (file: File) => {
     setUploading(true)
-    setUploadProgress(0)
-
-    const progressInterval = setInterval(() => {
-      setUploadProgress(prev => Math.min(prev + Math.random() * 15, 90))
-    }, 500)
 
     try {
       const url = await uploadToStorage(file, 'exercises')
       setFormData(prev => ({ ...prev, video_url: url }))
-      setUploadProgress(100)
       toast.success(ru ? 'Видео загружено!' : 'Video uploaded!')
     } catch (err: any) {
       toast.error(err.message || (ru ? 'Ошибка загрузки' : 'Upload failed'))
     } finally {
-      clearInterval(progressInterval)
       setUploading(false)
-      setUploadProgress(0)
       if (fileInputRef.current) fileInputRef.current.value = ''
     }
   }
@@ -539,10 +530,6 @@ export default function ExercisesPage() {
                   <div className="space-y-3">
                     <Loader2 className="w-8 h-8 animate-spin text-teal-500 mx-auto" />
                     <p className="text-sm font-medium text-teal-600">{ru ? 'Загрузка...' : 'Uploading...'}</p>
-                    <div className="w-full max-w-xs mx-auto bg-zinc-200 dark:bg-zinc-700 rounded-full h-2 overflow-hidden">
-                      <div className="h-full bg-teal-500 rounded-full transition-all duration-300" style={{ width: `${uploadProgress}%` }} />
-                    </div>
-                    <p className="text-xs text-zinc-400">{Math.round(uploadProgress)}%</p>
                   </div>
                 ) : (
                   <>

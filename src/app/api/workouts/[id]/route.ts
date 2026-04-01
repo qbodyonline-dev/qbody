@@ -81,8 +81,14 @@ export async function PUT(
       }
     }
 
-    // Replace exercises if provided (delete all + re-insert)
+    // Replace exercises if provided (delete all + re-insert with backup)
     if (exercises !== undefined && Array.isArray(exercises)) {
+      // Backup existing exercises before deleting
+      const { data: backup } = await supabase
+        .from('workout_exercises')
+        .select('workout_id, exercise_id, section, position, sets, reps, weight, tempo, rest_seconds, notes, notes_secondary, superset_group')
+        .eq('workout_id', params.id)
+
       // Delete existing
       const { error: delError } = await supabase
         .from('workout_exercises')
@@ -117,6 +123,10 @@ export async function PUT(
 
         if (insError) {
           console.error('Insert workout exercises error:', insError)
+          // Restore backup on insert failure
+          if (backup && backup.length > 0) {
+            await supabase.from('workout_exercises').insert(backup)
+          }
           return NextResponse.json({ error: 'Failed to save workout exercises' }, { status: 500 })
         }
       }
@@ -148,6 +158,20 @@ export async function DELETE(
 
   try {
     const supabase = createServerClient()
+
+    // Check if workout is used in any program schedules
+    const { count } = await supabase
+      .from('program_days')
+      .select('id', { count: 'exact', head: true })
+      .eq('workout_id', params.id)
+
+    if (count && count > 0) {
+      return NextResponse.json(
+        { error: `Cannot delete: used in ${count} program(s)` },
+        { status: 409 }
+      )
+    }
+
     const { error } = await supabase
       .from('workouts')
       .delete()

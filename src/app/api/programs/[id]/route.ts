@@ -301,8 +301,14 @@ export async function PUT(
       }
     }
 
-    // Replace days if provided
+    // Replace days if provided (with backup for atomicity)
     if (days !== undefined && Array.isArray(days)) {
+      // Backup existing days before deleting
+      const { data: backup } = await supabase
+        .from('program_days')
+        .select('program_id, week_number, day_of_week, workout_id, is_rest_day, notes, notes_secondary')
+        .eq('program_id', params.id)
+
       // Delete existing days
       await supabase.from('program_days').delete().eq('program_id', params.id)
 
@@ -324,6 +330,10 @@ export async function PUT(
           const { error: insError } = await supabase.from('program_days').insert(rows)
           if (insError) {
             console.error('Insert program days error:', insError)
+            // Restore backup on insert failure
+            if (backup && backup.length > 0) {
+              await supabase.from('program_days').insert(backup)
+            }
             return NextResponse.json({ error: 'Failed to update program schedule' }, { status: 500 })
           }
         }

@@ -17,6 +17,7 @@ import BlockEditor, { type Block } from '@/components/ui/block-editor'
 import { compressImage } from '@/lib/compress-image'
 import { toast } from 'sonner'
 import { useLanguageConfig } from '@/lib/useLanguageConfig'
+import { slugify } from '@/lib/utils'
 
 /* ═══════════ TYPES ═══════════ */
 type WorkoutRef = { id: string; name: string; name_secondary: string | null; type: string; difficulty: string; estimated_duration: number }
@@ -125,7 +126,10 @@ function ProgramsPage() {
       setFHeroImage(url)
       toast.success(ru ? 'Фото загружено' : 'Image uploaded')
     } catch (e: any) { toast.error(e?.message || (ru ? 'Ошибка загрузки' : 'Upload failed')) }
-    finally { setHeroUploading(false) }
+    finally {
+      setHeroUploading(false)
+      e.target.value = ''
+    }
   }
 
   /* ─── Image upload (with client-side compression) ─── */
@@ -143,7 +147,7 @@ function ProgramsPage() {
   }
 
   /* ─── Slug helper ─── */
-  const generateSlug = (name: string) => name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 80)
+  const generateSlug = (name: string) => slugify(name).slice(0, 80)
   const programUrl = fSlug ? `${typeof window !== 'undefined' ? window.location.origin : ''}/programs/${fSlug}` : ''
 
   /* ─── Labels ─── */

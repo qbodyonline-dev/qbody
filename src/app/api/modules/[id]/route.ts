@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase-server'
 import { requireAdmin } from '@/lib/api-auth'
 import { isValidUUID, sanitizeString } from '@/lib/security'
+import { deleteStorageFiles } from '@/lib/storage-cleanup'
 
 // PATCH update module — admin only
 export async function PATCH(
@@ -52,14 +53,39 @@ export async function DELETE(
 
   try {
     const supabase = createServerClient()
-    
+
+    // Collect storage URLs from lessons before cascade delete
+    const { data: lessons } = await supabase
+      .from('course_lessons')
+      .select('video_url, content')
+      .eq('module_id', params.id)
+
+    const urlsToDelete: (string | null)[] = []
+    if (lessons) {
+      for (const lesson of lessons) {
+        urlsToDelete.push(lesson.video_url)
+        if (Array.isArray(lesson.content)) {
+          for (const block of lesson.content as any[]) {
+            if (block.type === 'image' && block.content) {
+              urlsToDelete.push(block.content)
+            }
+          }
+        }
+      }
+    }
+
     const { error } = await supabase
       .from('course_modules')
       .delete()
       .eq('id', params.id)
-    
+
     if (error) throw error
-    
+
+    // Clean up storage files after successful delete
+    if (urlsToDelete.length > 0) {
+      await deleteStorageFiles(supabase, urlsToDelete)
+    }
+
     return NextResponse.json({ success: true })
   } catch (err: any) {
     console.error('DELETE /api/modules/[id] error:', err)
