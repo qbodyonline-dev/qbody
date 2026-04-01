@@ -122,19 +122,15 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ success: true, deleted: ids.length })
     }
 
-    // Fallback: delete old read notifications (>30 days)
-    const cutoff = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
-
+    // Fallback: delete all read notifications
     const { count: toDelete } = await supabase
       .from('trainer_notifications')
       .select('*', { count: 'exact', head: true })
-      .lt('created_at', cutoff)
       .eq('is_read', true)
 
     const { error } = await supabase
       .from('trainer_notifications')
       .delete()
-      .lt('created_at', cutoff)
       .eq('is_read', true)
 
     if (error) {

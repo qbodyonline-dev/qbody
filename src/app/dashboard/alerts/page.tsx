@@ -122,10 +122,16 @@ export default function AlertsPage() {
         method: 'DELETE',
         headers: headers(),
       })
-      if (res.ok) {
-        const data = await res.json()
+      const data = await res.json()
+      if (!res.ok) {
+        toast.error(data.error || (ru ? 'Ошибка' : 'Failed'))
+        return
+      }
+      if (data.deleted > 0) {
         toast.success(ru ? `Удалено: ${data.deleted}` : `Deleted: ${data.deleted}`)
         fetchNotifications()
+      } else {
+        toast.info(ru ? 'Нет прочитанных оповещений для удаления' : 'No read alerts to clear')
       }
     } catch {
       toast.error(ru ? 'Ошибка' : 'Failed')
@@ -218,7 +224,7 @@ export default function AlertsPage() {
           )}
           <Button variant="outline" size="sm" onClick={deleteOld}>
             <Trash2 className="w-4 h-4 mr-2" />
-            {ru ? 'Очистить старые' : 'Clear old'}
+            {ru ? 'Очистить прочитанные' : 'Clear read'}
           </Button>
         </div>
       </div>
