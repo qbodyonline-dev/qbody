@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { stripe } from '@/lib/stripe'
+import { getStripe, getWebhookSecret } from '@/lib/stripe'
 import { createServerClient } from '@/lib/supabase-server'
 import Stripe from 'stripe'
 import {
@@ -23,10 +23,12 @@ export async function POST(request: NextRequest) {
   let event: Stripe.Event
 
   try {
+    const stripe = await getStripe()
+    const webhookSecret = await getWebhookSecret()
     event = stripe.webhooks.constructEvent(
       body,
       signature,
-      process.env.STRIPE_WEBHOOK_SECRET!
+      webhookSecret
     )
   } catch (err: any) {
     console.error('[Webhook] Signature verification failed:', err.message)
