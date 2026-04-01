@@ -1,24 +1,12 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
+import { createServerClient } from '@/lib/supabase-server'
 
 export const dynamic = 'force-dynamic'
 
-function getPublicSupabase() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      auth: { autoRefreshToken: false, persistSession: false },
-      global: {
-        fetch: (url: any, options: any = {}) => fetch(url, { ...options, cache: 'no-store' as RequestCache }),
-      },
-    }
-  )
-}
-
 /**
  * GET public program by slug.
- * Returns program info + schedule (workout names only, no sensitive data).
+ * Uses service-role client because program_days / workouts tables
+ * don't have anon-read RLS policies.  Only public-safe fields are returned.
  */
 export async function GET(
   request: Request,
@@ -30,7 +18,7 @@ export async function GET(
       return NextResponse.json({ error: 'Invalid slug' }, { status: 400 })
     }
 
-    const supabase = getPublicSupabase()
+    const supabase = createServerClient()
 
     const { data, error } = await supabase
       .from('training_programs')

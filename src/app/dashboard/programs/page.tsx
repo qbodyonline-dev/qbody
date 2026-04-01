@@ -34,6 +34,27 @@ type FormDay = { workout_id: string | null; is_rest_day: boolean }
 const GOALS = ['weight_loss', 'muscle_gain', 'endurance', 'recovery', 'general', 'beginner', 'home'] as const
 const DIFFS = ['beginner', 'intermediate', 'advanced'] as const
 
+/* ═══════════ ListEditor — editable string[] ═══════════ */
+function ListEditor({ items, onChange, placeholder }: { items: string[]; onChange: (v: string[]) => void; placeholder?: string }) {
+  const add = () => onChange([...items, ''])
+  const remove = (i: number) => onChange(items.filter((_, idx) => idx !== i))
+  const update = (i: number, val: string) => { const copy = [...items]; copy[i] = val; onChange(copy) }
+  return (
+    <div className="space-y-2">
+      {items.map((item, i) => (
+        <div key={i} className="flex gap-2">
+          <input value={item} onChange={e => update(i, e.target.value)} placeholder={placeholder}
+            className="flex-1 h-9 px-3 rounded-lg border border-zinc-200 dark:border-zinc-700 dark:bg-zinc-800 text-sm" />
+          <button type="button" onClick={() => remove(i)} className="p-2 text-red-400 hover:text-red-600"><X className="w-4 h-4" /></button>
+        </div>
+      ))}
+      <button type="button" onClick={add} className="text-xs text-teal-500 hover:text-teal-600 flex items-center gap-1">
+        <Plus className="w-3 h-3" />{placeholder || 'Add'}
+      </button>
+    </div>
+  )
+}
+
 export default function ProgramsPageWrapper() {
   return (
     <Suspense fallback={<div className="flex justify-center py-20"><Loader2 className="w-8 h-8 animate-spin text-teal-500" /></div>}>
@@ -80,6 +101,14 @@ function ProgramsPage() {
   const [fDiff, setFDiff] = useState('intermediate')
   const [fSchedule, setFSchedule] = useState<FormDay[][]>([]) // [week][day]
   const [expandedWeek, setExpandedWeek] = useState<number | null>(null)
+
+  // Price & extras
+  const [fPrice, setFPrice] = useState('')           // in dollars (display), stored as cents
+  const [fOriginalPrice, setFOriginalPrice] = useState('')
+  const [fFeatures, setFFeatures] = useState<string[]>([])
+  const [fFeaturesSecondary, setFFeaturesSecondary] = useState<string[]>([])
+  const [fIncludes, setFIncludes] = useState<string[]>([])
+  const [fIncludesSecondary, setFIncludesSecondary] = useState<string[]>([])
 
   // Assign form
   const [clientsList, setClientsList] = useState<any[]>([])
@@ -231,6 +260,8 @@ function ProgramsPage() {
     setFFullDesc([]); setFFullDescSecondary([]); setDescTab('primary'); setFHeroImage('')
     setFWeeks(8); setFGoal('general'); setFDiff('intermediate')
     setFSchedule(Array.from({ length: 8 }, () => emptyWeek()))
+    setFPrice(''); setFOriginalPrice('')
+    setFFeatures([]); setFFeaturesSecondary([]); setFIncludes([]); setFIncludesSecondary([])
     setEditingId(null); setExpandedWeek(null)
   }
 
@@ -252,6 +283,11 @@ function ProgramsPage() {
     setFHeroImage((p as any).hero_image_url || '')
     setFWeeks(p.duration_weeks); setFGoal(p.goal); setFDiff(p.difficulty)
     setFSchedule(buildScheduleFromDays(p.program_days, p.duration_weeks))
+    // Price (stored as cents, display as dollars)
+    setFPrice((p as any).price ? String((p as any).price / 100) : '')
+    setFOriginalPrice((p as any).original_price ? String((p as any).original_price / 100) : '')
+    setFFeatures((p as any).features || []); setFFeaturesSecondary((p as any).features_secondary || [])
+    setFIncludes((p as any).includes || []); setFIncludesSecondary((p as any).includes_secondary || [])
     setExpandedWeek(null)
     setIsModalOpen(true)
   }
@@ -289,6 +325,12 @@ function ProgramsPage() {
       goal: fGoal,
       difficulty: fDiff,
       days: scheduleToPayload(fSchedule),
+      price: fPrice ? Math.round(parseFloat(fPrice) * 100) : 0,
+      original_price: fOriginalPrice ? Math.round(parseFloat(fOriginalPrice) * 100) : null,
+      features: fFeatures.filter(Boolean),
+      features_secondary: fFeaturesSecondary.filter(Boolean),
+      includes: fIncludes.filter(Boolean),
+      includes_secondary: fIncludesSecondary.filter(Boolean),
     }
 
     try {
@@ -533,6 +575,39 @@ function ProgramsPage() {
               <BlockEditor value={fFullDescSecondary} onChange={setFFullDescSecondary} locale={lang.secondaryLanguage || 'ru'} uploadImage={uploadImageFile} />
             ) : (
               <BlockEditor value={fFullDesc} onChange={setFFullDesc} locale={lang.primaryLanguage} uploadImage={uploadImageFile} />
+            )}
+          </div>
+
+          {/* ─── Price ─── */}
+          <div className="border-t border-zinc-100 dark:border-zinc-800 pt-4">
+            <h3 className="font-semibold text-sm mb-3">{ru ? 'Цена' : 'Pricing'}</h3>
+            <div className="grid grid-cols-2 gap-4">
+              <Input label={ru ? 'Цена ($)' : 'Price ($)'} type="number" step="0.01" min="0" value={fPrice} onChange={e => setFPrice(e.target.value)} placeholder="29.99" />
+              <Input label={ru ? 'Старая цена ($)' : 'Original Price ($)'} type="number" step="0.01" min="0" value={fOriginalPrice} onChange={e => setFOriginalPrice(e.target.value)} placeholder="49.99" />
+            </div>
+          </div>
+
+          {/* ─── Features ─── */}
+          <div className="border-t border-zinc-100 dark:border-zinc-800 pt-4">
+            <h3 className="font-semibold text-sm mb-3">{ru ? 'Что входит в программу' : 'Features'}</h3>
+            <ListEditor items={fFeatures} onChange={setFFeatures} placeholder={ru ? 'Добавить пункт...' : 'Add feature...'} />
+            {lang.isBilingual && (
+              <div className="mt-3">
+                <p className="text-xs text-zinc-500 mb-1">{lang.sCode}</p>
+                <ListEditor items={fFeaturesSecondary} onChange={setFFeaturesSecondary} placeholder={ru ? 'Добавить пункт...' : 'Add feature...'} />
+              </div>
+            )}
+          </div>
+
+          {/* ─── Includes ─── */}
+          <div className="border-t border-zinc-100 dark:border-zinc-800 pt-4">
+            <h3 className="font-semibold text-sm mb-3">{ru ? 'Программа включает' : 'Includes'}</h3>
+            <ListEditor items={fIncludes} onChange={setFIncludes} placeholder={ru ? 'Добавить пункт...' : 'Add item...'} />
+            {lang.isBilingual && (
+              <div className="mt-3">
+                <p className="text-xs text-zinc-500 mb-1">{lang.sCode}</p>
+                <ListEditor items={fIncludesSecondary} onChange={setFIncludesSecondary} placeholder={ru ? 'Добавить пункт...' : 'Add item...'} />
+              </div>
             )}
           </div>
 
