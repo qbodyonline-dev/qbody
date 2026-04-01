@@ -118,7 +118,9 @@ export async function POST(request: NextRequest) {
 
       if (exError) {
         console.error('Insert workout exercises error:', exError)
-        // Workout created but exercises failed — still return workout
+        // Clean up the workout since exercises are essential
+        await supabase.from('workouts').delete().eq('id', workout.id)
+        return NextResponse.json({ error: 'Failed to create workout exercises' }, { status: 500 })
       }
     }
 

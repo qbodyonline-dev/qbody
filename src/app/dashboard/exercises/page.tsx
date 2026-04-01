@@ -313,7 +313,7 @@ export default function ExercisesPage() {
           </div>
           <div className="flex gap-2 flex-wrap">
             <Button variant={!muscleFilter ? 'default' : 'outline'} size="sm" onClick={() => setMuscleFilter('')}>{ru ? 'Все' : 'All'}</Button>
-            {['chest', 'back', 'legs', 'core', 'arms', 'glutes', 'shoulders'].map((f) => (
+            {MUSCLE_GROUPS.map((f) => (
               <Button key={f} variant={muscleFilter === f ? 'default' : 'outline'} size="sm" onClick={() => setMuscleFilter(muscleFilter === f ? '' : f)}>{mgLabel(f)}</Button>
             ))}
           </div>
@@ -573,7 +573,7 @@ export default function ExercisesPage() {
                   ) : formData.video_url.includes('vimeo.com') ? (
                     <iframe
                       className="w-full aspect-video"
-                      src={`https://player.vimeo.com/video/${formData.video_url.split('/').pop()}`}
+                      src={`https://player.vimeo.com/video/${extractVimeoId(formData.video_url)}`}
                       allow="autoplay; fullscreen; picture-in-picture"
                       allowFullScreen
                     />
@@ -628,6 +628,11 @@ export default function ExercisesPage() {
 /* ─── Helpers ─── */
 function extractYouTubeId(url: string): string {
   const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([^&?\s]+)/)
+  return match?.[1] || ''
+}
+
+function extractVimeoId(url: string): string {
+  const match = url.match(/vimeo\.com\/(?:video\/)?(\d+)/)
   return match?.[1] || ''
 }
 

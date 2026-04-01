@@ -91,6 +91,7 @@ export async function PUT(
 
       if (delError) {
         console.error('Delete workout exercises error:', delError)
+        return NextResponse.json({ error: 'Failed to update workout exercises' }, { status: 500 })
       }
 
       // Insert new
@@ -116,6 +117,7 @@ export async function PUT(
 
         if (insError) {
           console.error('Insert workout exercises error:', insError)
+          return NextResponse.json({ error: 'Failed to save workout exercises' }, { status: 500 })
         }
       }
     }
