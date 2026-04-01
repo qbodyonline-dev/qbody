@@ -74,6 +74,8 @@ export async function POST(request: NextRequest) {
 
           if (updateError) {
             console.error('[Webhook] Error updating order:', updateError)
+            // Return 500 so Stripe retries the webhook — don't grant access with failed order update
+            return NextResponse.json({ error: 'Failed to update order' }, { status: 500 })
           }
 
           if (purchaseType === 'program' && programId) {

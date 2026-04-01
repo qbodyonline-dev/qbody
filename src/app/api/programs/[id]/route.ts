@@ -48,6 +48,16 @@ function blocksToText(value: any): string | null {
   return parts.join('\n\n').trim() || null
 }
 
+/** Escape HTML special characters to prevent XSS. */
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
+
 /**
  * Convert Block[] to HTML for mobile rendering.
  */
@@ -58,33 +68,33 @@ function blocksToHtml(value: any): string | null {
       const parsed = JSON.parse(value)
       if (Array.isArray(parsed)) return blocksToHtml(parsed)
     } catch {}
-    return `<p>${value}</p>`
+    return `<p>${escapeHtml(value)}</p>`
   }
   if (!Array.isArray(value) || value.length === 0) return null
   const parts = value.map((block: any) => {
     switch (block.type) {
       case 'text':
-        return block.content ? `<p>${block.content}</p>` : ''
+        return block.content ? `<p>${escapeHtml(block.content)}</p>` : ''
       case 'heading': {
         const tag = `h${block.level || 2}`
-        return block.content ? `<${tag}>${block.content}</${tag}>` : ''
+        return block.content ? `<${tag}>${escapeHtml(block.content)}</${tag}>` : ''
       }
       case 'image':
-        return block.url ? `<img src="${block.url}" alt="${block.alt || ''}" style="width:100%;border-radius:12px;" />` : ''
+        return block.url ? `<img src="${escapeHtml(block.url)}" alt="${escapeHtml(block.alt || '')}" style="width:100%;border-radius:12px;" />` : ''
       case 'list': {
         const items = (block.items || []).filter(Boolean)
         if (items.length === 0) return ''
         const tag = block.style === 'ordered' ? 'ol' : 'ul'
-        return `<${tag}>${items.map((i: string) => `<li>${i}</li>`).join('')}</${tag}>`
+        return `<${tag}>${items.map((i: string) => `<li>${escapeHtml(i)}</li>`).join('')}</${tag}>`
       }
       case 'image_text': {
         let html = ''
-        if (block.url) html += `<img src="${block.url}" alt="${block.alt || ''}" style="width:100%;border-radius:12px;margin-bottom:8px;" />`
-        if (block.content) html += `<p>${block.content}</p>`
+        if (block.url) html += `<img src="${escapeHtml(block.url)}" alt="${escapeHtml(block.alt || '')}" style="width:100%;border-radius:12px;margin-bottom:8px;" />`
+        if (block.content) html += `<p>${escapeHtml(block.content)}</p>`
         return html
       }
       case 'quote':
-        return block.content ? `<blockquote style="border-left:3px solid #14b8a6;padding-left:12px;font-style:italic;color:#666;">${block.content}${block.author ? `<br/><small>— ${block.author}</small>` : ''}</blockquote>` : ''
+        return block.content ? `<blockquote style="border-left:3px solid #14b8a6;padding-left:12px;font-style:italic;color:#666;">${escapeHtml(block.content)}${block.author ? `<br/><small>— ${escapeHtml(block.author)}</small>` : ''}</blockquote>` : ''
       case 'video':
         return '' // skip video for mobile
       default:
@@ -255,7 +265,21 @@ export async function PUT(
     const updates: Record<string, any> = {}
     if (name !== undefined) updates.name = s(name, 500)
     if (name_secondary !== undefined) updates.name_secondary = name_secondary ? s(name_secondary, 500) : null
-    if (slug !== undefined) updates.slug = slug ? slug.toLowerCase().replace(/[^a-z0-9-]/g, '').slice(0, 80) : null
+    if (slug !== undefined) {
+      updates.slug = slug ? slug.toLowerCase().replace(/[^a-z0-9-]/g, '').slice(0, 80) : null
+      // Check slug uniqueness (exclude current program)
+      if (updates.slug) {
+        const { data: existingSlug } = await supabase
+          .from('training_programs')
+          .select('id')
+          .eq('slug', updates.slug)
+          .neq('id', params.id)
+          .maybeSingle()
+        if (existingSlug) {
+          return NextResponse.json({ error: 'A program with this slug already exists' }, { status: 409 })
+        }
+      }
+    }
     if (description !== undefined) updates.description = description ? s(description, 5000) : null
     if (description_secondary !== undefined) updates.description_secondary = description_secondary ? s(description_secondary, 5000) : null
     if (full_description !== undefined) updates.full_description = full_description
@@ -305,7 +329,10 @@ export async function PUT(
 
         if (rows.length > 0) {
           const { error: insError } = await supabase.from('program_days').insert(rows)
-          if (insError) console.error('Insert program days error:', insError)
+          if (insError) {
+            console.error('Insert program days error:', insError)
+            return NextResponse.json({ error: 'Failed to update program schedule' }, { status: 500 })
+          }
         }
       }
     }

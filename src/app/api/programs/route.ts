@@ -103,6 +103,18 @@ export async function POST(request: NextRequest) {
 
     // Auto-generate slug if not provided
     const programSlug = (slug || name).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 80)
+
+    // Check slug uniqueness
+    const { data: existingSlug } = await supabase
+      .from('training_programs')
+      .select('id')
+      .eq('slug', programSlug)
+      .maybeSingle()
+
+    if (existingSlug) {
+      return NextResponse.json({ error: 'A program with this slug already exists' }, { status: 409 })
+    }
+
     const safeGoal = GOALS.includes(goal) ? goal : 'general'
     const safeDiff = DIFFS.includes(difficulty) ? difficulty : 'intermediate'
 
@@ -158,6 +170,9 @@ export async function POST(request: NextRequest) {
 
         if (dError) {
           console.error('Insert program days error:', dError)
+          // Clean up the program since days failed to insert
+          await supabase.from('training_programs').delete().eq('id', program.id)
+          return NextResponse.json({ error: 'Failed to create program schedule' }, { status: 500 })
         }
       }
     }

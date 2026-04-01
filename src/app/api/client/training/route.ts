@@ -122,7 +122,7 @@ export async function GET(request: NextRequest) {
 
     const diffDays = Math.floor((today.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24))
     const currentWeek = Math.floor(diffDays / 7) + 1
-    const currentDayOfWeek = today.getDay() // 0=Sun, 1=Mon...
+    const currentDayOfWeek = today.getDay() || 7 // Convert JS 0=Sun to DB 7=Sun; 1-6 stays Mon-Sat
 
     let todayWorkout = null
     if (diffDays >= 0 && currentWeek <= program.duration_weeks) {

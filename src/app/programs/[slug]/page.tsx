@@ -107,10 +107,10 @@ export default function ProgramPage() {
         router.push('/auth/login')
         return
       }
-      const res = await fetch('/api/stripe/checkout', {
+      const res = await fetch('/api/stripe/program-checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify({ programSlug: slug }),
+        body: JSON.stringify({ programId: program.id }),
       })
       const data = await res.json()
       if (!res.ok) {
@@ -314,7 +314,7 @@ export default function ProgramPage() {
                         <div className="flex items-center justify-center gap-3 mb-2">
                           <span className="text-4xl font-bold text-zinc-900">${price}</span>
                           {originalPrice && <span className="text-xl text-zinc-400 line-through">${originalPrice}</span>}
-                          {originalPrice && <Badge className="bg-green-100 text-green-700 border-0">-{Math.round((1 - price / originalPrice) * 100)}%</Badge>}
+                          {originalPrice && originalPrice > price && <Badge className="bg-green-100 text-green-700 border-0">-{Math.round((1 - price / originalPrice) * 100)}%</Badge>}
                         </div>
                       </div>
                     )}

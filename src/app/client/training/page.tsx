@@ -51,10 +51,11 @@ type WorkoutLog = {
   completed_at: string | null; status: string; notes: string | null
 }
 
-const DAY_NAMES_EN = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
-const DAY_NAMES_RU = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб']
-const DAY_FULL_EN = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
-const DAY_FULL_RU = ['Воскресенье', 'Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота']
+// Index 0 unused; 1=Mon...7=Sun — matches DB convention (day_of_week 1-7)
+const DAY_NAMES_EN = ['', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+const DAY_NAMES_RU = ['', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс']
+const DAY_FULL_EN = ['', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+const DAY_FULL_RU = ['', 'Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота', 'Воскресенье']
 
 const sectionIcons: Record<string, any> = { warmup: Flame, main: Zap, cooldown: Snowflake }
 const sectionColors: Record<string, string> = {
@@ -281,14 +282,14 @@ export default function ClientTrainingPage() {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-7 gap-2">
-            {/* Day headers */}
-            {[0, 1, 2, 3, 4, 5, 6].map(d => (
+            {/* Day headers — 1-7 matches DB convention (Mon=1, Sun=7) */}
+            {[1, 2, 3, 4, 5, 6, 7].map(d => (
               <div key={`h-${d}`} className="text-center text-xs font-medium text-zinc-400 pb-2">
                 {dayNames[d]}
               </div>
             ))}
             {/* Day cells */}
-            {[0, 1, 2, 3, 4, 5, 6].map(d => {
+            {[1, 2, 3, 4, 5, 6, 7].map(d => {
               const day = weekDays.find(wd => wd.day_of_week === d)
               const isToday = viewWeek === program.current_week && d === program.current_day_of_week
               const hasWorkout = day && !day.is_rest_day && day.workouts
