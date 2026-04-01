@@ -74,7 +74,21 @@ export async function PATCH(
     // Basic fields
     if (body.title !== undefined) updateData.title = s(body.title, 500)
     if (body.title_secondary !== undefined) updateData.title_secondary = s(body.title_secondary, 500)
-    if (body.slug !== undefined) updateData.slug = (body.slug || '').toLowerCase().replace(/[^a-z0-9_-]/g, '').slice(0, 200)
+    if (body.slug !== undefined) {
+      updateData.slug = (body.slug || '').toLowerCase().replace(/[^a-z0-9_-]/g, '').slice(0, 200)
+      // Check slug uniqueness (exclude current course)
+      if (updateData.slug) {
+        const { data: existingSlug } = await supabase
+          .from('courses')
+          .select('id')
+          .eq('slug', updateData.slug)
+          .neq('id', params.id)
+          .maybeSingle()
+        if (existingSlug) {
+          return NextResponse.json({ error: 'A course with this slug already exists' }, { status: 409 })
+        }
+      }
+    }
     if (body.description !== undefined) updateData.description = s(body.description, 5000)
     if (body.description_secondary !== undefined) updateData.description_secondary = s(body.description_secondary, 5000)
     if (body.price !== undefined) updateData.price = Math.round(Math.max(0, Number(body.price) || 0) * 100)

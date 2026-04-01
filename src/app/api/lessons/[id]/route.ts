@@ -54,20 +54,40 @@ export async function PATCH(
     if (body.title_secondary !== undefined) updateData.title_secondary = sanitizeString(body.title_secondary, 500)
     if (body.type !== undefined && allowedTypes.includes(body.type)) updateData.type = body.type
     if (body.duration_minutes !== undefined) updateData.duration_minutes = Math.max(0, Math.min(Number(body.duration_minutes) || 0, 600))
-    if (body.video_url !== undefined) {
-      // If video_url is changing, delete the old one from storage
-      const { data: existing } = await supabase
+    // Fetch existing lesson data if video or content is changing (for storage cleanup)
+    const needsExisting = body.video_url !== undefined || body.content !== undefined
+    let existing: any = null
+    if (needsExisting) {
+      const { data } = await supabase
         .from('course_lessons')
-        .select('video_url')
+        .select('video_url, content')
         .eq('id', params.id)
         .single()
+      existing = data
+    }
 
+    if (body.video_url !== undefined) {
       if (existing?.video_url && existing.video_url !== body.video_url) {
         await deleteStorageFile(supabase, existing.video_url)
       }
       updateData.video_url = body.video_url
     }
-    if (body.content !== undefined) updateData.content = body.content
+    if (body.content !== undefined) {
+      // Clean up orphaned images: compare old vs new content blocks
+      const extractImageUrls = (content: any): string[] => {
+        if (!Array.isArray(content)) return []
+        return content
+          .filter((b: any) => b.type === 'image' && b.content)
+          .map((b: any) => b.content)
+      }
+      const oldUrls = new Set(extractImageUrls(existing?.content))
+      const newUrls = new Set(extractImageUrls(body.content))
+      const orphaned = Array.from(oldUrls).filter(url => !newUrls.has(url))
+      if (orphaned.length > 0) {
+        await deleteStorageFiles(supabase, orphaned)
+      }
+      updateData.content = body.content
+    }
     if (body.content_secondary !== undefined) updateData.content_secondary = body.content_secondary
     if (body.is_free !== undefined) updateData.is_free = !!body.is_free
     if (body.is_published !== undefined) updateData.is_published = !!body.is_published

@@ -61,7 +61,18 @@ export async function POST(request: Request) {
     }
 
     const slug = slugify(body.slug || title) || `course-${Date.now()}`
-    
+
+    // Check slug uniqueness
+    const { data: existingSlug } = await supabase
+      .from('courses')
+      .select('id')
+      .eq('slug', slug)
+      .maybeSingle()
+
+    if (existingSlug) {
+      return NextResponse.json({ error: 'A course with this slug already exists' }, { status: 409 })
+    }
+
     const insertData: any = {
         slug: slug.slice(0, 200),
         title,

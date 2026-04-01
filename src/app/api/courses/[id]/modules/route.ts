@@ -23,15 +23,9 @@ export async function POST(
     const supabase = createServerClient()
     const body = await request.json()
     
-    // Get max sort_order
-    const { data: existing } = await supabase
-      .from('course_modules')
-      .select('sort_order')
-      .eq('course_id', params.id)
-      .order('sort_order', { ascending: false })
-      .limit(1)
-    
-    const nextOrder = (existing?.[0]?.sort_order ?? -1) + 1
+    // Use timestamp for sort_order to avoid race conditions on concurrent inserts.
+    // Admin UI sends explicit sort_order values when reordering via drag-drop.
+    const nextOrder = Date.now()
     
     const { data, error } = await supabase
       .from('course_modules')

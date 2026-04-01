@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { stripe, COURSES, CourseSlug } from '@/lib/stripe'
+import { stripe } from '@/lib/stripe'
 import { createServerClient } from '@/lib/supabase-server'
 import { authenticateRequest } from '@/lib/api-auth'
 
@@ -14,17 +14,30 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const { courseSlug } = body as { courseSlug: string }
 
-    // ✅ Use server-verified user data, not client-provided
-    const userId = auth.data.user.id
-    const userEmail = auth.data.user.email
-
-    // Validate course
-    if (!courseSlug || !(courseSlug in COURSES)) {
+    if (!courseSlug || typeof courseSlug !== 'string') {
       return NextResponse.json({ error: 'Invalid course' }, { status: 400 })
     }
 
-    const course = COURSES[courseSlug as CourseSlug]
+    // ✅ Use server-verified user data, not client-provided
+    const userId = auth.data.user.id
+    const userEmail = auth.data.user.email
     const supabase = createServerClient()
+
+    // Validate course from DB (dynamic — supports all courses created in admin)
+    const { data: course, error: courseError } = await supabase
+      .from('courses')
+      .select('id, slug, title, title_secondary, price, is_published')
+      .eq('slug', courseSlug)
+      .eq('is_published', true)
+      .single()
+
+    if (courseError || !course) {
+      return NextResponse.json({ error: 'Course not found' }, { status: 404 })
+    }
+
+    if (!course.price || course.price <= 0) {
+      return NextResponse.json({ error: 'Course has no price configured' }, { status: 400 })
+    }
 
     // Check if user already purchased this course
     const { data: existingOrder } = await supabase
@@ -54,6 +67,7 @@ export async function POST(request: NextRequest) {
     }
 
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://qbody.vercel.app'
+    const courseName = course.title || 'Course'
 
     // Create Checkout Session
     const session = await stripe.checkout.sessions.create({
@@ -63,10 +77,12 @@ export async function POST(request: NextRequest) {
       line_items: [
         {
           price_data: {
-            currency: course.currency,
+            currency: 'usd',
             product_data: {
-              name: course.name,
-              description: `QBody Course: ${course.name}`,
+              name: courseName,
+              description: course.title_secondary
+                ? `${courseName} / ${course.title_secondary}`
+                : `QBody Course: ${courseName}`,
             },
             unit_amount: course.price,
           },
@@ -74,6 +90,7 @@ export async function POST(request: NextRequest) {
         },
       ],
       metadata: {
+        type: 'course',
         course_slug: courseSlug,
         user_id: userId,
         user_email: userEmail,
@@ -89,7 +106,7 @@ export async function POST(request: NextRequest) {
       stripe_session_id: session.id,
       stripe_customer_id: customerId,
       amount: course.price,
-      currency: course.currency,
+      currency: 'usd',
       status: 'pending',
     })
 

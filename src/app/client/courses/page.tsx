@@ -11,14 +11,27 @@ import { fetchWithAuth } from '@/lib/api'
 import { BookOpen, Clock, Heart, Baby, ArrowRight, CheckCircle2, ShoppingBag, Loader2, Play } from 'lucide-react'
 import { toast } from 'sonner'
 
-const allCoursesStatic = [
-  { id: 'breast-augmentation-recovery', title: 'Breast Augmentation Recovery', titleSecondary: 'Восстановление после увеличения груди', icon: Heart, color: 'from-pink-500 to-rose-500', lessons: 18, weeks: 6, price: 99 },
-  { id: 'cesarean-recovery', title: 'C-Section Recovery', titleSecondary: 'Восстановление после кесарева сечения', icon: Baby, color: 'from-purple-500 to-violet-500', lessons: 24, weeks: 8, price: 99 },
-]
-
+// Icon/colour map for known courses — fallback to BookOpen/teal for new ones
 const coursesMeta: Record<string, { icon: any; color: string }> = {
   'breast-augmentation-recovery': { icon: Heart, color: 'from-pink-500 to-rose-500' },
   'cesarean-recovery': { icon: Baby, color: 'from-purple-500 to-violet-500' },
+}
+
+function getCourseMeta(slug: string) {
+  return coursesMeta[slug] || { icon: BookOpen, color: 'from-teal-500 to-emerald-500' }
+}
+
+// ✅ FIX: Available courses now come from the API, not a hardcoded static array
+type PublicCourse = {
+  id: string
+  slug: string
+  title: string
+  title_secondary: string | null
+  description: string | null
+  price: number
+  original_price: number | null
+  duration_weeks: number
+  lessons_count: number
 }
 
 type CourseProgress = {
@@ -43,14 +56,13 @@ function CoursesContent() {
   const { user } = useAuth()
   const ru = locale === langConfig.secondaryLanguage
   const searchParams = useSearchParams()
+
   const [purchasedCourses, setPurchasedCourses] = useState<CourseProgress[]>([])
+  const [allPublishedCourses, setAllPublishedCourses] = useState<PublicCourse[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    // Show success toast if redirected from Stripe
-    const payment = searchParams.get('payment')
-    const course = searchParams.get('course')
-    if (payment === 'success' && course) {
+    if (searchParams.get('payment') === 'success' && searchParams.get('course')) {
       toast.success(t('client.courses.purchaseSuccess'))
     }
   }, [searchParams, t])
@@ -60,10 +72,20 @@ function CoursesContent() {
 
     const load = async () => {
       try {
-        const res = await fetchWithAuth('/api/progress')
-        if (res.ok) {
-          const data = await res.json()
+        // Load purchased progress + all published courses in parallel
+        const [progressRes, coursesRes] = await Promise.all([
+          fetchWithAuth('/api/progress'),
+          fetch('/api/public/courses'),
+        ])
+
+        if (progressRes.ok) {
+          const data = await progressRes.json()
           setPurchasedCourses(data.courses || [])
+        }
+
+        if (coursesRes.ok) {
+          const data = await coursesRes.json()
+          setAllPublishedCourses(data || [])
         }
       } catch (err) {
         console.error('Failed to load courses:', err)
@@ -75,8 +97,9 @@ function CoursesContent() {
     load()
   }, [user])
 
-  const purchasedSlugs = purchasedCourses.map(c => c.course_slug)
-  const available = allCoursesStatic.filter(c => !purchasedSlugs.includes(c.id))
+  const purchasedSlugs = new Set(purchasedCourses.map(c => c.course_slug))
+  // ✅ FIX: available courses are fetched from API and filtered dynamically
+  const availableCourses = allPublishedCourses.filter(c => !purchasedSlugs.has(c.slug))
 
   if (loading) {
     return (
@@ -99,7 +122,7 @@ function CoursesContent() {
           <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-4">{t('client.courses.title')}</h2>
           <div className="grid md:grid-cols-2 gap-6">
             {purchasedCourses.map((course) => {
-              const meta = coursesMeta[course.course_slug] || { icon: BookOpen, color: 'from-teal-500 to-emerald-500' }
+              const meta = getCourseMeta(course.course_slug)
               const Icon = meta.icon
               return (
                 <Card key={course.course_slug} className="overflow-hidden card-hover">
@@ -149,25 +172,13 @@ function CoursesContent() {
                     <Link href={`/client/courses/${course.course_slug}`}>
                       <Button variant="gradient" className="w-full">
                         {course.total_lessons === 0 ? (
-                          <>
-                            {t('client.courses.viewDetails')}
-                            <ArrowRight className="w-4 h-4 ml-2" />
-                          </>
+                          <>{t('client.courses.viewDetails')}<ArrowRight className="w-4 h-4 ml-2" /></>
                         ) : course.progress_percent === 0 ? (
-                          <>
-                            <Play className="w-4 h-4 mr-2" />
-                            {t('client.course.startCourse')}
-                          </>
+                          <><Play className="w-4 h-4 mr-2" />{t('client.course.startCourse')}</>
                         ) : course.progress_percent < 100 ? (
-                          <>
-                            <Play className="w-4 h-4 mr-2" />
-                            {t('client.courses.continue')}
-                          </>
+                          <><Play className="w-4 h-4 mr-2" />{t('client.courses.continue')}</>
                         ) : (
-                          <>
-                            {t('client.courses.openCourse')}
-                            <ArrowRight className="w-4 h-4 ml-2" />
-                          </>
+                          <>{t('client.courses.openCourse')}<ArrowRight className="w-4 h-4 ml-2" /></>
                         )}
                       </Button>
                     </Link>
@@ -188,27 +199,42 @@ function CoursesContent() {
         </Card>
       )}
 
-      {/* Available */}
-      {available.length > 0 && (
+      {/* ✅ FIX: Available courses loaded from API — all published courses shown dynamically */}
+      {availableCourses.length > 0 && (
         <section>
           <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-4">{t('client.courses.availableCourses')}</h2>
           <div className="grid md:grid-cols-2 gap-6">
-            {available.map((course) => {
-              const Icon = course.icon
+            {availableCourses.map((course) => {
+              const meta = getCourseMeta(course.slug)
+              const Icon = meta.icon
+              const price = course.price / 100
+              const originalPrice = course.original_price ? course.original_price / 100 : null
               return (
-                <Card key={course.id} className="overflow-hidden card-hover">
-                  <div className={`h-40 bg-gradient-to-br ${course.color} flex items-center justify-center`}>
+                <Card key={course.slug} className="overflow-hidden card-hover">
+                  <div className={`h-40 bg-gradient-to-br ${meta.color} flex items-center justify-center`}>
                     <Icon className="w-16 h-16 text-white/50" />
                   </div>
                   <CardContent className="p-6">
-                    <h3 className="text-xl font-bold text-zinc-900 dark:text-zinc-100 mb-2">{ru ? course.titleSecondary : course.title}</h3>
+                    <h3 className="text-xl font-bold text-zinc-900 dark:text-zinc-100 mb-2">
+                      {ru && course.title_secondary ? course.title_secondary : course.title}
+                    </h3>
+                    {(ru ? course.description : course.description) && (
+                      <p className="text-sm text-zinc-500 mb-3 line-clamp-2">
+                        {course.description}
+                      </p>
+                    )}
                     <div className="flex items-center gap-4 text-sm text-zinc-500 mb-4">
-                      <span className="flex items-center gap-1"><BookOpen className="w-4 h-4" />{course.lessons} {t('client.courses.lessons')}</span>
-                      <span className="flex items-center gap-1"><Clock className="w-4 h-4" />{course.weeks} {t('client.courses.weeks')}</span>
+                      <span className="flex items-center gap-1"><BookOpen className="w-4 h-4" />{course.lessons_count} {t('client.courses.lessons')}</span>
+                      <span className="flex items-center gap-1"><Clock className="w-4 h-4" />{course.duration_weeks} {t('client.courses.weeks')}</span>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">${course.price}</span>
-                      <Link href={`/courses/${course.id}`}>
+                      <div className="flex items-center gap-2">
+                        <span className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">${price}</span>
+                        {originalPrice && (
+                          <span className="text-sm text-zinc-400 line-through">${originalPrice}</span>
+                        )}
+                      </div>
+                      <Link href={`/courses/${course.slug}`}>
                         <Button variant="gradient">
                           {t('client.courses.buyNow')}
                           <ArrowRight className="w-4 h-4 ml-2" />

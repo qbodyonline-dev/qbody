@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase-server'
 import { sendCourseAccessGranted, sendCourseAccessRevoked } from '@/lib/email'
-import { COURSES, CourseSlug } from '@/lib/stripe'
 import { requireAdmin } from '@/lib/api-auth'
 import { isValidUUID } from '@/lib/security'
 
@@ -160,9 +159,13 @@ export async function POST(
       .eq('id', userId)
       .single()
 
-    // Get course name
-    const course = COURSES[course_slug as CourseSlug]
-    const courseName = course?.name || course_slug
+    // Get course name from DB
+    const { data: courseData } = await supabase
+      .from('courses')
+      .select('title')
+      .eq('slug', course_slug)
+      .single()
+    const courseName = courseData?.title || course_slug
 
     // Send email notification
     if (profile?.email) {
@@ -269,9 +272,13 @@ export async function DELETE(
       return NextResponse.json({ error: 'Failed to revoke access' }, { status: 500 })
     }
 
-    // Get course name
-    const course = COURSES[courseSlug as CourseSlug]
-    const courseName = course?.name || courseSlug
+    // Get course name from DB
+    const { data: courseData } = await supabase
+      .from('courses')
+      .select('title')
+      .eq('slug', courseSlug)
+      .single()
+    const courseName = courseData?.title || courseSlug
 
     // Send email notification
     if (profile?.email) {

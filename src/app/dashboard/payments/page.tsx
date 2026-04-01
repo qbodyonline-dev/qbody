@@ -13,7 +13,6 @@ import {
   AlertCircle, Package, Loader2
 } from 'lucide-react'
 import { toast } from 'sonner'
-import { COURSES } from '@/lib/stripe'
 import { fetchWithAuth } from '@/lib/api'
 
 type OrderStatus = 'pending' | 'paid' | 'expired' | 'refunded'

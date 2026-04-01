@@ -11,16 +11,24 @@ import { fetchWithAuth } from '@/lib/api'
 import { Play, CheckCircle2, ArrowLeft, ArrowRight, BookOpen, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 
+type ContentBlock = {
+  id: string
+  type: 'heading' | 'text' | 'image' | 'video' | 'checklist'
+  content: string
+  items?: { id: string; text: string; text_secondary?: string }[]
+}
+
 type Lesson = {
   id: string
   title: string
   title_secondary: string
+  type: 'video' | 'text' | 'task'
   duration_minutes: number
   completed: boolean
   watched_seconds: number
-  video_url?: string
-  content?: any
-  content_secondary?: any
+  video_url?: string | null
+  content?: ContentBlock[]
+  content_secondary?: ContentBlock[]
 }
 
 type Module = {
@@ -36,6 +44,100 @@ type CourseProgress = {
   course_title: string
   course_title_secondary: string
   modules: Module[]
+}
+
+// ✅ FIX: Resolve Vimeo / YouTube / direct video URLs into proper embed
+function getVideoEmbed(url: string): React.ReactNode {
+  if (!url) return null
+  try {
+    // Vimeo
+    if (url.includes('vimeo.com')) {
+      const id = url.replace(/https?:\/\/(www\.)?vimeo\.com\//, '').split('?')[0].split('/')[0]
+      if (id) {
+        return (
+          <iframe
+            src={`https://player.vimeo.com/video/${id}`}
+            className="w-full h-full"
+            allow="autoplay; fullscreen; picture-in-picture"
+            allowFullScreen
+          />
+        )
+      }
+    }
+    // YouTube
+    if (url.includes('youtube.com') || url.includes('youtu.be')) {
+      let videoId = ''
+      if (url.includes('youtube.com/watch')) {
+        videoId = new URL(url).searchParams.get('v') || ''
+      } else if (url.includes('youtu.be/')) {
+        videoId = url.split('youtu.be/').pop()?.split('?')[0] || ''
+      } else if (url.includes('youtube.com/embed/')) {
+        videoId = url.split('youtube.com/embed/').pop()?.split('?')[0] || ''
+      }
+      if (videoId) {
+        return (
+          <iframe
+            src={`https://www.youtube.com/embed/${videoId}`}
+            className="w-full h-full"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowFullScreen
+          />
+        )
+      }
+    }
+    // Direct video file
+    return <video src={url} controls className="w-full h-full object-contain" />
+  } catch {
+    return <video src={url} controls className="w-full h-full object-contain" />
+  }
+}
+
+// ✅ FIX: Render content blocks (heading / text / image / checklist)
+function renderContentBlocks(blocks: ContentBlock[] | undefined): React.ReactNode {
+  if (!blocks || blocks.length === 0) return null
+  return (
+    <div className="space-y-4">
+      {blocks.map((block, i) => {
+        if (block.type === 'heading') {
+          return (
+            <h2 key={block.id || i} className="text-xl font-bold text-zinc-900 dark:text-zinc-100">
+              {block.content}
+            </h2>
+          )
+        }
+        if (block.type === 'text') {
+          return (
+            <p key={block.id || i} className="text-zinc-700 dark:text-zinc-300 leading-relaxed whitespace-pre-wrap">
+              {block.content}
+            </p>
+          )
+        }
+        if (block.type === 'image') {
+          return block.content ? (
+            <img
+              key={block.id || i}
+              src={block.content}
+              alt=""
+              className="rounded-xl max-w-full object-cover"
+            />
+          ) : null
+        }
+        if (block.type === 'checklist') {
+          return (
+            <div key={block.id || i} className="space-y-2">
+              {(block.items || []).map((item, j) => (
+                <div key={item.id || j} className="flex items-start gap-3 p-3 bg-zinc-50 dark:bg-zinc-800 rounded-xl">
+                  <CheckCircle2 className="w-5 h-5 text-teal-500 flex-shrink-0 mt-0.5" />
+                  <span className="text-zinc-700 dark:text-zinc-300">{item.text}</span>
+                </div>
+              ))}
+            </div>
+          )
+        }
+        return null
+      })}
+    </div>
+  )
 }
 
 export default function LessonPage() {
@@ -105,17 +207,15 @@ export default function LessonPage() {
         body: JSON.stringify({
           lesson_id: lessonId,
           completed: true,
-          watched_seconds: (currentLesson.duration_minutes || 10) * 60, // Assume full watch
+          watched_seconds: (currentLesson.duration_minutes || 10) * 60,
         }),
       })
 
       if (!res.ok) throw new Error('Failed to save progress')
 
-      // Update local state
       setCurrentLesson(prev => prev ? { ...prev, completed: true } : null)
       toast.success(t('client.lesson.lessonMarkedComplete'))
 
-      // Auto-navigate to next lesson after delay
       if (nextLesson) {
         setTimeout(() => {
           router.push(`/client/courses/${courseSlug}/${nextLesson.id}`)
@@ -153,6 +253,14 @@ export default function LessonPage() {
       </div>
     )
   }
+
+  // Выбираем контент на нужном языке
+  const contentBlocks: ContentBlock[] = ru
+    ? (currentLesson.content_secondary?.length ? currentLesson.content_secondary : currentLesson.content) || []
+    : currentLesson.content || []
+
+  // Показываем видеоплеер только для уроков типа video или при наличии video_url
+  const showVideoPlayer = currentLesson.type === 'video' || !!currentLesson.video_url
 
   return (
     <div className="space-y-6">
@@ -196,22 +304,21 @@ export default function LessonPage() {
 
       <div className="grid lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 space-y-6">
-          {/* Video Player */}
-          <div className="aspect-video bg-zinc-900 rounded-2xl flex items-center justify-center relative overflow-hidden">
-            {currentLesson.video_url ? (
-              <video
-                src={currentLesson.video_url}
-                controls
-                className="w-full h-full object-contain"
-              />
-            ) : (
-              <div className="text-center">
-                <Play className="w-16 h-16 text-white/50 mx-auto mb-4" />
-                <p className="text-white/50">{t('client.lesson.videoPlayer')}</p>
-                <p className="text-white/30 text-sm">{t('client.lesson.protectedContent')}</p>
-              </div>
-            )}
-          </div>
+
+          {/* ✅ FIX: Video Player — only for video lessons, supports Vimeo/YouTube/direct */}
+          {showVideoPlayer && (
+            <div className="aspect-video bg-zinc-900 rounded-2xl overflow-hidden flex items-center justify-center relative">
+              {currentLesson.video_url ? (
+                getVideoEmbed(currentLesson.video_url)
+              ) : (
+                <div className="text-center">
+                  <Play className="w-16 h-16 text-white/50 mx-auto mb-4" />
+                  <p className="text-white/50">{t('client.lesson.videoPlayer')}</p>
+                  <p className="text-white/30 text-sm">{t('client.lesson.protectedContent')}</p>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Lesson Info */}
           <div>
@@ -233,6 +340,15 @@ export default function LessonPage() {
               {ru ? currentLesson.title_secondary || currentLesson.title : currentLesson.title}
             </h1>
           </div>
+
+          {/* ✅ FIX: Render content blocks (heading / text / image / checklist) */}
+          {contentBlocks.length > 0 && (
+            <Card>
+              <CardContent className="p-6">
+                {renderContentBlocks(contentBlocks)}
+              </CardContent>
+            </Card>
+          )}
 
           {/* Complete Button */}
           {!currentLesson.completed && (

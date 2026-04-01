@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { stripe, COURSES, CourseSlug } from '@/lib/stripe'
+import { stripe } from '@/lib/stripe'
 import { createServerClient } from '@/lib/supabase-server'
 import Stripe from 'stripe'
 import {
@@ -167,8 +167,12 @@ export async function POST(request: NextRequest) {
               .single()
             productName = prog?.name || 'Training Program'
           } else {
-            const course = COURSES[courseSlug as CourseSlug]
-            productName = course?.name || courseSlug
+            const { data: courseData } = await supabase
+              .from('courses')
+              .select('title')
+              .eq('slug', courseSlug)
+              .single()
+            productName = courseData?.title || courseSlug
           }
 
           // ✅ Bug 10 fix: Send emails fire-and-forget (don't block webhook response)
@@ -284,8 +288,12 @@ export async function POST(request: NextRequest) {
               .single()
             courseName = prog?.name || 'Training Program'
           } else {
-            const course = COURSES[order.course_slug as CourseSlug]
-            courseName = course?.name || order.course_slug
+            const { data: courseData } = await supabase
+              .from('courses')
+              .select('title')
+              .eq('slug', order.course_slug)
+              .single()
+            courseName = courseData?.title || order.course_slug
           }
 
           // ✅ Bug 10 fix: Fire-and-forget emails

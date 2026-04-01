@@ -1,4 +1,31 @@
-export default function PaymentSuccessPage() {
+export default function PaymentSuccessPage({
+  searchParams,
+}: {
+  searchParams: { type?: string }
+}) {
+  const type = searchParams.type
+
+  const isProgram = type === 'program'
+  const isCourse = type === 'course'
+
+  const message = isProgram
+    ? 'Your program is now active.'
+    : isCourse
+      ? 'Your course is now available.'
+      : 'Your purchase is confirmed.'
+
+  const linkHref = isProgram
+    ? '/client/training'
+    : isCourse
+      ? '/client/courses'
+      : '/client'
+
+  const linkText = isProgram
+    ? 'Go to Training'
+    : isCourse
+      ? 'Go to Courses'
+      : 'Go to Dashboard'
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-teal-50 to-white dark:from-zinc-900 dark:to-zinc-950 px-6">
       <div className="text-center max-w-md">
@@ -7,16 +34,16 @@ export default function PaymentSuccessPage() {
           Payment Successful!
         </h1>
         <p className="text-zinc-500 dark:text-zinc-400 mb-2">
-          Thank you for your purchase. Your program is now active.
+          Thank you for your purchase. {message}
         </p>
         <p className="text-sm text-zinc-400 dark:text-zinc-500 mb-8">
           You can close this page and return to the app.
         </p>
         <a
-          href="/client/training"
+          href={linkHref}
           className="inline-block px-6 py-3 rounded-xl bg-teal-500 text-white font-semibold hover:bg-teal-600 transition-colors"
         >
-          Go to Training →
+          {linkText} →
         </a>
       </div>
     </div>

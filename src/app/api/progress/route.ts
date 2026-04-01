@@ -69,7 +69,11 @@ export async function GET(request: NextRequest) {
           id,
           title,
           title_secondary,
+          type,
           duration_minutes,
+          video_url,
+          content,
+          content_secondary,
           sort_order,
           is_published
         )
@@ -127,7 +131,12 @@ export async function GET(request: NextRequest) {
                 id: l.id,
                 title: l.title,
                 title_secondary: l.title_secondary,
+                // ✅ FIX: include type, video_url and content blocks in response
+                type: l.type || 'video',
                 duration_minutes: l.duration_minutes,
+                video_url: l.video_url || null,
+                content: l.content || [],
+                content_secondary: l.content_secondary || [],
                 completed: progress?.completed || false,
                 watched_seconds: progress?.watched_seconds || 0,
                 last_watched_at: progress?.last_watched_at || null,
