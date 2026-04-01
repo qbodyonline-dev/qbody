@@ -14,6 +14,7 @@ import {
   getNewMessageAdminTemplate,
   getNewClientAdminTemplate,
   getAccountDeletedTemplate,
+  getAccountDeletedAdminTemplate,
   getClientOnboardedTemplate,
 } from './email-templates'
 
@@ -368,17 +369,9 @@ export async function sendAccountDeletedAdmin(data: {
   return sendEmail({
     to: ADMIN_EMAIL,
     subject: `Account Deleted - ${data.clientName}`,
-    html: `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2>Account Deletion Notice</h2>
-        <p>A client has deleted their account:</p>
-        <ul>
-          <li><strong>Name:</strong> ${data.clientName}</li>
-          <li><strong>Email:</strong> ${data.clientEmail}</li>
-          <li><strong>Date:</strong> ${new Date().toISOString()}</li>
-        </ul>
-        <p style="color: #666; font-size: 12px;">This is an automated notification from ${SITE_NAME}.</p>
-      </div>
-    `,
+    html: getAccountDeletedAdminTemplate({
+      ...data,
+      siteName: SITE_NAME,
+    }),
   })
 }

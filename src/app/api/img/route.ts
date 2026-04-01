@@ -1,10 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import sharp from 'sharp'
-import { imageCache, getImgCacheTTL, isCacheEnabled } from '@/lib/cache'
+import { imageCache, getImgCacheTTL, isCacheEnabled, evictImageCache } from '@/lib/cache'
 
 // Use shared imageCache from cache.ts so Purge All can clear it
 const cache = imageCache
-const MAX_CACHE = 50
 
 // Allowed source hosts (prevent open proxy abuse)
 const ALLOWED_HOSTS = ['crybeycjfpyyxjgszcpu.supabase.co']
@@ -90,11 +89,8 @@ export async function GET(request: NextRequest) {
     // Generate ETag
     const etag = `"img-${Buffer.from(cacheKey).toString('base64url').slice(0, 16)}-${optimized.length}"`
 
-    // Store in memory cache (evict oldest if full)
-    if (cache.size >= MAX_CACHE) {
-      const oldest = Array.from(cache.entries()).sort((a, b) => a[1].ts - b[1].ts)[0]
-      if (oldest) cache.delete(oldest[0])
-    }
+    // Evict expired and overflow entries before adding new one
+    evictImageCache()
     cache.set(cacheKey, { buffer: optimized, etag, ts: Date.now() })
 
     if (ifNoneMatch === etag) {

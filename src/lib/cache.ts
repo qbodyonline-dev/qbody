@@ -4,6 +4,9 @@
 export const pageBlocksCache = new Map<string, { data: any; ts: number }>()
 export const imageCache = new Map<string, { buffer: Uint8Array; etag: string; ts: number }>()
 
+// Maximum image cache entries to prevent unbounded memory growth
+const MAX_IMAGE_CACHE_ENTRIES = 200
+
 // Default TTLs (overridden by DB settings when loaded)
 let _pageCacheTTL = 60 * 1000     // 60s default (in ms)
 let _imgCacheTTL = 10 * 60 * 1000 // 10 min in-memory default (in ms)
@@ -25,6 +28,32 @@ export function updateCacheSettings(settings: {
   }
   if (typeof settings.imgCacheTTL === 'number' && settings.imgCacheTTL >= 0) {
     _imgCacheTTL = settings.imgCacheTTL * 1000
+  }
+}
+
+/**
+ * Evict expired and oldest entries from imageCache to prevent unbounded growth.
+ * Call before adding new entries.
+ */
+export function evictImageCache() {
+  const now = Date.now()
+  const ttl = getImgCacheTTL()
+
+  // First pass: remove expired entries
+  if (ttl > 0) {
+    const entries = Array.from(imageCache.entries())
+    for (const [key, val] of entries) {
+      if (now - val.ts > ttl) imageCache.delete(key)
+    }
+  }
+
+  // Second pass: if still over limit, remove oldest entries (LRU)
+  if (imageCache.size >= MAX_IMAGE_CACHE_ENTRIES) {
+    const sorted = Array.from(imageCache.entries()).sort((a, b) => a[1].ts - b[1].ts)
+    const toRemove = sorted.slice(0, Math.floor(MAX_IMAGE_CACHE_ENTRIES / 4))
+    for (const [key] of toRemove) {
+      imageCache.delete(key)
+    }
   }
 }
 

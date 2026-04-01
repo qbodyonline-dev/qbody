@@ -62,13 +62,15 @@ export default function AlertsPage() {
         setNotifications(data.notifications || [])
         setTotal(data.total || 0)
         setUnreadCount(data.unread || 0)
+      } else {
+        toast.error(ru ? 'Ошибка загрузки оповещений' : 'Failed to load alerts')
       }
     } catch (err) {
       console.error('Fetch notifications error:', err)
     } finally {
       setLoading(false)
     }
-  }, [session?.access_token, filter, headers])
+  }, [session?.access_token, filter, headers, ru])
 
   useEffect(() => {
     fetchNotifications()
@@ -91,19 +93,27 @@ export default function AlertsPage() {
   }
 
   const markRead = async (ids: string[]) => {
+    // Optimistic update
+    setNotifications(prev =>
+      prev.map(n => ids.includes(n.id) ? { ...n, is_read: true } : n)
+    )
+    setUnreadCount(prev => Math.max(0, prev - ids.length))
+
     try {
       const res = await fetch('/api/trainer-notifications', {
         method: 'PATCH',
         headers: headers(),
         body: JSON.stringify({ ids }),
       })
-      if (res.ok) {
-        setNotifications(prev =>
-          prev.map(n => ids.includes(n.id) ? { ...n, is_read: true } : n)
-        )
-        setUnreadCount(prev => Math.max(0, prev - ids.length))
-      }
-    } catch {}
+      if (!res.ok) throw new Error()
+    } catch {
+      // Revert optimistic update
+      setNotifications(prev =>
+        prev.map(n => ids.includes(n.id) ? { ...n, is_read: false } : n)
+      )
+      setUnreadCount(prev => prev + ids.length)
+      toast.error(ru ? 'Ошибка' : 'Failed to mark as read')
+    }
   }
 
   const deleteOld = async () => {

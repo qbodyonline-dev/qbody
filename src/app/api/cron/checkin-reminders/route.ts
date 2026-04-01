@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { escapeHtml } from '@/lib/email-templates'
 
 // Allow up to 60s for cron execution (Pro plan)
 export const maxDuration = 60
@@ -145,12 +146,21 @@ export async function GET(request: NextRequest) {
         .from('trainer_notifications')
         .insert(notifications)
 
+      let insertedOk = true
       if (insertErr) {
         console.error('Insert notifications error:', insertErr)
+        insertedOk = false
       }
 
       // 5. Send digest email to trainer
       await sendDigestEmail(overdueClients, frequencyDays)
+
+      return NextResponse.json({
+        message: `Checked ${clientMap.size} clients, ${overdueClients.length} overdue`,
+        notifications: overdueClients.length,
+        frequency_days: frequencyDays,
+        insertError: !insertedOk ? insertErr?.message : undefined,
+      })
     }
 
     return NextResponse.json({
@@ -166,10 +176,6 @@ export async function GET(request: NextRequest) {
 }
 
 // ── Email digest ──
-
-function escapeHtml(str: string): string {
-  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
-}
 
 async function sendDigestEmail(
   clients: { name: string; email: string; lastCheckin: string | null; daysSince: number }[],

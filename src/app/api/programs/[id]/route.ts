@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase-server'
 import { authenticateRequest, requireAdmin } from '@/lib/api-auth'
 import { isValidUUID, sanitizeString } from '@/lib/security'
+import { escapeHtml } from '@/lib/email-templates'
 
 export const dynamic = 'force-dynamic'
 
@@ -48,15 +49,7 @@ function blocksToText(value: any): string | null {
   return parts.join('\n\n').trim() || null
 }
 
-/** Escape HTML special characters to prevent XSS. */
-function escapeHtml(str: string): string {
-  return str
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;')
-}
+// escapeHtml imported from @/lib/email-templates
 
 /**
  * Convert Block[] to HTML for mobile rendering.

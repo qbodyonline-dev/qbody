@@ -299,11 +299,13 @@ export default function NotificationsSettingsPage() {
         }
       } catch (err) {
         console.error('Failed to load notification settings:', err)
+        toast.error(ru ? 'Ошибка загрузки настроек' : 'Failed to load settings')
       } finally {
         setLoading(false)
       }
     }
     load()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const categories = [
