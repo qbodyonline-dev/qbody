@@ -164,6 +164,16 @@ export default function CoursePage() {
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-teal-400 to-teal-600 flex items-center justify-center"><span className="text-white font-bold text-lg">Q</span></div>
             <span className="font-semibold text-zinc-900">Qbody</span>
           </Link>
+          <nav className="hidden lg:flex items-center gap-6">
+            {[
+              { label: ru ? 'Программы' : 'Programs', href: '/#programs' },
+              { label: ru ? 'Курсы' : 'Courses', href: '/#courses' },
+              { label: ru ? 'О нас' : 'About', href: '/#about' },
+              { label: ru ? 'Результаты' : 'Results', href: '/#results' },
+            ].map(link => (
+              <Link key={link.href} href={link.href} className="text-sm font-medium text-zinc-600 hover:text-teal-600 transition-colors">{link.label}</Link>
+            ))}
+          </nav>
           <div className="flex items-center gap-3">
             <LanguageSwitcher />
             {user ? (
