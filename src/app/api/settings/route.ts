@@ -100,7 +100,13 @@ export async function PUT(request: Request) {
     const results = []
     const errors = []
 
-    for (const [key, value] of Object.entries(settings)) {
+    for (const [rawKey, value] of Object.entries(settings)) {
+      const key = sanitizeString(String(rawKey || ''), 100).replace(/[^a-zA-Z0-9_.-]/g, '')
+      if (!key) {
+        errors.push({ key: rawKey })
+        continue
+      }
+
       const { data, error } = await supabase
         .from('site_settings')
         .upsert({ key, value, updated_at: new Date().toISOString() }, { onConflict: 'key' })
@@ -140,7 +146,13 @@ export async function PATCH(request: Request) {
     const results = []
     const errors = []
 
-    for (const [key, value] of Object.entries(body)) {
+    for (const [rawKey, value] of Object.entries(body)) {
+      const key = sanitizeString(String(rawKey || ''), 100).replace(/[^a-zA-Z0-9_.-]/g, '')
+      if (!key) {
+        errors.push({ key: rawKey })
+        continue
+      }
+
       const { data, error } = await supabase
         .from('site_settings')
         .upsert({ key, value, updated_at: new Date().toISOString() }, { onConflict: 'key' })

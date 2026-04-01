@@ -8,6 +8,7 @@ import { Save, Globe, Palette, FileText, Instagram, Upload, Eye, Image, Edit, La
 import { toast } from 'sonner'
 import { fetchWithAuth, fetchWithAuthUpload } from '@/lib/api'
 import LanguageSettingsTab from './LanguageSettingsTab'
+import { SUPPORTED_LANGUAGES } from '@/lib/languages'
 
 const tabs = [
   { id: 'general', icon: Globe },
@@ -93,41 +94,41 @@ export default function SettingsPage() {
         // Merge loaded settings with defaults
         setSettings(prev => ({
           ...prev,
-          // General
-          siteName: data.general?.siteName || prev.siteName,
-          tagline: data.general?.tagline || prev.tagline,
-          taglineRu: data.general?.taglineRu || prev.taglineRu,
-          email: data.general?.email || prev.email,
-          phone: data.general?.phone || prev.phone,
-          defaultLanguage: data.general?.defaultLanguage || prev.defaultLanguage,
+          // General — use ?? (not ||) so empty strings "" are preserved
+          siteName: data.general?.siteName ?? prev.siteName,
+          tagline: data.general?.tagline ?? prev.tagline,
+          taglineRu: data.general?.taglineRu ?? prev.taglineRu,
+          email: data.general?.email ?? prev.email,
+          phone: data.general?.phone ?? prev.phone,
+          defaultLanguage: data.general?.defaultLanguage ?? prev.defaultLanguage,
           // Branding
-          primaryColor: data.branding?.primaryColor || prev.primaryColor,
-          logoUrl: data.branding?.logoUrl || prev.logoUrl,
-          heroImageUrl: data.branding?.heroImageUrl || prev.heroImageUrl,
+          primaryColor: data.branding?.primaryColor ?? prev.primaryColor,
+          logoUrl: data.branding?.logoUrl ?? prev.logoUrl,
+          heroImageUrl: data.branding?.heroImageUrl ?? prev.heroImageUrl,
           // Social
-          instagram: data.social?.instagram || prev.instagram,
-          telegram: data.social?.telegram || prev.telegram,
-          whatsapp: data.social?.whatsapp || prev.whatsapp,
+          instagram: data.social?.instagram ?? prev.instagram,
+          telegram: data.social?.telegram ?? prev.telegram,
+          whatsapp: data.social?.whatsapp ?? prev.whatsapp,
           // Content
-          heroTitle: data.content?.heroTitle || prev.heroTitle,
-          heroTitleRu: data.content?.heroTitleRu || prev.heroTitleRu,
-          heroSubtitle: data.content?.heroSubtitle || prev.heroSubtitle,
-          heroSubtitleRu: data.content?.heroSubtitleRu || prev.heroSubtitleRu,
+          heroTitle: data.content?.heroTitle ?? prev.heroTitle,
+          heroTitleRu: data.content?.heroTitleRu ?? prev.heroTitleRu,
+          heroSubtitle: data.content?.heroSubtitle ?? prev.heroSubtitle,
+          heroSubtitleRu: data.content?.heroSubtitleRu ?? prev.heroSubtitleRu,
           // SEO
-          seoTitle: data.seo?.seoTitle || prev.seoTitle,
-          seoTitleRu: data.seo?.seoTitleRu || prev.seoTitleRu,
-          seoDescription: data.seo?.seoDescription || prev.seoDescription,
-          seoDescriptionRu: data.seo?.seoDescriptionRu || prev.seoDescriptionRu,
-          seoKeywords: data.seo?.seoKeywords || prev.seoKeywords,
-          seoKeywordsRu: data.seo?.seoKeywordsRu || prev.seoKeywordsRu,
-          ogImageUrl: data.seo?.ogImageUrl || prev.ogImageUrl,
-          canonicalUrl: data.seo?.canonicalUrl || prev.canonicalUrl,
-          googleVerification: data.seo?.googleVerification || prev.googleVerification,
-          yandexVerification: data.seo?.yandexVerification || prev.yandexVerification,
+          seoTitle: data.seo?.seoTitle ?? prev.seoTitle,
+          seoTitleRu: data.seo?.seoTitleRu ?? prev.seoTitleRu,
+          seoDescription: data.seo?.seoDescription ?? prev.seoDescription,
+          seoDescriptionRu: data.seo?.seoDescriptionRu ?? prev.seoDescriptionRu,
+          seoKeywords: data.seo?.seoKeywords ?? prev.seoKeywords,
+          seoKeywordsRu: data.seo?.seoKeywordsRu ?? prev.seoKeywordsRu,
+          ogImageUrl: data.seo?.ogImageUrl ?? prev.ogImageUrl,
+          canonicalUrl: data.seo?.canonicalUrl ?? prev.canonicalUrl,
+          googleVerification: data.seo?.googleVerification ?? prev.googleVerification,
+          yandexVerification: data.seo?.yandexVerification ?? prev.yandexVerification,
           enableIndexing: data.seo?.enableIndexing ?? prev.enableIndexing,
           enableSitemap: data.seo?.enableSitemap ?? prev.enableSitemap,
-          gaTrackingId: data.seo?.gaTrackingId || prev.gaTrackingId,
-          gtmId: data.seo?.gtmId || prev.gtmId,
+          gaTrackingId: data.seo?.gaTrackingId ?? prev.gaTrackingId,
+          gtmId: data.seo?.gtmId ?? prev.gtmId,
           // App — используем ?? чтобы пустая строка "" (удалённый фон) не откатывалась к prev
           appName: data.app?.appName ?? prev.appName,
           appColor: data.app?.appColor ?? prev.appColor,
@@ -178,6 +179,7 @@ export default function SettingsPage() {
       toast.success(locale === 'ru' ? 'Лого загружено' : 'Logo uploaded')
     }
     setUploadingLogo(false)
+    e.target.value = ''
   }
 
   // Handle hero image upload
@@ -192,6 +194,7 @@ export default function SettingsPage() {
       toast.success(locale === 'ru' ? 'Изображение загружено' : 'Image uploaded')
     }
     setUploadingHero(false)
+    e.target.value = ''
   }
 
   // Handle OG image upload
@@ -206,6 +209,7 @@ export default function SettingsPage() {
       toast.success(locale === 'ru' ? 'OG Image загружено' : 'OG Image uploaded')
     }
     setUploadingOg(false)
+    e.target.value = ''
   }
 
   // Handle app background upload
@@ -219,6 +223,7 @@ export default function SettingsPage() {
       toast.success(locale === 'ru' ? 'Фон загружен' : 'Background uploaded')
     }
     setUploadingAppBg(false)
+    e.target.value = ''
   }
 
   // Handle app loading image upload
@@ -232,6 +237,7 @@ export default function SettingsPage() {
       toast.success(locale === 'ru' ? 'Изображение загрузки загружено' : 'Loading image uploaded')
     }
     setUploadingAppLoading(false)
+    e.target.value = ''
   }
 
   // Handle app icon upload
@@ -245,6 +251,7 @@ export default function SettingsPage() {
       toast.success(locale === 'ru' ? 'Иконка загружена' : 'Icon uploaded')
     }
     setUploadingAppIcon(false)
+    e.target.value = ''
   }
 
   // Save all settings
@@ -305,9 +312,21 @@ export default function SettingsPage() {
         method: 'PUT',
         body: JSON.stringify({ settings: settingsToSave })
       })
-      
+
       if (!res.ok) throw new Error('Failed to save settings')
-      
+
+      // Check for partial failures (HTTP 207 Multi-Status)
+      const resData = await res.json()
+      if (resData.success === false && resData.errors?.length > 0) {
+        const failedKeys = resData.errors.map((e: any) => e.key).join(', ')
+        toast.warning(
+          locale === 'ru'
+            ? `Часть настроек не сохранена: ${failedKeys}`
+            : `Some settings failed to save: ${failedKeys}`
+        )
+        return
+      }
+
       toast.success(locale === 'ru' ? 'Настройки сохранены' : 'Settings saved')
     } catch (err) {
       console.error('Failed to save settings:', err)
@@ -316,6 +335,23 @@ export default function SettingsPage() {
       setIsSaving(false)
     }
   }
+
+  // SEO Score (computed before render for dynamic color)
+  const seoScore = Math.round(
+    ((settings.seoTitle.length > 0 && settings.seoTitle.length <= 60 ? 1 : 0) +
+    (settings.seoDescription.length > 0 && settings.seoDescription.length <= 155 ? 1 : 0) +
+    (settings.ogImageUrl ? 1 : 0) +
+    (settings.canonicalUrl ? 1 : 0) +
+    (settings.googleVerification ? 1 : 0) +
+    (settings.gaTrackingId ? 1 : 0) +
+    (settings.enableSitemap ? 1 : 0) +
+    (settings.enableIndexing ? 1 : 0)) / 8 * 100
+  )
+  const seoScoreGradient = seoScore >= 70
+    ? 'from-green-400 to-emerald-500'
+    : seoScore >= 40
+      ? 'from-amber-400 to-orange-500'
+      : 'from-red-400 to-rose-500'
 
   if (isLoading) {
     return (
@@ -376,8 +412,11 @@ export default function SettingsPage() {
                       value={settings.defaultLanguage}
                       onChange={(e) => setSettings({ ...settings, defaultLanguage: e.target.value })}
                     >
-                      <option value="en">English</option>
-                      <option value="ru">Русский</option>
+                      {SUPPORTED_LANGUAGES.map(lang => (
+                        <option key={lang.code} value={lang.code}>
+                          {lang.flag} {lang.name} ({lang.nativeName})
+                        </option>
+                      ))}
                     </select>
                   </div>
                 </div>
@@ -399,19 +438,8 @@ export default function SettingsPage() {
               <Card>
                 <CardContent className="p-5">
                   <div className="flex items-center gap-4">
-                    <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-green-400 to-emerald-500 flex items-center justify-center text-white">
-                      <span className="text-2xl font-bold">
-                        {Math.round(
-                          ((settings.seoTitle.length > 0 && settings.seoTitle.length <= 60 ? 1 : 0) +
-                          (settings.seoDescription.length > 0 && settings.seoDescription.length <= 155 ? 1 : 0) +
-                          (settings.ogImageUrl ? 1 : 0) +
-                          (settings.canonicalUrl ? 1 : 0) +
-                          (settings.googleVerification ? 1 : 0) +
-                          (settings.gaTrackingId ? 1 : 0) +
-                          (settings.enableSitemap ? 1 : 0) +
-                          (settings.enableIndexing ? 1 : 0)) / 8 * 100
-                        )}
-                      </span>
+                    <div className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${seoScoreGradient} flex items-center justify-center text-white`}>
+                      <span className="text-2xl font-bold">{seoScore}</span>
                     </div>
                     <div className="flex-1">
                       <h3 className="font-bold text-zinc-900 text-lg">{locale === 'ru' ? 'SEO-оценка' : 'SEO Score'}</h3>
@@ -459,9 +487,9 @@ export default function SettingsPage() {
                     </div>
                   </div>
 
-                  {/* SERP Preview */}
+                  {/* SERP Preview — EN */}
                   <div>
-                    <label className="block text-sm font-medium text-zinc-700 mb-3">{locale === 'ru' ? 'Предпросмотр в Google' : 'Google Search Preview'}</label>
+                    <label className="block text-sm font-medium text-zinc-700 mb-3">{locale === 'ru' ? 'Предпросмотр в Google' : 'Google Search Preview'} (EN)</label>
                     <div className="p-4 bg-white rounded-xl border border-zinc-200 space-y-1">
                       <div className="flex items-center gap-2 text-xs text-zinc-500">
                         <div className="w-5 h-5 rounded bg-teal-500 flex items-center justify-center text-white text-[10px] font-bold">Q</div>
@@ -471,6 +499,21 @@ export default function SettingsPage() {
                       <p className="text-sm text-zinc-600 leading-relaxed">{(settings.seoDescription || 'Your meta description will appear here...').slice(0, 155)}{settings.seoDescription.length > 155 ? '...' : ''}</p>
                     </div>
                   </div>
+
+                  {/* SERP Preview — RU */}
+                  {(settings.seoTitleRu || settings.seoDescriptionRu) && (
+                    <div>
+                      <label className="block text-sm font-medium text-zinc-700 mb-3">{locale === 'ru' ? 'Предпросмотр в Google' : 'Google Search Preview'} (RU)</label>
+                      <div className="p-4 bg-white rounded-xl border border-zinc-200 space-y-1">
+                        <div className="flex items-center gap-2 text-xs text-zinc-500">
+                          <div className="w-5 h-5 rounded bg-teal-500 flex items-center justify-center text-white text-[10px] font-bold">Q</div>
+                          {settings.canonicalUrl || 'https://yoursite.com'} <span className="text-zinc-300">›</span>
+                        </div>
+                        <h3 className="text-[#1a0dab] text-lg font-medium hover:underline cursor-pointer leading-tight">{(settings.seoTitleRu || 'Ваш SEO-заголовок').slice(0, 60)}{settings.seoTitleRu.length > 60 ? '...' : ''}</h3>
+                        <p className="text-sm text-zinc-600 leading-relaxed">{(settings.seoDescriptionRu || 'Ваше мета-описание...').slice(0, 155)}{settings.seoDescriptionRu.length > 155 ? '...' : ''}</p>
+                      </div>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
 
@@ -504,12 +547,21 @@ export default function SettingsPage() {
                       {settings.ogImageUrl ? (
                         <>
                           <img src={settings.ogImageUrl} alt="OG Image" className="w-full h-full object-cover" />
-                          <button 
-                            onClick={() => setSettings({ ...settings, ogImageUrl: '' })}
-                            className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-full hover:bg-red-600"
-                          >
-                            <X className="w-4 h-4" />
-                          </button>
+                          <div className="absolute top-2 right-2 flex gap-2">
+                            <button
+                              onClick={() => ogInputRef.current?.click()}
+                              className="p-1.5 bg-zinc-800/70 text-white rounded-full hover:bg-zinc-900/80"
+                              disabled={uploadingOg}
+                            >
+                              {uploadingOg ? <Loader2 className="w-4 h-4 animate-spin" /> : <Edit className="w-4 h-4" />}
+                            </button>
+                            <button
+                              onClick={() => setSettings({ ...settings, ogImageUrl: '' })}
+                              className="p-1.5 bg-red-500 text-white rounded-full hover:bg-red-600"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                          </div>
                         </>
                       ) : (
                         <div className="text-center">
@@ -672,12 +724,21 @@ export default function SettingsPage() {
                     {settings.heroImageUrl ? (
                       <div className="relative aspect-video">
                         <img src={settings.heroImageUrl} alt="Hero" className="w-full h-full object-cover" />
-                        <button 
-                          onClick={() => setSettings({ ...settings, heroImageUrl: '' })}
-                          className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-full hover:bg-red-600"
-                        >
-                          <X className="w-4 h-4" />
-                        </button>
+                        <div className="absolute top-2 right-2 flex gap-2">
+                          <button
+                            onClick={() => heroInputRef.current?.click()}
+                            className="p-1.5 bg-zinc-800/70 text-white rounded-full hover:bg-zinc-900/80"
+                            disabled={uploadingHero}
+                          >
+                            {uploadingHero ? <Loader2 className="w-4 h-4 animate-spin" /> : <Edit className="w-4 h-4" />}
+                          </button>
+                          <button
+                            onClick={() => setSettings({ ...settings, heroImageUrl: '' })}
+                            className="p-1.5 bg-red-500 text-white rounded-full hover:bg-red-600"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
                       </div>
                     ) : (
                       <div className="p-8 text-center">
@@ -796,12 +857,21 @@ export default function SettingsPage() {
                     {settings.appBackgroundUrl ? (
                       <div className="relative aspect-[9/16] max-h-80">
                         <img src={settings.appBackgroundUrl} alt="App Background" className="w-full h-full object-cover" />
-                        <button
-                          onClick={() => setSettings(prev => ({ ...prev, appBackgroundUrl: '' }))}
-                          className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-full hover:bg-red-600"
-                        >
-                          <X className="w-4 h-4" />
-                        </button>
+                        <div className="absolute top-2 right-2 flex gap-2">
+                          <button
+                            onClick={() => appBgInputRef.current?.click()}
+                            className="p-1.5 bg-zinc-800/70 text-white rounded-full hover:bg-zinc-900/80"
+                            disabled={uploadingAppBg}
+                          >
+                            {uploadingAppBg ? <Loader2 className="w-4 h-4 animate-spin" /> : <Edit className="w-4 h-4" />}
+                          </button>
+                          <button
+                            onClick={() => setSettings(prev => ({ ...prev, appBackgroundUrl: '' }))}
+                            className="p-1.5 bg-red-500 text-white rounded-full hover:bg-red-600"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
                       </div>
                     ) : (
                       <div className="p-8 text-center">
