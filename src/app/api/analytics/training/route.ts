@@ -65,12 +65,14 @@ export async function GET(request: NextRequest) {
           && (!cp.end_date || wl.started_at <= cp.end_date)
       )
 
-      const avgRpe = clientLogs.length > 0
-        ? Math.round(clientLogs.filter(l => l.rpe).reduce((s, l) => s + (l.rpe || 0), 0) / clientLogs.filter(l => l.rpe).length * 10) / 10
+      const withRpe = clientLogs.filter(l => l.rpe)
+      const avgRpe = withRpe.length > 0
+        ? Math.round(withRpe.reduce((s, l) => s + (l.rpe || 0), 0) / withRpe.length * 10) / 10
         : null
 
-      const avgDuration = clientLogs.length > 0
-        ? Math.round(clientLogs.filter(l => l.duration_minutes).reduce((s, l) => s + (l.duration_minutes || 0), 0) / clientLogs.filter(l => l.duration_minutes).length)
+      const withDuration = clientLogs.filter(l => l.duration_minutes)
+      const avgDuration = withDuration.length > 0
+        ? Math.round(withDuration.reduce((s, l) => s + (l.duration_minutes || 0), 0) / withDuration.length)
         : null
 
       const lastLog = clientLogs[0]

@@ -26,6 +26,8 @@ type Order = {
   course_slug: string
   program_id: string | null
   program_name: string | null
+  course_title: string | null
+  course_title_secondary: string | null
   amount: number
   currency: string
   status: OrderStatus
@@ -43,16 +45,6 @@ const statusConfig: Record<OrderStatus, { color: string; label: string; labelRu:
   refunded: { color: 'outline', label: 'Refunded', labelRu: 'Возврат' },
 }
 
-const courseNames: Record<string, { en: string; ru: string }> = {
-  'breast-augmentation-recovery': {
-    en: 'Breast Augmentation Recovery',
-    ru: 'Восстановление после увеличения груди',
-  },
-  'cesarean-recovery': {
-    en: 'C-Section Recovery',
-    ru: 'Восстановление после кесарева сечения',
-  },
-}
 
 export default function PaymentsPage() {
   const { t, locale } = useTranslation()
@@ -120,15 +112,18 @@ export default function PaymentsPage() {
     { label: locale === 'ru' ? 'За этот месяц' : 'This Month', value: formatAmount(thisMonthRevenue), icon: TrendingUp, color: 'bg-purple-500' },
   ]
 
-  // ✅ Bug 6 fix: Resolve product names for both courses and programs
+  // Resolve product names from API data (courses + programs)
   const getProductName = (order: Order) => {
     // Program: use resolved program_name from API
     if (order.program_name) {
       return order.program_name
     }
-    // Course: use hardcoded names map
-    const names = courseNames[order.course_slug]
-    if (names) return locale === 'ru' ? names.ru : names.en
+    // Course: use resolved title from API
+    if (order.course_title) {
+      return locale === 'ru' && order.course_title_secondary
+        ? order.course_title_secondary
+        : order.course_title
+    }
     // Fallback: clean up slug
     if (order.course_slug?.startsWith('program:')) {
       return locale === 'ru' ? 'Программа тренировок' : 'Training Program'

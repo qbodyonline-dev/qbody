@@ -206,6 +206,9 @@ export default function ClientMessagesPage() {
       
       const res = await fetch('/api/upload', {
         method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session?.access_token}`
+        },
         body: formData
       })
       
@@ -262,7 +265,7 @@ export default function ClientMessagesPage() {
           setNewMessage('')
           setPendingAttachments([])
           // Fetch messages for new conversation
-          setTimeout(() => fetchMessages(data.id), 500)
+          await fetchMessages(data.id)
         }
       } else {
         // Add message to existing conversation

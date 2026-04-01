@@ -135,12 +135,12 @@ export async function POST(
     
     if (error) throw error
     
-    // Update conversation status to open if it was closed
+    // Update conversation status to open if it was closed or archived
     await supabase
       .from('conversations')
       .update({ status: 'open' })
       .eq('id', id)
-      .eq('status', 'closed')
+      .in('status', ['closed', 'archived'])
 
     // Send email notification to the recipient
     const messagePreview = cleanContent || '[Attachment]'

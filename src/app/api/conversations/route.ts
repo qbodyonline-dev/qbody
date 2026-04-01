@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase-server'
 import { authenticateRequest } from '@/lib/api-auth'
-import { sanitizeString, checkRateLimit } from '@/lib/security'
+import { sanitizeString, checkRateLimit, isValidUUID } from '@/lib/security'
 
 // GET - fetch all conversations (for admin) or user's conversation (for client)
 export async function GET(request: NextRequest) {
@@ -100,7 +100,23 @@ export async function POST(request: NextRequest) {
 
     // ✅ VALIDATION: Limit attachments
     const cleanAttachments = Array.isArray(attachments) ? attachments.slice(0, 10) : []
-    
+
+    // ✅ VALIDATION: Validate admin-provided client_id
+    if (isAdmin && client_id) {
+      if (!isValidUUID(client_id)) {
+        return NextResponse.json({ error: 'Invalid client ID' }, { status: 400 })
+      }
+      const { data: clientProfile } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('id', client_id)
+        .eq('role', 'client')
+        .maybeSingle()
+      if (!clientProfile) {
+        return NextResponse.json({ error: 'Client not found' }, { status: 404 })
+      }
+    }
+
     const targetClientId = isAdmin && client_id ? client_id : auth.data.user.id
     
     // Check if conversation already exists for this client

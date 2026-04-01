@@ -400,7 +400,7 @@ export default function MessagesPage() {
           setSelectedConversation(newConv)
           setSelectedClient(null)
           // Fetch messages for new conversation
-          setTimeout(() => fetchMessages(conversation.id), 500)
+          await fetchMessages(conversation.id)
         }
       } else if (selectedConversation) {
         // Add message to existing conversation

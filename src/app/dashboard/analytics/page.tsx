@@ -135,9 +135,13 @@ export default function AnalyticsPage() {
           fetchWithAuth('/api/analytics/training'),
         ])
         if (bizRes.ok) setBizData(await bizRes.json())
+        else console.error('Analytics fetch failed:', bizRes.status)
         if (trainRes.ok) setTrainingData(await trainRes.json())
-      } catch { /* ignore */ }
-      finally { setLoading(false) }
+        else console.error('Training analytics fetch failed:', trainRes.status)
+      } catch (err) {
+        console.error('Analytics fetch error:', err)
+        toast.error(ru ? 'Ошибка загрузки аналитики' : 'Failed to load analytics')
+      } finally { setLoading(false) }
     }
     load()
   }, [])

@@ -53,13 +53,31 @@ export async function GET(request: NextRequest) {
       programMap = new Map(programs?.map(p => [p.id, p.name]) || [])
     }
 
+    // Batch fetch course titles for course slugs (not program:* slugs)
+    const courseSlugs = orders
+      .filter(o => o.course_slug && !o.course_slug.startsWith('program:'))
+      .map(o => o.course_slug)
+    const uniqueCourseSlugs = Array.from(new Set(courseSlugs))
+
+    let courseMap = new Map<string, { title: string; title_secondary: string | null }>()
+    if (uniqueCourseSlugs.length > 0) {
+      const { data: courses } = await supabase
+        .from('courses')
+        .select('slug, title, title_secondary')
+        .in('slug', uniqueCourseSlugs)
+      courseMap = new Map(courses?.map(c => [c.slug, { title: c.title, title_secondary: c.title_secondary }]) || [])
+    }
+
     const enrichedOrders = orders.map(order => ({
       ...order,
       user_email: profileMap.get(order.user_id)?.email || 'Unknown',
       user_name: profileMap.get(order.user_id)?.full_name || 'Unknown',
       user_avatar_url: profileMap.get(order.user_id)?.avatar_url || null,
-      // ✅ Bug 6: Resolved program name
+      // Resolved program name
       program_name: order.program_id ? programMap.get(order.program_id) || null : null,
+      // Resolved course title
+      course_title: courseMap.get(order.course_slug)?.title || null,
+      course_title_secondary: courseMap.get(order.course_slug)?.title_secondary || null,
     }))
 
     return NextResponse.json({ orders: enrichedOrders })
