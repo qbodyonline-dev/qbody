@@ -72,8 +72,8 @@ export function DynamicPageContent({ locale = 'ru' }: { locale?: 'en' | 'ru' }) 
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  // ✅ SMOOTH ANIMATIONS
-  useScrollReveal()
+  // ✅ SMOOTH ANIMATIONS — re-observe after data loads
+  useScrollReveal({ deps: [loading] })
   useSmoothAnchor(80)
   useLazyImages()
 

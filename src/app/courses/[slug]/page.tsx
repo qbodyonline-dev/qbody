@@ -17,6 +17,52 @@ const iconMap: Record<string, any> = {
   'cesarean-recovery': { icon: Baby, color: 'from-purple-500 to-violet-500' },
 }
 
+// ✅ FIX: Helper to resolve Vimeo / YouTube / direct video URLs
+function getVideoEmbed(url: string): React.ReactNode {
+  if (!url) return null
+  try {
+    // Vimeo: https://vimeo.com/123456789
+    if (url.includes('vimeo.com')) {
+      const id = url.replace(/https?:\/\/(www\.)?vimeo\.com\//, '').split('?')[0].split('/')[0]
+      if (id) {
+        return (
+          <iframe
+            src={`https://player.vimeo.com/video/${id}`}
+            className="w-full h-full"
+            allow="autoplay; fullscreen; picture-in-picture"
+            allowFullScreen
+          />
+        )
+      }
+    }
+    // YouTube: watch?v= or youtu.be/
+    if (url.includes('youtube.com') || url.includes('youtu.be')) {
+      let videoId = ''
+      if (url.includes('youtube.com/watch')) {
+        videoId = new URL(url).searchParams.get('v') || ''
+      } else if (url.includes('youtu.be/')) {
+        videoId = url.split('youtu.be/').pop()?.split('?')[0] || ''
+      } else if (url.includes('youtube.com/embed/')) {
+        videoId = url.split('youtube.com/embed/').pop()?.split('?')[0] || ''
+      }
+      if (videoId) {
+        return (
+          <iframe
+            src={`https://www.youtube.com/embed/${videoId}`}
+            className="w-full h-full"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowFullScreen
+          />
+        )
+      }
+    }
+    // Direct video file
+    return <video src={url} controls className="w-full h-full object-contain" />
+  } catch {
+    return <video src={url} controls className="w-full h-full object-contain" />
+  }
+}
+
 export default function CoursePage() {
   const { locale, langConfig } = useTranslation()
   const ru = locale === langConfig.secondaryLanguage
@@ -28,8 +74,8 @@ export default function CoursePage() {
   const [loading, setLoading] = useState(true)
   const [isCheckoutLoading, setIsCheckoutLoading] = useState(false)
 
-  // ✅ SMOOTH ANIMATIONS
-  useScrollReveal()
+  // ✅ SMOOTH ANIMATIONS — re-observe after data loads
+  useScrollReveal({ deps: [loading] })
   useSmoothAnchor(64)
   useLazyImages()
 
@@ -167,13 +213,15 @@ export default function CoursePage() {
                 <div className="flex flex-wrap gap-2">{tags.map((tag: string, i: number) => <Badge key={i} className="bg-white/20 text-white border-0"><CheckCircle2 className="w-3 h-3 mr-1" />{tag}</Badge>)}</div>
               )}
             </div>
+
+            {/* ✅ FIX: hero_video_url now actually renders a video player */}
             <div className="flex justify-center lg:justify-end">
-              {course.hero_video_url || course.hero_image_url ? (
-                <div className="w-full max-w-lg aspect-video rounded-2xl bg-white/10 backdrop-blur-sm overflow-hidden flex items-center justify-center">
+              {course.hero_image_url || course.hero_video_url ? (
+                <div className="w-full max-w-lg aspect-video rounded-2xl bg-black/20 backdrop-blur-sm overflow-hidden flex items-center justify-center">
                   {course.hero_image_url ? (
                     <img src={course.hero_image_url} alt="" className="w-full h-full object-cover" />
                   ) : (
-                    <Play className="w-16 h-16 text-white/80" />
+                    getVideoEmbed(course.hero_video_url)
                   )}
                 </div>
               ) : (

@@ -96,8 +96,9 @@ export function useScrollReveal(options?: {
   threshold?: number
   rootMargin?: string
   once?: boolean
+  deps?: any[]
 }) {
-  const { threshold = 0.12, rootMargin = '0px 0px -60px 0px', once = true } = options || {}
+  const { threshold = 0.12, rootMargin = '0px 0px -60px 0px', once = true, deps = [] } = options || {}
 
   useEffect(() => {
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
@@ -127,7 +128,8 @@ export function useScrollReveal(options?: {
     targets.forEach(el => observer.observe(el))
 
     return () => observer.disconnect()
-  }, [threshold, rootMargin, once])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [threshold, rootMargin, once, ...deps])
 }
 
 /* ═══════════ HOOK: useSmoothAnchor ═══════════ */
