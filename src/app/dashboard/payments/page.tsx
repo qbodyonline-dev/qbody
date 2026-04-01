@@ -99,8 +99,14 @@ export default function PaymentsPage() {
     }
   }
 
+  // Load orders + minimal stripe mode on mount
   useEffect(() => {
     fetchOrders()
+    // Fetch stripe mode so badge on Orders tab is accurate
+    fetchWithAuth('/api/settings/stripe')
+      .then(res => res.ok ? res.json() : null)
+      .then(data => { if (data?.mode) setStripeMode(data.mode) })
+      .catch(() => {})
   }, [])
 
   const formatDate = (dateStr: string | null) => {

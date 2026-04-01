@@ -22,9 +22,18 @@ export async function POST(request: NextRequest) {
 
   let event: Stripe.Event
 
+  // Load Stripe client and webhook secret (separate from signature verification)
+  let stripe: Stripe
+  let webhookSecret: string
   try {
-    const stripe = await getStripe()
-    const webhookSecret = await getWebhookSecret()
+    stripe = await getStripe()
+    webhookSecret = await getWebhookSecret()
+  } catch (err: any) {
+    console.error('[Webhook] Stripe configuration error:', err.message)
+    return NextResponse.json({ error: 'Server configuration error' }, { status: 500 })
+  }
+
+  try {
     event = stripe.webhooks.constructEvent(
       body,
       signature,

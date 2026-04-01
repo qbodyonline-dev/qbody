@@ -178,11 +178,13 @@ export async function POST(request: NextRequest) {
     // Load current settings to preserve masked values
     const current = await loadSettings(supabase)
 
-    // Merge: if field is masked -> keep current value
+    // Merge: if field is masked or empty -> keep current value
+    // Empty string protection: onFocus clears masked value to '',
+    // so saving with '' must NOT overwrite the real stored key
     const mergeKeys = (incoming: StripeKeys, existing: StripeKeys): StripeKeys => ({
-      publishableKey: incoming.publishableKey ?? existing.publishableKey,
-      secretKey: isMasked(incoming.secretKey) ? existing.secretKey : (incoming.secretKey ?? existing.secretKey),
-      webhookSecret: isMasked(incoming.webhookSecret) ? existing.webhookSecret : (incoming.webhookSecret ?? existing.webhookSecret),
+      publishableKey: incoming.publishableKey || existing.publishableKey,
+      secretKey: (!incoming.secretKey || isMasked(incoming.secretKey)) ? existing.secretKey : incoming.secretKey,
+      webhookSecret: (!incoming.webhookSecret || isMasked(incoming.webhookSecret)) ? existing.webhookSecret : incoming.webhookSecret,
     })
 
     const mergedTest = mergeKeys(testKeys || EMPTY_KEYS, current.test)

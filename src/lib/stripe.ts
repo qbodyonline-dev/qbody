@@ -19,21 +19,28 @@ type StripeSettings = {
 // ─── In-memory cache ───
 let cachedStripe: Stripe | null = null
 let cachedWebhookSecret: string | null = null
+let cachedSettings: StripeSettings | null = null
 let cacheTimestamp = 0
 
 /** Invalidate cache — call after saving new keys */
 export function invalidateStripeCache() {
   cachedStripe = null
   cachedWebhookSecret = null
+  cachedSettings = null
   cacheTimestamp = 0
 }
 
 function isCacheValid(): boolean {
-  return Date.now() - cacheTimestamp < CACHE_TTL_MS
+  return cacheTimestamp > 0 && Date.now() - cacheTimestamp < CACHE_TTL_MS
 }
 
-/** Load Stripe settings from site_settings table */
-async function loadStripeSettings(): Promise<StripeSettings | null> {
+/** Load Stripe settings from site_settings table (with cache) */
+async function getSettings(): Promise<StripeSettings | null> {
+  // Return cached settings if still valid
+  if (cachedSettings && isCacheValid()) {
+    return cachedSettings
+  }
+
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY
 
@@ -50,7 +57,9 @@ async function loadStripeSettings(): Promise<StripeSettings | null> {
       .eq('key', 'stripe')
       .single()
 
-    return (data?.value as StripeSettings) ?? null
+    cachedSettings = (data?.value as StripeSettings) ?? null
+    if (!cacheTimestamp) cacheTimestamp = Date.now()
+    return cachedSettings
   } catch {
     return null
   }
@@ -65,12 +74,12 @@ export async function getStripe(): Promise<Stripe> {
     return cachedStripe
   }
 
-  const settings = await loadStripeSettings()
+  const settings = await getSettings()
   let secretKey: string | undefined
 
   if (settings) {
     const activeKeys = settings.mode === 'live' ? settings.live : settings.test
-    if (activeKeys.secretKey) {
+    if (activeKeys?.secretKey) {
       secretKey = activeKeys.secretKey
     }
   }
@@ -102,12 +111,12 @@ export async function getWebhookSecret(): Promise<string> {
     return cachedWebhookSecret
   }
 
-  const settings = await loadStripeSettings()
+  const settings = await getSettings()
   let webhookSecret: string | undefined
 
   if (settings) {
     const activeKeys = settings.mode === 'live' ? settings.live : settings.test
-    if (activeKeys.webhookSecret) {
+    if (activeKeys?.webhookSecret) {
       webhookSecret = activeKeys.webhookSecret
     }
   }
@@ -122,17 +131,7 @@ export async function getWebhookSecret(): Promise<string> {
   }
 
   cachedWebhookSecret = webhookSecret
-  // Re-use same timestamp as Stripe instance
   if (!cacheTimestamp) cacheTimestamp = Date.now()
 
   return cachedWebhookSecret
 }
-
-/**
- * Legacy static export for backward compatibility.
- * Uses env vars only. Prefer getStripe() for dynamic key resolution.
- */
-export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || 'sk_test_placeholder', {
-  apiVersion: STRIPE_API_VERSION as any,
-  typescript: true,
-})
