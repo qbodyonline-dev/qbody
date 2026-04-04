@@ -2,6 +2,19 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase-server'
 import { authenticateRequest } from '@/lib/api-auth'
 
+// DB columns use _ru suffix for these 4 exercise fields, frontend expects _secondary
+function mapExercise(ex: any) {
+  if (!ex) return ex
+  const { instructions_ru, common_mistakes_ru, regressions_ru, progressions_ru, ...rest } = ex
+  return {
+    ...rest,
+    instructions_secondary: instructions_ru ?? null,
+    common_mistakes_secondary: common_mistakes_ru ?? null,
+    regressions_secondary: regressions_ru ?? null,
+    progressions_secondary: progressions_ru ?? null,
+  }
+}
+
 // GET — get workout log with exercise logs
 export async function GET(
   request: NextRequest,
@@ -66,10 +79,24 @@ export async function GET(
       })
     }
 
+    // Map exercise _ru → _secondary in nested exercise objects
+    const mappedExerciseLogs = (exerciseLogs || []).map((el: any) => ({
+      ...el,
+      exercises: mapExercise(el.exercises),
+    }))
+
+    const mappedWorkout = workout ? {
+      ...workout,
+      workout_exercises: (workout.workout_exercises || []).map((we: any) => ({
+        ...we,
+        exercises: mapExercise(we.exercises),
+      })),
+    } : null
+
     return NextResponse.json({
       ...log,
-      exercise_logs: exerciseLogs || [],
-      workout,
+      exercise_logs: mappedExerciseLogs,
+      workout: mappedWorkout,
     })
   } catch (err: any) {
     console.error('GET /api/client/workout-log/[id] error:', err)

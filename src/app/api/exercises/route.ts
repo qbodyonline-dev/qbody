@@ -2,6 +2,20 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase-server'
 import { requireAdmin, authenticateRequest } from '@/lib/api-auth'
 
+// DB columns use _ru suffix for these 4 fields, but frontend expects _secondary
+// Map DB row → API response format
+function mapExerciseResponse(row: any) {
+  if (!row) return row
+  const { instructions_ru, common_mistakes_ru, regressions_ru, progressions_ru, ...rest } = row
+  return {
+    ...rest,
+    instructions_secondary: instructions_ru ?? null,
+    common_mistakes_secondary: common_mistakes_ru ?? null,
+    regressions_secondary: regressions_ru ?? null,
+    progressions_secondary: progressions_ru ?? null,
+  }
+}
+
 // GET — list exercises with optional filters
 export async function GET(request: NextRequest) {
   const auth = await authenticateRequest(request)
@@ -46,7 +60,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to fetch exercises' }, { status: 500 })
     }
 
-    return NextResponse.json({ exercises: data || [], total: count || 0 })
+    return NextResponse.json({ exercises: (data || []).map(mapExerciseResponse), total: count || 0 })
   } catch (err: any) {
     console.error('GET /api/exercises error:', err)
     return NextResponse.json({ error: 'Server error' }, { status: 500 })
@@ -90,13 +104,13 @@ export async function POST(request: NextRequest) {
         category: category || 'strength',
         difficulty: difficulty || 'intermediate',
         instructions: instructions || null,
-        instructions_secondary: instructions_secondary || null,
+        instructions_ru: instructions_secondary || null,
         common_mistakes: common_mistakes || null,
-        common_mistakes_secondary: common_mistakes_secondary || null,
+        common_mistakes_ru: common_mistakes_secondary || null,
         regressions: regressions || null,
-        regressions_secondary: regressions_secondary || null,
+        regressions_ru: regressions_secondary || null,
         progressions: progressions || null,
-        progressions_secondary: progressions_secondary || null,
+        progressions_ru: progressions_secondary || null,
         video_url: video_url || null,
         thumbnail_url: thumbnail_url || null,
       })
@@ -108,7 +122,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to create exercise' }, { status: 500 })
     }
 
-    return NextResponse.json(data, { status: 201 })
+    return NextResponse.json(mapExerciseResponse(data), { status: 201 })
   } catch (err: any) {
     console.error('POST /api/exercises error:', err)
     return NextResponse.json({ error: 'Server error' }, { status: 500 })
