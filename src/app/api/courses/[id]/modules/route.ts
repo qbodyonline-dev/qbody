@@ -47,11 +47,14 @@ export async function POST(
       .select()
       .single()
     
-    if (error) throw error
-    
+    if (error) {
+      console.error('POST /api/courses/[id]/modules supabase error:', error)
+      return NextResponse.json({ error: 'Failed to create module', detail: error.message, code: error.code }, { status: 500 })
+    }
+
     return NextResponse.json(data)
   } catch (err: any) {
     console.error('POST /api/courses/[id]/modules error:', err)
-    return NextResponse.json({ error: 'Failed to create module' }, { status: 500 })
+    return NextResponse.json({ error: 'Failed to create module', detail: err?.message }, { status: 500 })
   }
 }

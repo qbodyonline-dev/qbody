@@ -51,11 +51,14 @@ export async function POST(
       .select()
       .single()
     
-    if (error) throw error
-    
+    if (error) {
+      console.error('POST /api/modules/[id]/lessons supabase error:', error)
+      return NextResponse.json({ error: 'Failed to create lesson', detail: error.message, code: error.code }, { status: 500 })
+    }
+
     return NextResponse.json(data)
   } catch (err: any) {
     console.error('POST /api/modules/[id]/lessons error:', err)
-    return NextResponse.json({ error: 'Failed to create lesson' }, { status: 500 })
+    return NextResponse.json({ error: 'Failed to create lesson', detail: err?.message }, { status: 500 })
   }
 }
