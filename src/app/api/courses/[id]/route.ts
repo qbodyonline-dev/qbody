@@ -132,12 +132,15 @@ export async function PATCH(
       .select()
       .single()
     
-    if (error) throw error
-    
+    if (error) {
+      console.error('PATCH /api/courses/[id] supabase error:', error)
+      return NextResponse.json({ error: 'Failed to update course', detail: error.message, code: error.code }, { status: 500 })
+    }
+
     return NextResponse.json(data)
   } catch (err: any) {
     console.error('PATCH /api/courses/[id] error:', err)
-    return NextResponse.json({ error: 'Failed to update course' }, { status: 500 })
+    return NextResponse.json({ error: 'Failed to update course', detail: err?.message }, { status: 500 })
   }
 }
 
