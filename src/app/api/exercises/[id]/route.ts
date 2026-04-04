@@ -3,6 +3,27 @@ import { createServerClient } from '@/lib/supabase-server'
 import { requireAdmin, authenticateRequest } from '@/lib/api-auth'
 import { deleteStorageFile } from '@/lib/storage-cleanup'
 
+// DB columns use _ru suffix for these 4 fields, but frontend expects _secondary
+function mapExerciseResponse(row: any) {
+  if (!row) return row
+  const { instructions_ru, common_mistakes_ru, regressions_ru, progressions_ru, ...rest } = row
+  return {
+    ...rest,
+    instructions_secondary: instructions_ru ?? null,
+    common_mistakes_secondary: common_mistakes_ru ?? null,
+    regressions_secondary: regressions_ru ?? null,
+    progressions_secondary: progressions_ru ?? null,
+  }
+}
+
+// Map frontend _secondary field names to DB _ru column names
+const FIELD_REMAP: Record<string, string> = {
+  instructions_secondary: 'instructions_ru',
+  common_mistakes_secondary: 'common_mistakes_ru',
+  regressions_secondary: 'regressions_ru',
+  progressions_secondary: 'progressions_ru',
+}
+
 // GET — single exercise
 export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
   const auth = await authenticateRequest(request)
@@ -22,7 +43,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
       return NextResponse.json({ error: 'Exercise not found' }, { status: 404 })
     }
 
-    return NextResponse.json(data)
+    return NextResponse.json(mapExerciseResponse(data))
   } catch (err: any) {
     console.error('GET /api/exercises/[id] error:', err)
     return NextResponse.json({ error: 'Server error' }, { status: 500 })
@@ -40,7 +61,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     const supabase = createServerClient()
     const body = await request.json()
 
-    // Only allow updating specific fields
+    // Only allow updating specific fields (using frontend field names)
     const allowedFields = [
       'name', 'name_secondary', 'description', 'description_secondary',
       'muscle_groups', 'equipment', 'category', 'difficulty',
@@ -54,7 +75,9 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     const updates: Record<string, any> = {}
     for (const field of allowedFields) {
       if (field in body) {
-        updates[field] = body[field]
+        // Remap _secondary → _ru for DB columns that use _ru
+        const dbField = FIELD_REMAP[field] || field
+        updates[dbField] = body[field]
       }
     }
 
@@ -87,7 +110,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
       return NextResponse.json({ error: 'Failed to update exercise' }, { status: 500 })
     }
 
-    return NextResponse.json(data)
+    return NextResponse.json(mapExerciseResponse(data))
   } catch (err: any) {
     console.error('PUT /api/exercises/[id] error:', err)
     return NextResponse.json({ error: 'Server error' }, { status: 500 })
