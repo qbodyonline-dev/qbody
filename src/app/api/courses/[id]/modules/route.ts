@@ -22,28 +22,66 @@ export async function POST(
   try {
     const supabase = createServerClient()
     const body = await request.json()
-    
-    // Use timestamp for sort_order to avoid race conditions on concurrent inserts.
-    // Admin UI sends explicit sort_order values when reordering via drag-drop.
-    const nextOrder = Date.now()
-    
-    const { data, error } = await supabase
+
+    // Get max sort_order
+    const { data: existing } = await supabase
       .from('course_modules')
-      .insert({
-        course_id: params.id,
-        title: sanitizeString(body.title || 'New Module', 500),
-        title_secondary: sanitizeString(body.title_secondary || '', 500) || null,
-        description: sanitizeString(body.description || '', 5000) || null,
-        description_secondary: sanitizeString(body.description_secondary || '', 5000) || null,
-        sort_order: nextOrder,
-        is_published: body.is_published ?? true,
-      })
+      .select('sort_order')
+      .eq('course_id', params.id)
+      .order('sort_order', { ascending: false })
+      .limit(1)
+
+    const nextOrder = (existing?.[0]?.sort_order ?? -1) + 1
+
+    // DEBUG: Check column types for course_modules
+    const { data: colInfo } = await supabase.rpc('get_table_columns', { p_table: 'course_modules' }).maybeSingle()
+
+    const insertPayload = {
+      course_id: params.id,
+      title: sanitizeString(body.title || 'New Module', 500),
+      title_secondary: sanitizeString(body.title_secondary || '', 500) || null,
+      description: sanitizeString(body.description || '', 5000) || null,
+      description_secondary: sanitizeString(body.description_secondary || '', 5000) || null,
+      sort_order: nextOrder,
+      is_published: body.is_published ?? true,
+    }
+
+    // Try minimal insert first to isolate the issue
+    const { data: minData, error: minError } = await supabase
+      .from('course_modules')
+      .insert({ course_id: params.id, title: 'test' })
       .select()
       .single()
-    
+
+    if (minError) {
+      return NextResponse.json({
+        error: 'Failed even with minimal insert',
+        detail: minError.message,
+        code: minError.code,
+        hint: minError.hint,
+        insertPayload,
+        colInfo,
+      }, { status: 500 })
+    }
+
+    // Minimal worked! Delete it and try full insert
+    if (minData?.id) {
+      await supabase.from('course_modules').delete().eq('id', minData.id)
+    }
+
+    const { data, error } = await supabase
+      .from('course_modules')
+      .insert(insertPayload)
+      .select()
+      .single()
+
     if (error) {
-      console.error('POST /api/courses/[id]/modules supabase error:', error)
-      return NextResponse.json({ error: 'Failed to create module', detail: error.message, code: error.code }, { status: 500 })
+      return NextResponse.json({
+        error: 'Failed on full insert (minimal worked)',
+        detail: error.message,
+        code: error.code,
+        insertPayload,
+      }, { status: 500 })
     }
 
     return NextResponse.json(data)
