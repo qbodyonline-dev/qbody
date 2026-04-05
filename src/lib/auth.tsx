@@ -43,9 +43,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   if (typeof window !== 'undefined' && !supabaseRef.current) {
     try {
       supabaseRef.current = createClient()
-      console.log('[AUTH] Supabase client created')
     } catch (e) {
-      console.error('[AUTH] Failed to create client:', e)
+      console.error('Auth: failed to create client:', e)
     }
   }
 
@@ -58,21 +57,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         .eq('id', userId)
         .single()
       if (error) {
-        console.warn('[AUTH] Profile fetch failed:', error.message)
+        // Profile fetch failed silently
         return
       }
       if (data) setProfile(data as Profile)
     } catch (e) {
-      console.warn('[AUTH] Profile fetch exception:', e)
+      // Profile fetch exception
     }
   }
 
   useEffect(() => {
-    console.log('[AUTH] useEffect running, client exists:', !!supabaseRef.current)
     setMounted(true)
-    
+
     if (!supabaseRef.current) {
-      console.error('[AUTH] No supabase client!')
       setLoading(false)
       return
     }
@@ -80,13 +77,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const supabase = supabaseRef.current
 
     const timeout = setTimeout(() => {
-      console.warn('[AUTH] Timeout — forcing loading=false')
+      // Auth timeout — forcing loading=false
       setLoading(false)
     }, 3000)
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
-        console.log('[AUTH] onAuthStateChange:', event)
         clearTimeout(timeout)
         setSession(session)
         setUser(session?.user ?? null)
@@ -103,7 +99,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     supabase.auth.getSession()
       .then(({ data: { session } }) => {
-        console.log('[AUTH] getSession:', session ? 'has session' : 'no session')
         clearTimeout(timeout)
         setSession(session)
         setUser(session?.user ?? null)
@@ -113,7 +108,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setLoading(false)
       })
       .catch((err) => {
-        console.error('[AUTH] getSession error:', err)
+        console.error('Auth: getSession error:', err)
         clearTimeout(timeout)
         setLoading(false)
       })
@@ -149,8 +144,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     router.push('/')
     router.refresh()
   }
-
-  console.log('[AUTH] Render — mounted:', mounted, 'loading:', loading, 'user:', user?.email || 'null')
 
   return (
     <AuthContext.Provider value={{

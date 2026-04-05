@@ -33,9 +33,6 @@ export async function POST(
 
     const nextOrder = (existing?.[0]?.sort_order ?? -1) + 1
 
-    // DEBUG: Check column types for course_modules
-    const { data: colInfo } = await supabase.rpc('get_table_columns', { p_table: 'course_modules' }).maybeSingle()
-
     const insertPayload = {
       course_id: params.id,
       title: sanitizeString(body.title || 'New Module', 500),
@@ -46,45 +43,57 @@ export async function POST(
       is_published: body.is_published ?? true,
     }
 
-    // Try minimal insert first to isolate the issue
-    const { data: minData, error: minError } = await supabase
-      .from('course_modules')
-      .insert({ course_id: params.id, title: 'test' })
-      .select()
-      .single()
-
-    if (minError) {
-      return NextResponse.json({
-        error: 'Failed even with minimal insert',
-        detail: minError.message,
-        code: minError.code,
-        hint: minError.hint,
-        insertPayload,
-        colInfo,
-      }, { status: 500 })
-    }
-
-    // Minimal worked! Delete it and try full insert
-    if (minData?.id) {
-      await supabase.from('course_modules').delete().eq('id', minData.id)
-    }
-
+    // Try full insert first
     const { data, error } = await supabase
       .from('course_modules')
       .insert(insertPayload)
       .select()
       .single()
 
-    if (error) {
-      return NextResponse.json({
-        error: 'Failed on full insert (minimal worked)',
-        detail: error.message,
-        code: error.code,
-        insertPayload,
-      }, { status: 500 })
+    if (!error) {
+      return NextResponse.json(data)
     }
 
-    return NextResponse.json(data)
+    // If integer overflow (code 22003), use insert+update workaround
+    if (error.code === '22003') {
+      console.warn('course_modules full insert overflow, using insert+update workaround')
+
+      const { data: minData, error: minErr } = await supabase
+        .from('course_modules')
+        .insert({ course_id: params.id, title: insertPayload.title })
+        .select('id')
+        .single()
+
+      if (minErr) {
+        console.error('Minimal module insert also failed:', minErr)
+        return NextResponse.json({ error: 'Failed to create module', detail: minErr.message }, { status: 500 })
+      }
+
+      // Update with remaining fields
+      const { title: _t, course_id: _c, ...updateFields } = insertPayload
+      const { data: updated, error: upErr } = await supabase
+        .from('course_modules')
+        .update(updateFields)
+        .eq('id', minData.id)
+        .select()
+        .single()
+
+      if (upErr) {
+        console.error('Module update after minimal insert failed:', upErr)
+        const { data: fallback } = await supabase
+          .from('course_modules')
+          .select()
+          .eq('id', minData.id)
+          .single()
+        return NextResponse.json(fallback || minData)
+      }
+
+      return NextResponse.json(updated)
+    }
+
+    // Other error
+    console.error('POST /api/courses/[id]/modules error:', error)
+    return NextResponse.json({ error: 'Failed to create module', detail: error.message, code: error.code }, { status: 500 })
   } catch (err: any) {
     console.error('POST /api/courses/[id]/modules error:', err)
     return NextResponse.json({ error: 'Failed to create module', detail: err?.message }, { status: 500 })

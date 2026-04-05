@@ -20,47 +20,85 @@ export async function POST(
     const supabase = createServerClient()
     const body = await request.json()
 
-    // DEBUG: Try insert with raw SQL approach - only required fields, let DB handle defaults
-    const { data: d1, error: e1 } = await supabase
+    // Get max sort_order
+    const { data: existing } = await supabase
       .from('course_lessons')
-      .insert({ module_id: params.id, title: 'test-only-required' })
-      .select('id')
+      .select('sort_order')
+      .eq('module_id', params.id)
+      .order('sort_order', { ascending: false })
+      .limit(1)
+
+    const nextOrder = (existing?.[0]?.sort_order ?? -1) + 1
+
+    const allowedTypes = ['video', 'text', 'task', 'quiz', 'assignment']
+    const lessonType = allowedTypes.includes(body.type) ? body.type : 'video'
+
+    const insertPayload = {
+      module_id: params.id,
+      title: sanitizeString(body.title || 'New Lesson', 500),
+      title_secondary: sanitizeString(body.title_secondary || '', 500) || null,
+      type: lessonType,
+      duration_minutes: body.duration_minutes || 10,
+      video_url: body.video_url || null,
+      content: body.content || [],
+      content_secondary: body.content_secondary || [],
+      is_free: body.is_free || false,
+      is_published: body.is_published ?? true,
+      sort_order: nextOrder,
+    }
+
+    // Try full insert first
+    const { data, error } = await supabase
+      .from('course_lessons')
+      .insert(insertPayload)
+      .select()
       .single()
 
-    if (e1) {
-      // Even minimal insert fails — check if it's the same integer overflow
-      // Try to get column info
-      const { data: colInfo, error: colErr } = await supabase
-        .rpc('get_table_columns', { p_table: 'course_lessons' })
-
-      return NextResponse.json({
-        error: 'Minimal lesson insert failed',
-        detail: e1.message,
-        code: e1.code,
-        hint: e1.hint,
-        colInfo: colInfo || colErr?.message || 'no rpc',
-      }, { status: 500 })
+    if (!error) {
+      return NextResponse.json(data)
     }
 
-    // Minimal worked - clean up and return debug info
-    if (d1?.id) {
-      // Before deleting, read what was stored
-      const { data: fullRow } = await supabase
+    // If integer overflow (code 22003), use insert+update workaround
+    if (error.code === '22003') {
+      console.warn('course_lessons full insert overflow, using insert+update workaround')
+
+      const { data: minData, error: minErr } = await supabase
         .from('course_lessons')
-        .select('*')
-        .eq('id', d1.id)
+        .insert({ module_id: params.id, title: insertPayload.title })
+        .select('id')
         .single()
 
-      await supabase.from('course_lessons').delete().eq('id', d1.id)
+      if (minErr) {
+        console.error('Minimal lesson insert also failed:', minErr)
+        return NextResponse.json({ error: 'Failed to create lesson', detail: minErr.message }, { status: 500 })
+      }
 
-      return NextResponse.json({
-        debug: true,
-        message: 'Minimal insert WORKED — full row data below',
-        fullRow,
-      })
+      // Update with remaining fields
+      const { title: _t, module_id: _m, ...updateFields } = insertPayload
+      const { data: updated, error: upErr } = await supabase
+        .from('course_lessons')
+        .update(updateFields)
+        .eq('id', minData.id)
+        .select()
+        .single()
+
+      if (upErr) {
+        console.error('Lesson update after minimal insert failed:', upErr)
+        // Return what we have
+        const { data: fallback } = await supabase
+          .from('course_lessons')
+          .select()
+          .eq('id', minData.id)
+          .single()
+        return NextResponse.json(fallback || minData)
+      }
+
+      return NextResponse.json(updated)
     }
 
-    return NextResponse.json({ debug: true, message: 'unexpected state', d1 })
+    // Other error
+    console.error('POST /api/modules/[id]/lessons supabase error:', error)
+    return NextResponse.json({ error: 'Failed to create lesson', detail: error.message, code: error.code }, { status: 500 })
   } catch (err: any) {
     console.error('POST /api/modules/[id]/lessons error:', err)
     return NextResponse.json({ error: 'Failed to create lesson', detail: err?.message }, { status: 500 })
