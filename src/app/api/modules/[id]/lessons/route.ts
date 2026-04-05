@@ -19,38 +19,48 @@ export async function POST(
   try {
     const supabase = createServerClient()
     const body = await request.json()
-    
-    // Use timestamp for sort_order to avoid race conditions on concurrent inserts.
-    // Admin UI sends explicit sort_order values when reordering via drag-drop.
-    const nextOrder = Date.now()
-    
-    const allowedTypes = ['video', 'text', 'task', 'quiz', 'assignment']
-    const lessonType = allowedTypes.includes(body.type) ? body.type : 'video'
 
-    const { data, error } = await supabase
+    // DEBUG: Try insert with raw SQL approach - only required fields, let DB handle defaults
+    const { data: d1, error: e1 } = await supabase
       .from('course_lessons')
-      .insert({
-        module_id: params.id,
-        title: sanitizeString(body.title || 'New Lesson', 500),
-        title_secondary: sanitizeString(body.title_secondary || '', 500) || null,
-        type: lessonType,
-        duration_minutes: body.duration_minutes || 10,
-        video_url: body.video_url || null,
-        content: body.content || [],
-        content_secondary: body.content_secondary || [],
-        is_free: body.is_free || false,
-        is_published: body.is_published ?? true,
-        sort_order: nextOrder,
-      })
-      .select()
+      .insert({ module_id: params.id, title: 'test-only-required' })
+      .select('id')
       .single()
-    
-    if (error) {
-      console.error('POST /api/modules/[id]/lessons supabase error:', error)
-      return NextResponse.json({ error: 'Failed to create lesson', detail: error.message, code: error.code }, { status: 500 })
+
+    if (e1) {
+      // Even minimal insert fails — check if it's the same integer overflow
+      // Try to get column info
+      const { data: colInfo, error: colErr } = await supabase
+        .rpc('get_table_columns', { p_table: 'course_lessons' })
+
+      return NextResponse.json({
+        error: 'Minimal lesson insert failed',
+        detail: e1.message,
+        code: e1.code,
+        hint: e1.hint,
+        colInfo: colInfo || colErr?.message || 'no rpc',
+      }, { status: 500 })
     }
 
-    return NextResponse.json(data)
+    // Minimal worked - clean up and return debug info
+    if (d1?.id) {
+      // Before deleting, read what was stored
+      const { data: fullRow } = await supabase
+        .from('course_lessons')
+        .select('*')
+        .eq('id', d1.id)
+        .single()
+
+      await supabase.from('course_lessons').delete().eq('id', d1.id)
+
+      return NextResponse.json({
+        debug: true,
+        message: 'Minimal insert WORKED — full row data below',
+        fullRow,
+      })
+    }
+
+    return NextResponse.json({ debug: true, message: 'unexpected state', d1 })
   } catch (err: any) {
     console.error('POST /api/modules/[id]/lessons error:', err)
     return NextResponse.json({ error: 'Failed to create lesson', detail: err?.message }, { status: 500 })
