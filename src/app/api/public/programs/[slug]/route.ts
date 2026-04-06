@@ -18,6 +18,9 @@ export async function GET(
       return NextResponse.json({ error: 'Invalid slug' }, { status: 400 })
     }
 
+    // Используем service_role: RLS политики для program_days и workouts
+    // не позволяют anon-доступ (требуют покупку через client_programs).
+    // Для публичной страницы каталога нужен полный доступ к расписанию.
     const supabase = createServerClient()
 
     const { data, error } = await supabase
