@@ -21,8 +21,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'workout_id required' }, { status: 400 })
     }
 
-    // Check subscription access if linked to a program
-    if (client_program_id) {
+    // Check subscription access if linked to a program (admin bypasses)
+    const isAdmin = auth.data.profile.role === 'admin'
+    if (client_program_id && !isAdmin) {
       const { data: cp } = await supabase
         .from('client_programs')
         .select('status, end_date')

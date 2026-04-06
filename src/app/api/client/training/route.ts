@@ -55,9 +55,10 @@ export async function GET(request: NextRequest) {
     const program = cp.training_programs as any
     const programId = program.id
 
-    // Subscription access check
+    // Subscription access check (admin bypasses)
+    const isAdmin = auth.data.profile.role === 'admin'
     const access = isProgramAccessible(cp.status, cp.end_date)
-    if (!access.allowed) {
+    if (!access.allowed && !isAdmin) {
       return NextResponse.json({
         program: {
           ...program,

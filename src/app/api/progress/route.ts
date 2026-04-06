@@ -32,17 +32,38 @@ export async function GET(request: NextRequest) {
     // ✅ VALIDATION: Sanitize courseSlug
     const cleanSlug = courseSlug ? courseSlug.replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 200) : null
 
-    // Get course access
-    let accessQuery = supabase
-      .from('course_access')
-      .select('course_slug, granted_at, is_active')
-      .eq('user_id', targetUserId)
-    
-    if (cleanSlug) {
-      accessQuery = accessQuery.eq('course_slug', cleanSlug)
+    // Admin gets full access to all courses without purchase (only for own view, not when checking other users)
+    const isAdmin = auth.data.profile.role === 'admin' && !userId
+
+    let accessData: { course_slug: string; granted_at: string; is_active: boolean }[] | null = null
+
+    if (isAdmin) {
+      // Admin: get all published courses as "purchased"
+      let coursesQuery = supabase
+        .from('courses')
+        .select('slug')
+        .eq('is_published', true)
+      if (cleanSlug) {
+        coursesQuery = coursesQuery.eq('slug', cleanSlug)
+      }
+      const { data: allCourses } = await coursesQuery
+      accessData = (allCourses || []).map(c => ({
+        course_slug: c.slug,
+        granted_at: new Date().toISOString(),
+        is_active: true,
+      }))
+    } else {
+      // Regular user: check course_access table
+      let accessQuery = supabase
+        .from('course_access')
+        .select('course_slug, granted_at, is_active')
+        .eq('user_id', targetUserId)
+      if (cleanSlug) {
+        accessQuery = accessQuery.eq('course_slug', cleanSlug)
+      }
+      const { data } = await accessQuery
+      accessData = data
     }
-    
-    const { data: accessData } = await accessQuery
 
     if (!accessData || accessData.length === 0) {
       return NextResponse.json({ courses: [] })
