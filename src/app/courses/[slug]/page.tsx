@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge'
 import { useTranslation } from '@/lib/i18n'
 import { useAuth } from '@/lib/auth'
 import { LanguageSwitcher } from '@/components/ui/language-switcher'
-import { ArrowLeft, Play, Clock, BookOpen, CheckCircle2, Shield, Award, Heart, Baby, Star, User, Loader2, Video, FileText, ListChecks } from 'lucide-react'
+import { ArrowLeft, Play, Clock, BookOpen, CheckCircle2, Shield, Award, Heart, Baby, Star, User, Loader2, Video, FileText, ListChecks, Menu, X, LayoutDashboard } from 'lucide-react'
 import { toast } from 'sonner'
 import { useScrollReveal, useSmoothAnchor, useLazyImages } from '@/components/ui/scroll-reveal'
 
@@ -66,13 +66,21 @@ function getVideoEmbed(url: string): React.ReactNode {
 export default function CoursePage() {
   const { locale, langConfig } = useTranslation()
   const ru = locale === langConfig.secondaryLanguage
-  const { user, session } = useAuth()
+  const { user, session, isAdmin, isTrainer, loading: authLoading } = useAuth()
   const router = useRouter()
   const params = useParams()
   const slug = params.slug as string
   const [course, setCourse] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [isCheckoutLoading, setIsCheckoutLoading] = useState(false)
+  const [mobileMenu, setMobileMenu] = useState(false)
+
+  const navLinks = ru
+    ? [{ name: 'Главная', href: '/' }, { name: 'Программы', href: '/#programs' }, { name: 'Курсы', href: '/#courses' }, { name: 'О нас', href: '/#about' }, { name: 'Контакты', href: '/#contacts' }]
+    : [{ name: 'Home', href: '/' }, { name: 'Programs', href: '/#programs' }, { name: 'Courses', href: '/#courses' }, { name: 'About', href: '/#about' }, { name: 'Contacts', href: '/#contacts' }]
+
+  const dashLink = (isAdmin || isTrainer) ? '/dashboard' : '/client/home'
+  const dashLabel = (isAdmin || isTrainer) ? (ru ? 'Админ панель' : 'Dashboard') : (ru ? 'Мой кабинет' : 'My Account')
 
   // ✅ SMOOTH ANIMATIONS — re-observe after data loads
   useScrollReveal({ deps: [loading] })
@@ -160,29 +168,59 @@ export default function CoursePage() {
       {/* Header */}
       <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-xl border-b border-zinc-200">
         <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-teal-400 to-teal-600 flex items-center justify-center"><span className="text-white font-bold text-lg">Q</span></div>
+          <Link href="/" className="flex items-center gap-2 flex-shrink-0">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-teal-400 to-teal-600 flex items-center justify-center"><span className="text-white font-bold text-base">Q</span></div>
             <span className="font-semibold text-zinc-900">Qbody</span>
           </Link>
+
+          {/* Desktop nav */}
           <nav className="hidden lg:flex items-center gap-6">
-            {[
-              { label: ru ? 'Программы' : 'Programs', href: '/#programs' },
-              { label: ru ? 'Курсы' : 'Courses', href: '/#courses' },
-              { label: ru ? 'О нас' : 'About', href: '/#about' },
-              { label: ru ? 'Результаты' : 'Results', href: '/#results' },
-            ].map(link => (
-              <Link key={link.href} href={link.href} className="text-sm font-medium text-zinc-600 hover:text-teal-600 transition-colors">{link.label}</Link>
+            {navLinks.map(link => (
+              <Link key={link.href} href={link.href} className="text-sm font-medium text-zinc-600 hover:text-teal-600 transition-colors">{link.name}</Link>
             ))}
           </nav>
+
           <div className="flex items-center gap-3">
-            <LanguageSwitcher />
-            {user ? (
-              <Link href="/client/home"><Button variant="outline" size="sm">{ru ? 'Мой кабинет' : 'My Account'}</Button></Link>
+            <LanguageSwitcher variant="dropdown" className="hidden sm:block" />
+            {!authLoading && user ? (
+              <Link href={dashLink} className="hidden lg:block">
+                <Button variant="gradient" size="sm">
+                  <LayoutDashboard className="w-4 h-4 mr-1.5" />{dashLabel}
+                </Button>
+              </Link>
             ) : (
-              <Link href="/auth/login"><Button variant="outline" size="sm">{ru ? 'Войти' : 'Sign In'}</Button></Link>
+              <Link href="/auth/login" className="hidden lg:block">
+                <Button variant="outline" size="sm"><User className="w-4 h-4 mr-1.5" />{ru ? 'Войти' : 'Sign In'}</Button>
+              </Link>
             )}
+            {/* Mobile menu toggle */}
+            <button className="lg:hidden p-2 text-zinc-700" onClick={() => setMobileMenu(!mobileMenu)}>
+              {mobileMenu ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+            </button>
           </div>
         </div>
+
+        {/* Mobile menu */}
+        {mobileMenu && (
+          <div className="lg:hidden border-t border-zinc-100 bg-white px-4 py-4 space-y-3">
+            {navLinks.map(link => (
+              <Link key={link.href} href={link.href} onClick={() => setMobileMenu(false)}
+                className="block text-sm font-medium text-zinc-700 hover:text-teal-600 py-1.5">{link.name}</Link>
+            ))}
+            <div className="pt-3 border-t border-zinc-100 flex items-center gap-2">
+              <LanguageSwitcher variant="dropdown" className="sm:hidden" />
+              {!authLoading && user ? (
+                <Link href={dashLink} className="flex-1">
+                  <Button variant="gradient" size="sm" className="w-full"><LayoutDashboard className="w-4 h-4 mr-1.5" />{dashLabel}</Button>
+                </Link>
+              ) : (
+                <Link href="/auth/login" className="flex-1">
+                  <Button variant="outline" size="sm" className="w-full"><User className="w-4 h-4 mr-1.5" />{ru ? 'Войти' : 'Sign In'}</Button>
+                </Link>
+              )}
+            </div>
+          </div>
+        )}
       </header>
 
       {/* Hero */}
