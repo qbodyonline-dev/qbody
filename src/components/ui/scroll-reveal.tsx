@@ -92,6 +92,7 @@ export function ScrollReveal({
 
 /* ═══════════ HOOK: useScrollReveal ═══════════ */
 /* For cases where you can't wrap in a component (e.g. dangerouslySetInnerHTML blocks) */
+/* Supports dynamically rendered elements (e.g. after data fetch) via MutationObserver */
 export function useScrollReveal(options?: {
   threshold?: number
   rootMargin?: string
@@ -101,11 +102,22 @@ export function useScrollReveal(options?: {
   const { threshold = 0.12, rootMargin = '0px 0px -60px 0px', once = true, deps = [] } = options || {}
 
   useEffect(() => {
+    const revealSelector = '.reveal, .reveal-up, .reveal-left, .reveal-right, .reveal-scale, .stagger-parent'
+
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-      document.querySelectorAll('.reveal, .reveal-up, .reveal-left, .reveal-right, .reveal-scale')
+      // Показать все текущие элементы
+      document.querySelectorAll(revealSelector)
         .forEach(el => el.classList.add('is-visible'))
-      return
+      // Следить за новыми элементами (динамический контент после загрузки данных)
+      const mo = new MutationObserver(() => {
+        document.querySelectorAll(revealSelector)
+          .forEach(el => el.classList.add('is-visible'))
+      })
+      mo.observe(document.body, { childList: true, subtree: true })
+      return () => mo.disconnect()
     }
+
+    const observed = new WeakSet<Element>()
 
     const observer = new IntersectionObserver(
       (entries) => {
@@ -121,13 +133,28 @@ export function useScrollReveal(options?: {
       { threshold, rootMargin }
     )
 
-    // Observe all reveal elements
-    const targets = document.querySelectorAll(
-      '.reveal, .reveal-up, .reveal-left, .reveal-right, .reveal-scale, .stagger-parent'
-    )
-    targets.forEach(el => observer.observe(el))
+    // Наблюдать за всеми reveal-элементами (текущими и новыми)
+    const observeAll = () => {
+      document.querySelectorAll(revealSelector).forEach(el => {
+        if (!observed.has(el)) {
+          observed.add(el)
+          observer.observe(el)
+        }
+      })
+    }
 
-    return () => observer.disconnect()
+    observeAll()
+
+    // MutationObserver для отслеживания динамически добавленных элементов
+    // (например, после загрузки данных из API, когда reveal-элементы
+    // появляются в DOM позже, чем IntersectionObserver был создан)
+    const mutationObserver = new MutationObserver(observeAll)
+    mutationObserver.observe(document.body, { childList: true, subtree: true })
+
+    return () => {
+      observer.disconnect()
+      mutationObserver.disconnect()
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [threshold, rootMargin, once, ...deps])
 }

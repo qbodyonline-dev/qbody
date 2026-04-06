@@ -110,7 +110,7 @@ export default function CoursePage() {
 
   const visual = iconMap[slug] || { icon: BookOpen, color: 'from-teal-500 to-emerald-500' }
   const Icon = visual.icon
-  const price = course.price / 100
+  const price = (course.price ?? 0) / 100
   const originalPrice = course.original_price ? course.original_price / 100 : null
   const tags = ru ? (course.tags_secondary || course.tags || []) : (course.tags || [])
   const features = ru ? (course.features_secondary || course.features || []) : (course.features || [])
