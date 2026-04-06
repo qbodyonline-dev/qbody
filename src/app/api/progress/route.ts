@@ -72,8 +72,10 @@ export async function GET(request: NextRequest) {
           type,
           duration_minutes,
           video_url,
+          video_url_secondary,
           content,
           content_secondary,
+          is_free,
           sort_order,
           is_published
         )
@@ -131,12 +133,14 @@ export async function GET(request: NextRequest) {
                 id: l.id,
                 title: l.title,
                 title_secondary: l.title_secondary,
-                // ✅ FIX: include type, video_url and content blocks in response
+                // ✅ FIX: include type, video URLs, content blocks, is_free in response
                 type: l.type || 'video',
                 duration_minutes: l.duration_minutes,
                 video_url: l.video_url || null,
+                video_url_secondary: l.video_url_secondary || null,
                 content: l.content || [],
                 content_secondary: l.content_secondary || [],
+                is_free: !!l.is_free,
                 completed: progress?.completed || false,
                 watched_seconds: progress?.watched_seconds || 0,
                 last_watched_at: progress?.last_watched_at || null,

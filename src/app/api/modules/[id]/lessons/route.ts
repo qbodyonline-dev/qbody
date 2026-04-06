@@ -40,6 +40,7 @@ export async function POST(
       type: lessonType,
       duration_minutes: body.duration_minutes || 10,
       video_url: body.video_url || null,
+      video_url_secondary: body.video_url_secondary || null,
       content: body.content || [],
       content_secondary: body.content_secondary || [],
       is_free: body.is_free || false,

@@ -27,6 +27,7 @@ type Lesson = {
   completed: boolean
   watched_seconds: number
   video_url?: string | null
+  video_url_secondary?: string | null
   content?: ContentBlock[]
   content_secondary?: ContentBlock[]
 }
@@ -305,20 +306,25 @@ export default function LessonPage() {
       <div className="grid lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 space-y-6">
 
-          {/* ✅ FIX: Video Player — only for video lessons, supports Vimeo/YouTube/direct */}
-          {showVideoPlayer && (
-            <div className="aspect-video bg-zinc-900 rounded-2xl overflow-hidden flex items-center justify-center relative">
-              {currentLesson.video_url ? (
-                getVideoEmbed(currentLesson.video_url)
-              ) : (
-                <div className="text-center">
-                  <Play className="w-16 h-16 text-white/50 mx-auto mb-4" />
-                  <p className="text-white/50">{t('client.lesson.videoPlayer')}</p>
-                  <p className="text-white/30 text-sm">{t('client.lesson.protectedContent')}</p>
-                </div>
-              )}
-            </div>
-          )}
+          {/* ✅ FIX: Video Player — only for video lessons, locale-aware URL, supports Vimeo/YouTube/direct */}
+          {showVideoPlayer && (() => {
+            const videoUrl = ru
+              ? (currentLesson.video_url_secondary || currentLesson.video_url)
+              : currentLesson.video_url
+            return (
+              <div className="aspect-video bg-zinc-900 rounded-2xl overflow-hidden flex items-center justify-center relative">
+                {videoUrl ? (
+                  getVideoEmbed(videoUrl)
+                ) : (
+                  <div className="text-center">
+                    <Play className="w-16 h-16 text-white/50 mx-auto mb-4" />
+                    <p className="text-white/50">{t('client.lesson.videoPlayer')}</p>
+                    <p className="text-white/30 text-sm">{t('client.lesson.protectedContent')}</p>
+                  </div>
+                )}
+              </div>
+            )
+          })()}
 
           {/* Lesson Info */}
           <div>

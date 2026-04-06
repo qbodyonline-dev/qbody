@@ -33,6 +33,7 @@ type Lesson = {
   type: 'video' | 'text' | 'task'
   duration_minutes: number
   video_url: string | null
+  video_url_secondary: string | null
   content: ContentBlock[]
   content_secondary: ContentBlock[]
   is_free: boolean
@@ -82,16 +83,18 @@ export default function CourseEditorPage() {
   const [editingLesson, setEditingLesson] = useState<{ lesson: Lesson; moduleId: string } | null>(null)
   const [lessonForm, setLessonForm] = useState({
     title: '', title_secondary: '', type: 'video' as 'video' | 'text' | 'task',
-    duration_minutes: '10', video_url: '', is_free: false,
+    duration_minutes: '10', video_url: '', video_url_secondary: '', is_free: false,
     content: [] as ContentBlock[],
     content_secondary: [] as ContentBlock[]
   })
   const [addingToModuleId, setAddingToModuleId] = useState<string | null>(null)
   const [uploadingVideo, setUploadingVideo] = useState(false)
+  const [uploadingVideoSecondary, setUploadingVideoSecondary] = useState(false)
   const [uploadingImage, setUploadingImage] = useState<string | null>(null)
   const [deleteModuleId, setDeleteModuleId] = useState<string | null>(null)
   const [deleteLessonId, setDeleteLessonId] = useState<string | null>(null)
   const videoInputRef = useRef<HTMLInputElement>(null)
+  const videoSecondaryInputRef = useRef<HTMLInputElement>(null)
 
   const loadCourse = async () => {
     try {
@@ -182,6 +185,22 @@ export default function CourseEditorPage() {
     if (videoInputRef.current) videoInputRef.current.value = ''
   }
 
+  const handleVideoSecondaryUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (!file.type.startsWith('video/')) {
+      toast.error(ru ? 'Выберите видео файл' : 'Please select a video file')
+      return
+    }
+    setUploadingVideoSecondary(true)
+    const url = await uploadFile(file, 'videos')
+    if (url) {
+      setLessonForm({ ...lessonForm, video_url_secondary: url })
+      toast.success(ru ? 'Видео загружено!' : 'Video uploaded!')
+    }
+    setUploadingVideoSecondary(false)
+  }
+
   const handleImageUpload = async (file: File, blockId: string) => {
     setUploadingImage(blockId)
     const url = await uploadFile(file, 'images')
@@ -191,6 +210,19 @@ export default function CourseEditorPage() {
         content: prev.content.map(b => b.id === blockId ? { ...b, content: url } : b),
         content_secondary: prev.content_secondary.map(b => b.id === blockId ? { ...b, content: url } : b),
       }))
+      toast.success(ru ? 'Изображение загружено!' : 'Image uploaded!')
+    }
+    setUploadingImage(null)
+  }
+
+  const handleImageUploadSecondary = async (file: File, blockId: string) => {
+    setUploadingImage(blockId + '-secondary')
+    const url = await uploadFile(file, 'images')
+    if (url) {
+      const newContent = lessonForm.content_secondary.map(b =>
+        b.id === blockId ? { ...b, content: url } : b
+      )
+      setLessonForm({ ...lessonForm, content_secondary: newContent })
       toast.success(ru ? 'Изображение загружено!' : 'Image uploaded!')
     }
     setUploadingImage(null)
@@ -345,9 +377,9 @@ export default function CourseEditorPage() {
   const openAddLesson = (moduleId: string, type: 'video' | 'text' | 'task') => {
     setEditingLesson(null)
     setAddingToModuleId(moduleId)
-    setLessonForm({ 
-      title: '', title_secondary: '', type, 
-      duration_minutes: '10', video_url: '', is_free: false,
+    setLessonForm({
+      title: '', title_secondary: '', type,
+      duration_minutes: '10', video_url: '', video_url_secondary: '', is_free: false,
       content: [], content_secondary: []
     })
     setIsLessonModalOpen(true)
@@ -362,6 +394,7 @@ export default function CourseEditorPage() {
       type: lesson.type,
       duration_minutes: String(lesson.duration_minutes),
       video_url: lesson.video_url || '',
+      video_url_secondary: lesson.video_url_secondary || '',
       is_free: lesson.is_free,
       content: Array.isArray(lesson.content) ? lesson.content : [],
       content_secondary: Array.isArray(lesson.content_secondary) ? lesson.content_secondary : []
@@ -382,6 +415,7 @@ export default function CourseEditorPage() {
         type: lessonForm.type,
         duration_minutes: parseInt(lessonForm.duration_minutes) || 10,
         video_url: lessonForm.video_url || null,
+        video_url_secondary: lessonForm.video_url_secondary || null,
         is_free: lessonForm.is_free,
         content: lessonForm.content,
         content_secondary: lessonForm.content_secondary,
@@ -662,24 +696,56 @@ export default function CourseEditorPage() {
           {lessonForm.type === 'video' && (
             <div className="space-y-3">
               <label className="block text-sm font-medium">{ru ? 'Видео' : 'Video'}</label>
-              <div className="flex gap-3">
-                <Input 
-                  placeholder={ru ? 'URL видео или загрузите файл' : 'Video URL or upload file'}
-                  value={lessonForm.video_url} 
-                  onChange={(e) => setLessonForm({ ...lessonForm, video_url: e.target.value })} 
-                  className="flex-1"
-                />
-                <input type="file" ref={videoInputRef} accept="video/*" className="hidden" onChange={handleVideoUpload} />
-                <Button variant="outline" onClick={() => videoInputRef.current?.click()} disabled={uploadingVideo}>
-                  {uploadingVideo ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4 mr-2" />}
-                  {ru ? 'Загрузить' : 'Upload'}
-                </Button>
-              </div>
-              {lessonForm.video_url && (
-                <div className="p-3 bg-zinc-50 dark:bg-zinc-800 rounded-xl">
-                  <p className="text-sm text-zinc-600 truncate">{lessonForm.video_url}</p>
+              <div className={`grid ${lang.isBilingual ? 'grid-cols-2' : ''} gap-4`}>
+                {/* Primary video */}
+                <div className="space-y-2">
+                  {lang.isBilingual && <span className="text-xs text-zinc-500 font-medium">{lang.pCode?.toUpperCase()}</span>}
+                  <div className="flex gap-3">
+                    <Input
+                      placeholder={ru ? 'URL видео или загрузите файл' : 'Video URL or upload file'}
+                      value={lessonForm.video_url}
+                      onChange={(e) => setLessonForm({ ...lessonForm, video_url: e.target.value })}
+                      className="flex-1"
+                    />
+                    <input type="file" ref={videoInputRef} accept="video/*" className="hidden" onChange={handleVideoUpload} />
+                    <Button variant="outline" onClick={() => videoInputRef.current?.click()} disabled={uploadingVideo}>
+                      {uploadingVideo ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4 mr-2" />}
+                      {ru ? 'Загрузить' : 'Upload'}
+                    </Button>
+                  </div>
+                  {lessonForm.video_url && (
+                    <div className="p-3 bg-zinc-50 dark:bg-zinc-800 rounded-xl flex items-center gap-2">
+                      <p className="text-sm text-zinc-600 truncate flex-1">{lessonForm.video_url}</p>
+                      <Button variant="ghost" size="sm" onClick={() => setLessonForm({ ...lessonForm, video_url: '' })}><X className="w-3 h-3" /></Button>
+                    </div>
+                  )}
                 </div>
-              )}
+                {/* Secondary video */}
+                {lang.isBilingual && (
+                  <div className="space-y-2">
+                    <span className="text-xs text-zinc-500 font-medium">{lang.sCode?.toUpperCase()}</span>
+                    <div className="flex gap-3">
+                      <Input
+                        placeholder={ru ? 'URL видео или загрузите файл' : 'Video URL or upload file'}
+                        value={lessonForm.video_url_secondary}
+                        onChange={(e) => setLessonForm({ ...lessonForm, video_url_secondary: e.target.value })}
+                        className="flex-1"
+                      />
+                      <input type="file" ref={videoSecondaryInputRef} accept="video/*" className="hidden" onChange={handleVideoSecondaryUpload} />
+                      <Button variant="outline" onClick={() => videoSecondaryInputRef.current?.click()} disabled={uploadingVideoSecondary}>
+                        {uploadingVideoSecondary ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4 mr-2" />}
+                        {ru ? 'Загрузить' : 'Upload'}
+                      </Button>
+                    </div>
+                    {lessonForm.video_url_secondary && (
+                      <div className="p-3 bg-zinc-50 dark:bg-zinc-800 rounded-xl flex items-center gap-2">
+                        <p className="text-sm text-zinc-600 truncate flex-1">{lessonForm.video_url_secondary}</p>
+                        <Button variant="ghost" size="sm" onClick={() => setLessonForm({ ...lessonForm, video_url_secondary: '' })}><X className="w-3 h-3" /></Button>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
           )}
 
@@ -728,26 +794,59 @@ export default function CourseEditorPage() {
                     )}
 
                     {block.type === 'image' && (
-                      <div className="space-y-3">
-                        {block.content ? (
-                          <div className="relative">
-                            <img src={block.content} alt="" className="max-h-48 rounded-lg" />
-                            <Button variant="ghost" size="sm" onClick={() => updateContentBlock(block.id, 'content', '')} className="absolute top-2 right-2 bg-white/80"><X className="w-4 h-4" /></Button>
-                          </div>
-                        ) : (
-                          <div className="flex gap-3">
-                            <Input placeholder={ru ? 'URL изображения' : 'Image URL'} value={block.content} onChange={(e) => updateContentBlock(block.id, 'content', e.target.value)} className="flex-1" />
-                            <input type="file" id={`img-${block.id}`} accept="image/*" className="hidden" onChange={(e) => {
-                              const file = e.target.files?.[0]
-                              if (file) handleImageUpload(file, block.id)
-                              e.target.value = ''
-                            }} />
-                            <Button variant="outline" onClick={() => document.getElementById(`img-${block.id}`)?.click()} disabled={uploadingImage === block.id}>
-                              {uploadingImage === block.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4 mr-2" />}
-                              {ru ? 'Загрузить' : 'Upload'}
-                            </Button>
-                          </div>
-                        )}
+                      <div className={`grid ${lang.isBilingual ? 'grid-cols-2' : ''} gap-4`}>
+                        {/* Primary image */}
+                        <div className="space-y-2">
+                          {lang.isBilingual && <span className="text-xs text-zinc-500 font-medium">{lang.pCode?.toUpperCase()}</span>}
+                          {block.content ? (
+                            <div className="relative">
+                              <img src={block.content} alt="" className="max-h-48 rounded-lg" />
+                              <Button variant="ghost" size="sm" onClick={() => updateContentBlock(block.id, 'content', '')} className="absolute top-2 right-2 bg-white/80"><X className="w-4 h-4" /></Button>
+                            </div>
+                          ) : (
+                            <div className="flex gap-3">
+                              <Input placeholder={ru ? 'URL изображения' : 'Image URL'} value={block.content} onChange={(e) => updateContentBlock(block.id, 'content', e.target.value)} className="flex-1" />
+                              <input type="file" id={`img-${block.id}`} accept="image/*" className="hidden" onChange={(e) => {
+                                const file = e.target.files?.[0]
+                                if (file) handleImageUpload(file, block.id)
+                                e.target.value = ''
+                              }} />
+                              <Button variant="outline" onClick={() => document.getElementById(`img-${block.id}`)?.click()} disabled={uploadingImage === block.id}>
+                                {uploadingImage === block.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4 mr-2" />}
+                                {ru ? 'Загрузить' : 'Upload'}
+                              </Button>
+                            </div>
+                          )}
+                        </div>
+                        {/* Secondary image */}
+                        {lang.isBilingual && (() => {
+                          const secBlock = lessonForm.content_secondary.find(b => b.id === block.id)
+                          const secContent = secBlock?.content || ''
+                          return (
+                            <div className="space-y-2">
+                              <span className="text-xs text-zinc-500 font-medium">{lang.sCode?.toUpperCase()}</span>
+                              {secContent ? (
+                                <div className="relative">
+                                  <img src={secContent} alt="" className="max-h-48 rounded-lg" />
+                                  <Button variant="ghost" size="sm" onClick={() => updateContentBlock(block.id, 'content_secondary', '')} className="absolute top-2 right-2 bg-white/80"><X className="w-4 h-4" /></Button>
+                                </div>
+                              ) : (
+                                <div className="flex gap-3">
+                                  <Input placeholder={ru ? 'URL изображения' : 'Image URL'} value={secContent} onChange={(e) => updateContentBlock(block.id, 'content_secondary', e.target.value)} className="flex-1" />
+                                  <input type="file" id={`img-sec-${block.id}`} accept="image/*" className="hidden" onChange={(e) => {
+                                    const file = e.target.files?.[0]
+                                    if (file) handleImageUploadSecondary(file, block.id)
+                                    e.target.value = ''
+                                  }} />
+                                  <Button variant="outline" onClick={() => document.getElementById(`img-sec-${block.id}`)?.click()} disabled={uploadingImage === block.id + '-secondary'}>
+                                    {uploadingImage === block.id + '-secondary' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4 mr-2" />}
+                                    {ru ? 'Загрузить' : 'Upload'}
+                                  </Button>
+                                </div>
+                              )}
+                            </div>
+                          )
+                        })()}
                       </div>
                     )}
 
