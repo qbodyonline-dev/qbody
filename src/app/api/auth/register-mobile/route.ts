@@ -16,9 +16,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Invalid client' }, { status: 403 })
   }
 
-  // ✅ RATE LIMIT: Stricter for mobile (no captcha) — 3 per IP per hour
+  // ✅ RATE LIMIT: Mobile registrations — 10 per IP per hour
+  // (mobile carrier NAT often shares one IP across many users, so 3/hr was too strict)
   const ip = getClientIP(request)
-  const rateCheck = await checkRateLimit(`register-mobile:${ip}`, 3, 60 * 60 * 1000)
+  const rateCheck = await checkRateLimit(`register-mobile:${ip}`, 10, 60 * 60 * 1000)
   if (!rateCheck.allowed) {
     return NextResponse.json({ error: 'Too many registration attempts. Please try again later.' }, { status: 429 })
   }

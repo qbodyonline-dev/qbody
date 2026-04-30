@@ -54,17 +54,18 @@ export async function PATCH(
     if (body.title_secondary !== undefined) updateData.title_secondary = sanitizeString(body.title_secondary, 500)
     if (body.type !== undefined && allowedTypes.includes(body.type)) updateData.type = body.type
     if (body.duration_minutes !== undefined) updateData.duration_minutes = Math.max(0, Math.min(Number(body.duration_minutes) || 0, 600))
-    // Fetch existing lesson data if video or content is changing (for storage cleanup)
+    // Fetch existing video URLs if videos are changing (for storage cleanup of replaced files).
+    // ⚠ We do NOT auto-delete "orphaned" images from content blocks on PATCH — same image URL
+    // may be referenced from another lesson. Image cleanup is intentionally left to manual
+    // admin action / a separate orphan-scanner job. Videos are 1:1 per field, so safe to clean.
     const needsExisting =
       body.video_url !== undefined ||
-      body.video_url_secondary !== undefined ||
-      body.content !== undefined ||
-      body.content_secondary !== undefined
+      body.video_url_secondary !== undefined
     let existing: any = null
     if (needsExisting) {
       const { data } = await supabase
         .from('course_lessons')
-        .select('video_url, video_url_secondary, content, content_secondary')
+        .select('video_url, video_url_secondary')
         .eq('id', params.id)
         .single()
       existing = data
@@ -83,31 +84,8 @@ export async function PATCH(
       updateData.video_url_secondary = body.video_url_secondary
     }
 
-    // Clean up orphaned images: compare old vs new content blocks (across both languages)
-    const extractImageUrls = (content: any): string[] => {
-      if (!Array.isArray(content)) return []
-      return content
-        .filter((b: any) => b.type === 'image' && b.content)
-        .map((b: any) => b.content)
-    }
-    if (body.content !== undefined) {
-      const oldUrls = new Set(extractImageUrls(existing?.content))
-      const newUrls = new Set(extractImageUrls(body.content))
-      const orphaned = Array.from(oldUrls).filter(url => !newUrls.has(url))
-      if (orphaned.length > 0) {
-        await deleteStorageFiles(supabase, orphaned)
-      }
-      updateData.content = body.content
-    }
-    if (body.content_secondary !== undefined) {
-      const oldUrls = new Set(extractImageUrls(existing?.content_secondary))
-      const newUrls = new Set(extractImageUrls(body.content_secondary))
-      const orphaned = Array.from(oldUrls).filter(url => !newUrls.has(url))
-      if (orphaned.length > 0) {
-        await deleteStorageFiles(supabase, orphaned)
-      }
-      updateData.content_secondary = body.content_secondary
-    }
+    if (body.content !== undefined) updateData.content = body.content
+    if (body.content_secondary !== undefined) updateData.content_secondary = body.content_secondary
     if (body.is_free !== undefined) updateData.is_free = !!body.is_free
     if (body.is_published !== undefined) updateData.is_published = !!body.is_published
     if (body.sort_order !== undefined) updateData.sort_order = Number(body.sort_order) || 0

@@ -5,10 +5,16 @@ import crypto from 'crypto'
 
 export const maxDuration = 60
 
-const IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
-const VIDEO_TYPES = ['video/mp4', 'video/webm', 'video/quicktime', 'video/x-msvideo', 'video/x-matroska']
-const IMAGE_MAX = 10 * 1024 * 1024   // 10 MB
-const VIDEO_MAX = 100 * 1024 * 1024  // 100 MB
+const IMAGE_TYPES = [
+  'image/jpeg', 'image/png', 'image/webp', 'image/gif',
+  'image/avif', 'image/heic', 'image/heif',
+]
+const VIDEO_TYPES = [
+  'video/mp4', 'video/webm', 'video/quicktime', 'video/x-msvideo', 'video/x-matroska',
+  'video/ogg', 'video/x-m4v', 'video/3gpp',
+]
+const IMAGE_MAX = 15 * 1024 * 1024   // 15 MB (HEIC photos from iPhones can be larger)
+const VIDEO_MAX = 200 * 1024 * 1024  // 200 MB (matches security.MAX_VIDEO_SIZE)
 
 const BUCKET_IMAGES = 'content-images'
 const BUCKET_VIDEOS = 'content-videos'

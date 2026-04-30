@@ -128,11 +128,14 @@ const nextConfig = {
               "default-src 'self'",
               "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.google.com https://www.gstatic.com",
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-              "img-src 'self' data: blob: https://*.supabase.co https://images.unsplash.com",
-              "font-src 'self' https://fonts.gstatic.com",
+              // CMS-редактор позволяет вставлять картинки с внешних хостов — разрешаем все https
+              "img-src 'self' data: blob: https:",
+              "font-src 'self' data: https://fonts.gstatic.com",
               "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.stripe.com https://www.google.com",
-              "frame-src https://www.google.com https://js.stripe.com https://www.youtube.com https://player.vimeo.com",
-              "media-src 'self' https://*.supabase.co blob:",
+              // Совпадает с whitelist в IFRAME_SRC_ALLOWLIST (security.ts) + Stripe + Maps
+              "frame-src 'self' https://www.google.com https://maps.google.com https://js.stripe.com https://www.youtube.com https://www.youtube-nocookie.com https://player.vimeo.com https://open.spotify.com https://w.soundcloud.com",
+              // Видео: Supabase Storage + любой https + blob: (плеер) + data: (preview)
+              "media-src 'self' https: blob: data:",
               "object-src 'none'",
               "base-uri 'self'",
               "form-action 'self' https://checkout.stripe.com",

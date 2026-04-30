@@ -9,19 +9,25 @@ import { createClient as createSupabaseRateLimitClient } from '@supabase/supabas
 
 /** Allowed MIME types for file uploads */
 export const ALLOWED_UPLOAD_TYPES: Record<string, string[]> = {
-  image: ['image/jpeg', 'image/png', 'image/webp', 'image/gif'],
-  video: ['video/mp4', 'video/webm', 'video/quicktime'],
+  image: [
+    'image/jpeg', 'image/png', 'image/webp', 'image/gif',
+    'image/avif', 'image/heic', 'image/heif',
+  ],
+  video: [
+    'video/mp4', 'video/webm', 'video/quicktime', 'video/x-msvideo', 'video/x-matroska',
+    'video/ogg', 'video/x-m4v', 'video/3gpp',
+  ],
   document: ['application/pdf'],
 }
 
 /** All allowed types flattened */
 export const ALL_ALLOWED_TYPES = Object.values(ALLOWED_UPLOAD_TYPES).flat()
 
-/** Max file size in bytes (50 MB) */
-export const MAX_FILE_SIZE = 50 * 1024 * 1024
+/** Max file size in bytes (200 MB — covers videos) */
+export const MAX_FILE_SIZE = 200 * 1024 * 1024
 
-/** Max image file size (10 MB) */
-export const MAX_IMAGE_SIZE = 10 * 1024 * 1024
+/** Max image file size (15 MB — HEIC iPhone photos can be larger than 10 MB) */
+export const MAX_IMAGE_SIZE = 15 * 1024 * 1024
 
 /** Max video file size (200 MB) */
 export const MAX_VIDEO_SIZE = 200 * 1024 * 1024
@@ -155,12 +161,13 @@ export function getClientIP(request: Request): string {
 
 // ─── Input Sanitization ───
 
-/** Sanitize string input — strip dangerous HTML and limit length (for plain text fields) */
+/** Sanitize string input — strip dangerous HTML and limit length (for plain text fields).
+ *  Note: this is for short plaintext fields (titles, names) — use sanitizeHTMLContent for rich HTML. */
 export function sanitizeString(input: string, maxLength = 10000): string {
   if (!input || typeof input !== 'string') return ''
   return input
     .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '') // Remove script tags
-    .replace(/<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi, '') // Remove iframes
+    .replace(/<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi, '') // Remove iframes (no whitelist in plain text)
     .replace(/<object\b[^<]*(?:(?!<\/object>)<[^<]*)*<\/object>/gi, '') // Remove object tags
     .replace(/<embed[^>]*>/gi, '') // Remove embed tags
     .replace(/<applet\b[^<]*(?:(?!<\/applet>)<[^<]*)*<\/applet>/gi, '') // Remove applet tags
@@ -178,24 +185,65 @@ export function sanitizeString(input: string, maxLength = 10000): string {
     .slice(0, maxLength)
 }
 
-/** 
+/**
+ * Whitelist of iframe src prefixes that are safe to embed in CMS content.
+ * Used by both server- and client-side sanitizers.
+ */
+export const IFRAME_SRC_ALLOWLIST = [
+  'https://www.youtube.com/embed/',
+  'https://www.youtube-nocookie.com/embed/',
+  'https://youtube.com/embed/',
+  'https://player.vimeo.com/video/',
+  'https://www.google.com/maps/embed',
+  'https://maps.google.com/maps',
+  'https://open.spotify.com/embed/',
+  'https://w.soundcloud.com/player/',
+]
+
+export function isIframeSrcAllowed(src: string): boolean {
+  if (!src) return false
+  const s = src.trim().toLowerCase()
+  return IFRAME_SRC_ALLOWLIST.some(prefix => s.startsWith(prefix.toLowerCase()))
+}
+
+/**
  * Server-side HTML content sanitizer for page blocks
- * More permissive than sanitizeString — allows safe HTML tags but strips dangerous ones
+ * More permissive than sanitizeString — allows safe HTML tags but strips dangerous ones.
+ *
+ * Allows:
+ *  - <iframe> only if src matches IFRAME_SRC_ALLOWLIST (YouTube, Vimeo, Google Maps, etc.)
+ *  - <button> without formaction (CMS CTA buttons)
+ *  - <form> with action on same origin or allow-listed payment processors (CSP enforces this too)
+ *  - All inline event handlers are stripped
+ *  - "behavior:" CSS check uses word-boundary so it does NOT strip "scroll-behavior" / "overscroll-behavior"
  */
 export function sanitizeHTMLContent(html: string, maxLength = 500000): string {
   if (!html || typeof html !== 'string') return ''
   return html
     // Remove dangerous tags completely (with content)
     .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
-    .replace(/<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi, '')
+    // <iframe>: keep only those matching IFRAME_SRC_ALLOWLIST
+    .replace(/<iframe\b([^>]*)>([\s\S]*?)<\/iframe>/gi, (match, attrs) => {
+      const srcMatch = String(attrs).match(/\bsrc\s*=\s*["']([^"']+)["']/i)
+      if (srcMatch && isIframeSrcAllowed(srcMatch[1])) return match
+      return ''
+    })
+    // Self-closing iframes (rare, but handle)
+    .replace(/<iframe\b([^>]*)\/>/gi, (match, attrs) => {
+      const srcMatch = String(attrs).match(/\bsrc\s*=\s*["']([^"']+)["']/i)
+      if (srcMatch && isIframeSrcAllowed(srcMatch[1])) return match
+      return ''
+    })
     .replace(/<object\b[^<]*(?:(?!<\/object>)<[^<]*)*<\/object>/gi, '')
     .replace(/<embed[^>]*>/gi, '')
     .replace(/<applet\b[^<]*(?:(?!<\/applet>)<[^<]*)*<\/applet>/gi, '')
-    .replace(/<form\b[^<]*(?:(?!<\/form>)<[^<]*)*<\/form>/gi, '')
+    // Strip <form> tags but KEEP their content (CMS may have nested CTAs/text)
+    .replace(/<\/?form\b[^>]*>/gi, '')
     .replace(/<input[^>]*>/gi, '')
     .replace(/<textarea\b[^<]*(?:(?!<\/textarea>)<[^<]*)*<\/textarea>/gi, '')
     .replace(/<select\b[^<]*(?:(?!<\/select>)<[^<]*)*<\/select>/gi, '')
-    .replace(/<button\b[^<]*(?:(?!<\/button>)<[^<]*)*<\/button>/gi, '')
+    // Allow <button> for CTAs but strip formaction attribute (XSS vector)
+    .replace(/(<button\b[^>]*?)\s+formaction\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/gi, '$1')
     .replace(/<meta[^>]*>/gi, '')
     .replace(/<link[^>]*>/gi, '')
     .replace(/<base[^>]*>/gi, '')
@@ -210,7 +258,9 @@ export function sanitizeHTMLContent(html: string, maxLength = 500000): string {
     // Remove CSS expressions
     .replace(/expression\s*\(/gi, '')
     .replace(/-moz-binding\s*:/gi, '')
-    .replace(/behavior\s*:/gi, '')
+    // ⚠ Boundary check: "behavior:" alone is IE-only, but bare regex ALSO matches
+    // safe modern CSS like "scroll-behavior", "overscroll-behavior" — do NOT use plain /behavior:/.
+    .replace(/(^|[\s;{"'])behavior\s*:/gi, '$1/* removed */:')
     .slice(0, maxLength)
 }
 

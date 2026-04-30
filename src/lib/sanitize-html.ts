@@ -6,12 +6,32 @@
  * Applied before any dangerouslySetInnerHTML rendering
  */
 
-// Dangerous tags that can execute scripts
+// Dangerous tags that can execute scripts.
+// Note: <iframe> is handled separately with a host-whitelist (YouTube, Vimeo, Maps, etc.).
+// Note: <button> is allowed as a CMS CTA element — formaction attribute is stripped instead.
 const DANGEROUS_TAGS = new Set([
-  'script', 'iframe', 'object', 'embed', 'applet', 'form',
-  'input', 'textarea', 'select', 'button', 'meta', 'link',
+  'script', 'object', 'embed', 'applet', 'form',
+  'input', 'textarea', 'select', 'meta', 'link',
   'base', 'noscript', 'template',
 ])
+
+/** iframe src prefixes that are safe to embed in CMS content. */
+const IFRAME_ALLOWED_PREFIXES = [
+  'https://www.youtube.com/embed/',
+  'https://www.youtube-nocookie.com/embed/',
+  'https://youtube.com/embed/',
+  'https://player.vimeo.com/video/',
+  'https://www.google.com/maps/embed',
+  'https://maps.google.com/maps',
+  'https://open.spotify.com/embed/',
+  'https://w.soundcloud.com/player/',
+]
+
+function isIframeSrcAllowed(src: string): boolean {
+  if (!src) return false
+  const s = src.trim().toLowerCase()
+  return IFRAME_ALLOWED_PREFIXES.some(p => s.startsWith(p.toLowerCase()))
+}
 
 // Dangerous attributes that can execute code
 const DANGEROUS_ATTRS = new Set([
@@ -31,7 +51,7 @@ const DANGEROUS_ATTRS = new Set([
 ])
 
 // Allowed URL schemes
-const SAFE_URL_SCHEMES = ['http:', 'https:', 'mailto:', 'tel:', '#', '/']
+const SAFE_URL_SCHEMES = ['http:', 'https:', 'mailto:', 'tel:', '#', '/', 'blob:']
 
 /**
  * Check if a URL is safe (no javascript:, data:text/html, vbscript:, etc.)
@@ -115,17 +135,32 @@ function walkAndSanitize(node: Node): void {
   if (node.nodeType === Node.ELEMENT_NODE) {
     const el = node as Element
     const tagName = el.tagName.toLowerCase()
-    
+
     // Remove dangerous tags entirely
     if (DANGEROUS_TAGS.has(tagName)) {
       el.parentNode?.removeChild(el)
       return
     }
-    
+
+    // Iframe: allow only if src matches whitelist
+    if (tagName === 'iframe') {
+      const src = el.getAttribute('src') || ''
+      if (!isIframeSrcAllowed(src)) {
+        el.parentNode?.removeChild(el)
+        return
+      }
+      // Keep iframe but still sanitize its other attributes (drop on*, srcdoc, etc.)
+    }
+
+    // Button: strip the formaction attribute (XSS vector); keep the element itself
+    if (tagName === 'button') {
+      el.removeAttribute('formaction')
+    }
+
     // Sanitize this element's attributes
     sanitizeElement(el)
   }
-  
+
   // Walk children (copy to array since DOM may change during iteration)
   const children = Array.from(node.childNodes)
   children.forEach(child => walkAndSanitize(child))
@@ -210,12 +245,22 @@ export function sanitizeStyleObj(style: Record<string, any>): Record<string, any
     }
   }
   
-  // Check customCss for dangerous content
+  // Check customCss for dangerous content.
+  // ⚠ Use boundary regex for "behavior:" so we don't strip safe modern CSS like
+  // "scroll-behavior" or "overscroll-behavior". Also allow url(data:image/...) for
+  // inline SVG icons / placeholders.
   if (clean.customCss) {
     const css = String(clean.customCss).toLowerCase()
-    if (css.includes('expression(') || css.includes('javascript:') || 
-        css.includes('-moz-binding') || css.includes('behavior:') ||
-        css.includes('url(data:')) {
+    if (
+      css.includes('expression(') ||
+      css.includes('javascript:') ||
+      css.includes('-moz-binding') ||
+      /(?:^|[\s;{"'])behavior\s*:/.test(css) ||
+      css.includes('url(data:text/') ||
+      css.includes('url(data:application/') ||
+      css.includes('url(javascript:') ||
+      css.includes('url(vbscript:')
+    ) {
       delete clean.customCss
     }
   }
