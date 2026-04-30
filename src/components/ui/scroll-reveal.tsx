@@ -319,3 +319,88 @@ export function useSliderControls() {
     }
   }, [])
 }
+
+/* ═══════════ HOOK: useFaqAccordion ═══════════ */
+/* Wires up FAQ accordion expand/collapse via event delegation.
+   Renderer outputs <button data-faq-toggle="1">...</button> inside .fq-acc containers
+   with .fq-acc-body and .fq-acc-icon children. Inline onclick is stripped by sanitizer. */
+export function useFaqAccordion() {
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const target = e.target as HTMLElement | null
+      if (!target) return
+      const btn = target.closest<HTMLElement>('[data-faq-toggle]')
+      if (!btn) return
+      const wrap = btn.closest<HTMLElement>('.fq-acc')
+      if (!wrap) return
+      const body = wrap.querySelector<HTMLElement>('.fq-acc-body')
+      const icon = wrap.querySelector<HTMLElement>('.fq-acc-icon')
+      if (!body) return
+      const isOpen = body.style.maxHeight && body.style.maxHeight !== '0px'
+      if (isOpen) {
+        body.style.maxHeight = '0px'
+        body.style.opacity = '0'
+        if (icon) icon.style.transform = 'rotate(0deg)'
+      } else {
+        body.style.maxHeight = body.scrollHeight + 'px'
+        body.style.opacity = '1'
+        if (icon) icon.style.transform = 'rotate(45deg)'
+      }
+    }
+    document.addEventListener('click', handler)
+    return () => document.removeEventListener('click', handler)
+  }, [])
+}
+
+/* ═══════════ HOOK: useContactForm ═══════════ */
+/* Intercepts submit on <form data-contact-form>. POSTs the form data to /api/public/contact
+   and shows .ct-success on success. Inline onsubmit is stripped by sanitizer. */
+export function useContactForm() {
+  useEffect(() => {
+    const handler = async (e: Event) => {
+      const form = e.target as HTMLElement | null
+      if (!form || !(form instanceof HTMLFormElement)) return
+      if (!form.hasAttribute('data-contact-form')) return
+      e.preventDefault()
+
+      const btn = form.querySelector<HTMLButtonElement>('.ct-btn')
+      const origText = btn?.textContent || ''
+      const successEl = form.querySelector<HTMLElement>('.ct-success')
+        || form.closest<HTMLElement>('[id]')?.querySelector<HTMLElement>('.ct-success')
+        || null
+
+      if (btn) { btn.disabled = true; btn.textContent = '…' }
+
+      const payload: Record<string, string> = {}
+      const inputs = form.querySelectorAll<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>(
+        'input, textarea, select'
+      )
+      inputs.forEach((el) => {
+        const name = el.getAttribute('name') || el.getAttribute('placeholder') || el.getAttribute('type') || 'field'
+        payload[name] = (el as any).value || ''
+      })
+      payload._page = typeof window !== 'undefined' ? window.location.pathname : ''
+
+      try {
+        const res = await fetch('/api/public/contact', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        })
+        if (res.ok) {
+          form.reset()
+          if (successEl) {
+            successEl.style.display = 'block'
+            setTimeout(() => { successEl.style.display = 'none' }, 4000)
+          }
+        }
+      } catch {
+        // silent fail — show button restore below
+      } finally {
+        if (btn) { btn.disabled = false; btn.textContent = origText }
+      }
+    }
+    document.addEventListener('submit', handler)
+    return () => document.removeEventListener('submit', handler)
+  }, [])
+}

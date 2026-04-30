@@ -193,12 +193,12 @@ export function renderCourses2HTML(items: CourseItem2[], section: CourseSectionD
 </style>`
 
     body = `<div style="position:relative;">
-      <div class="cs-slider-track" data-nb-slider="${id}" style="display:flex;gap:${gap}px;overflow-x:auto;scroll-snap-type:x mandatory;scroll-behavior:smooth;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding-bottom:4px;">
+      <div class="cs-slider-track ${id}-track" style="display:flex;gap:${gap}px;overflow-x:auto;scroll-snap-type:x mandatory;scroll-behavior:smooth;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding-bottom:4px;">
         ${cards}
       </div>
       <div style="display:flex;justify-content:center;gap:12px;margin-top:24px;">
-        <button data-nb-prev="${id}" style="width:40px;height:40px;border-radius:50%;background:${cardBg};border:1px solid ${accent}40;color:${accent};font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;">←</button>
-        <button data-nb-next="${id}" style="width:40px;height:40px;border-radius:50%;background:${cardBg};border:1px solid ${accent}40;color:${accent};font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;">→</button>
+        <button type="button" data-slider-prev="${id}" style="width:40px;height:40px;border-radius:50%;background:${cardBg};border:1px solid ${accent}40;color:${accent};font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;">←</button>
+        <button type="button" data-slider-next="${id}" style="width:40px;height:40px;border-radius:50%;background:${cardBg};border:1px solid ${accent}40;color:${accent};font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;">→</button>
       </div>
     </div>`
   } else {

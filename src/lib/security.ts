@@ -237,13 +237,12 @@ export function sanitizeHTMLContent(html: string, maxLength = 500000): string {
     .replace(/<object\b[^<]*(?:(?!<\/object>)<[^<]*)*<\/object>/gi, '')
     .replace(/<embed[^>]*>/gi, '')
     .replace(/<applet\b[^<]*(?:(?!<\/applet>)<[^<]*)*<\/applet>/gi, '')
-    // Strip <form> tags but KEEP their content (CMS may have nested CTAs/text)
-    .replace(/<\/?form\b[^>]*>/gi, '')
-    .replace(/<input[^>]*>/gi, '')
-    .replace(/<textarea\b[^<]*(?:(?!<\/textarea>)<[^<]*)*<\/textarea>/gi, '')
-    .replace(/<select\b[^<]*(?:(?!<\/select>)<[^<]*)*<\/select>/gi, '')
+    // <form>, <input>, <textarea>, <select> are allowed (CMS contact block needs them).
+    // Strip the action attribute if it points to javascript: or vbscript: (handled by global protocol filter below).
     // Allow <button> for CTAs but strip formaction attribute (XSS vector)
     .replace(/(<button\b[^>]*?)\s+formaction\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/gi, '$1')
+    // Strip formaction on input/button anywhere
+    .replace(/(<(?:input|button)\b[^>]*?)\s+formaction\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/gi, '$1')
     .replace(/<meta[^>]*>/gi, '')
     .replace(/<link[^>]*>/gi, '')
     .replace(/<base[^>]*>/gi, '')

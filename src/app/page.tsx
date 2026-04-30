@@ -6,7 +6,7 @@ import { useTranslation, useRendererLang } from '@/lib/i18n'
 import { useAuth } from '@/lib/auth'
 import { Button } from '@/components/ui/button'
 import { LanguageSwitcher } from '@/components/ui/language-switcher'
-import { useSmoothAnchor, useLazyImages, useSliderControls } from '@/components/ui/scroll-reveal'
+import { useSmoothAnchor, useLazyImages, useSliderControls, useFaqAccordion, useContactForm } from '@/components/ui/scroll-reveal'
 import {
   Menu, X, User, LayoutDashboard
 } from 'lucide-react'
@@ -616,6 +616,10 @@ export default function HomePage() {
 
   // ✅ SLIDER ARROWS / DOTS: Event delegation (sanitizer strips inline onclick from rendered HTML)
   useSliderControls()
+  // ✅ FAQ ACCORDION: Event delegation for [data-faq-toggle] buttons
+  useFaqAccordion()
+  // ✅ CONTACT FORM: Intercept submit on [data-contact-form] forms → POST /api/public/contact
+  useContactForm()
 
   // ✅ SMOOTH ANIMATIONS: Set up IntersectionObserver AFTER blocks render
   useEffect(() => {

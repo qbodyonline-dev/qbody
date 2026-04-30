@@ -9,10 +9,11 @@
 // Dangerous tags that can execute scripts.
 // Note: <iframe> is handled separately with a host-whitelist (YouTube, Vimeo, Maps, etc.).
 // Note: <button> is allowed as a CMS CTA element — formaction attribute is stripped instead.
+// Note: <form>, <input>, <textarea>, <select> are allowed — the CMS contact block needs them.
+//        Dangerous attributes (on*, formaction, action with javascript:) are stripped below.
 const DANGEROUS_TAGS = new Set([
-  'script', 'object', 'embed', 'applet', 'form',
-  'input', 'textarea', 'select', 'meta', 'link',
-  'base', 'noscript', 'template',
+  'script', 'object', 'embed', 'applet',
+  'meta', 'link', 'base', 'noscript', 'template',
 ])
 
 /** iframe src prefixes that are safe to embed in CMS content. */

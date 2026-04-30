@@ -321,6 +321,14 @@ export function SliderEditor({ data, onChange, lang }: SliderEditorProps) {
             <label className="text-xs text-zinc-500 block mb-1">{ru ? 'Заголовок RU' : 'Title RU'}</label>
             <Input value={data.titleRu} onChange={e => upd({ titleRu: e.target.value })} className="text-xs h-8" />
           </div>
+          <div>
+            <label className="text-xs text-zinc-500 block mb-1">{ru ? 'Подзаголовок EN' : 'Subtitle EN'}</label>
+            <Input value={data.subtitleEn || ''} onChange={e => upd({ subtitleEn: e.target.value })} className="text-xs h-8" />
+          </div>
+          <div>
+            <label className="text-xs text-zinc-500 block mb-1">{ru ? 'Подзаголовок RU' : 'Subtitle RU'}</label>
+            <Input value={data.subtitleRu || ''} onChange={e => upd({ subtitleRu: e.target.value })} className="text-xs h-8" />
+          </div>
         </div>
 
         {/* Settings */}
@@ -447,6 +455,20 @@ function SlideEditor({ slide, index, variant, isExpanded, onToggle, onChange, on
                 ))}</div></div>
             </>
           )}
+          {/* Per-slide background — useful especially for fullscreen variant */}
+          <div className="grid grid-cols-2 gap-2 pt-2 border-t border-zinc-200 dark:border-zinc-700">
+            <div>
+              <label className="text-[10px] text-zinc-500 block mb-0.5">{ru ? 'Фон слайда' : 'Slide BG'}</label>
+              <div className="flex gap-1 items-center">
+                <input type="color" value={slide.bgColor || '#0a0a0a'} onChange={e => onChange({ bgColor: e.target.value })} className="w-6 h-6 rounded cursor-pointer flex-shrink-0" />
+                <Input value={slide.bgColor || ''} onChange={e => onChange({ bgColor: e.target.value })} className="text-xs h-7" placeholder="#0a0a0a" />
+              </div>
+            </div>
+            <div>
+              <label className="text-[10px] text-zinc-500 block mb-0.5">{ru ? 'Градиент' : 'Gradient'}</label>
+              <Input value={slide.bgGradient || ''} onChange={e => onChange({ bgGradient: e.target.value })} className="text-xs h-7" placeholder="linear-gradient(...)" />
+            </div>
+          </div>
         </div>
       )}
     </div>

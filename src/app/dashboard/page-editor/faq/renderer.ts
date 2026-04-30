@@ -83,7 +83,7 @@ function renderAccordion(s: FaqSectionData, lang: 'en' | 'ru', id: string): stri
     const a = lang === 'ru' ? item.answerRu : item.answer
     const open = s.defaultOpen === i
     return `<div class="fq-anim fq-acc" data-faq-idx="${i}" style="border-bottom:1px solid ${txt}11;">
-      <button class="fq-acc-btn" onclick="(function(e){var p=e.closest('.fq-acc'),c=p.querySelector('.fq-acc-body'),ic=p.querySelector('.fq-acc-icon');if(c.style.maxHeight&&c.style.maxHeight!=='0px'){c.style.maxHeight='0px';c.style.opacity='0';ic.style.transform='rotate(0deg)'}else{c.style.maxHeight=c.scrollHeight+'px';c.style.opacity='1';ic.style.transform='rotate(45deg)'}})(this)" style="width:100%;display:flex;align-items:center;gap:14px;padding:20px 0;background:none;border:none;cursor:pointer;text-align:left;">
+      <button type="button" class="fq-acc-btn" data-faq-toggle="1" style="width:100%;display:flex;align-items:center;gap:14px;padding:20px 0;background:none;border:none;cursor:pointer;text-align:left;">
         ${prefix(s, i, item)}
         <span style="flex:1;${qStyle(s, 'clamp(15px,2vw,17px)')}font-weight:600;">${q}</span>
         <span class="fq-acc-icon" style="font-size:20px;color:${accent};transition:transform 0.3s;flex-shrink:0;${open ? 'transform:rotate(45deg);' : ''}">+</span>
@@ -142,7 +142,7 @@ function renderSidebyside(s: FaqSectionData, lang: 'en' | 'ru', id: string): str
     const a = lang === 'ru' ? item.answerRu : item.answer
     const open = s.defaultOpen === i
     return `<div class="fq-anim fq-acc" data-faq-idx="${i}" style="border-bottom:1px solid ${txt}11;">
-      <button class="fq-acc-btn" onclick="(function(e){var p=e.closest('.fq-acc'),c=p.querySelector('.fq-acc-body'),ic=p.querySelector('.fq-acc-icon');if(c.style.maxHeight&&c.style.maxHeight!=='0px'){c.style.maxHeight='0px';c.style.opacity='0';ic.style.transform='rotate(0deg)'}else{c.style.maxHeight=c.scrollHeight+'px';c.style.opacity='1';ic.style.transform='rotate(45deg)'}})(this)" style="width:100%;display:flex;align-items:center;gap:14px;padding:18px 0;background:none;border:none;cursor:pointer;text-align:left;">
+      <button type="button" class="fq-acc-btn" data-faq-toggle="1" style="width:100%;display:flex;align-items:center;gap:14px;padding:18px 0;background:none;border:none;cursor:pointer;text-align:left;">
         ${prefix(s, i, item)}
         <span style="flex:1;${qStyle(s, '15px')}font-weight:600;">${q}</span>
         <span class="fq-acc-icon" style="font-size:18px;color:${accent};transition:transform 0.3s;flex-shrink:0;${open ? 'transform:rotate(45deg);' : ''}">+</span>
