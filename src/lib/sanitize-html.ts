@@ -144,9 +144,16 @@ export function sanitizeHTML(html: string): string {
     // losing them from body.innerHTML. Extract first, restore after.
     const styleBlocks: string[] = []
     const htmlNoStyles = html.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, (match) => {
-      // Basic sanitize: block expression(), javascript:, -moz-binding
+      // Basic sanitize: block expression(), javascript:, -moz-binding, IE behavior:
+      // NOTE: bare "behavior:" must use boundary check so it doesn't match
+      // safe modern CSS properties like scroll-behavior, overscroll-behavior, etc.
       const lower = match.toLowerCase()
-      if (lower.includes('expression(') || lower.includes('javascript:') || lower.includes('-moz-binding') || lower.includes('behavior:')) {
+      if (
+        lower.includes('expression(') ||
+        lower.includes('javascript:') ||
+        lower.includes('-moz-binding') ||
+        /(?:^|[\s;{])behavior\s*:/.test(lower)
+      ) {
         return ''
       }
       styleBlocks.push(match)
