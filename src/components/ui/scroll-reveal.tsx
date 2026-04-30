@@ -240,3 +240,82 @@ export function useLazyImages() {
     return () => observer.disconnect()
   }, [])
 }
+
+/* ═══════════ HOOK: useSliderControls ═══════════ */
+/* Wires up event delegation for slider arrows / dots rendered via dangerouslySetInnerHTML.
+   Inline onclick is stripped by sanitize-html, so the renderer emits data-* attributes
+   (data-slider-prev / data-slider-next / data-slider-dot) and this hook handles clicks. */
+export function useSliderControls() {
+  useEffect(() => {
+    const findTrack = (sliderId: string): HTMLElement | null => {
+      const root = document.getElementById(sliderId)
+      if (!root) return null
+      return root.querySelector(`.${sliderId}-track`) as HTMLElement | null
+    }
+
+    const updateDots = (sliderId: string, activeIndex: number) => {
+      const dots = document.querySelectorAll<HTMLElement>(`[data-slider-dot="${sliderId}"]`)
+      dots.forEach((d, j) => {
+        d.style.background = j === activeIndex ? '#14b8a6' : 'rgba(255,255,255,0.3)'
+      })
+    }
+
+    const handler = (e: Event) => {
+      const target = e.target as HTMLElement
+      if (!target) return
+
+      const prev = target.closest<HTMLElement>('[data-slider-prev]')
+      if (prev) {
+        const id = prev.getAttribute('data-slider-prev') || ''
+        const track = findTrack(id)
+        if (track) track.scrollBy({ left: -track.clientWidth, behavior: 'smooth' })
+        return
+      }
+
+      const next = target.closest<HTMLElement>('[data-slider-next]')
+      if (next) {
+        const id = next.getAttribute('data-slider-next') || ''
+        const track = findTrack(id)
+        if (track) track.scrollBy({ left: track.clientWidth, behavior: 'smooth' })
+        return
+      }
+
+      const dot = target.closest<HTMLElement>('[data-slider-dot]')
+      if (dot) {
+        const id = dot.getAttribute('data-slider-dot') || ''
+        const idx = Number(dot.getAttribute('data-slider-index') || 0)
+        const track = findTrack(id)
+        if (track) {
+          track.scrollTo({ left: track.clientWidth * idx, behavior: 'smooth' })
+          updateDots(id, idx)
+        }
+      }
+    }
+
+    // Sync dots while user scrolls / swipes the track
+    const trackHandlers = new WeakMap<HTMLElement, () => void>()
+    const attachTrackListeners = () => {
+      document.querySelectorAll<HTMLElement>('[class$="-track"]').forEach((track) => {
+        if (trackHandlers.has(track)) return
+        const root = track.closest<HTMLElement>('[id]')
+        if (!root) return
+        const sliderId = root.id
+        const onScroll = () => {
+          const idx = Math.round(track.scrollLeft / track.clientWidth)
+          updateDots(sliderId, idx)
+        }
+        track.addEventListener('scroll', onScroll, { passive: true })
+        trackHandlers.set(track, onScroll)
+      })
+    }
+    attachTrackListeners()
+    const mo = new MutationObserver(attachTrackListeners)
+    mo.observe(document.body, { childList: true, subtree: true })
+
+    document.addEventListener('click', handler)
+    return () => {
+      document.removeEventListener('click', handler)
+      mo.disconnect()
+    }
+  }, [])
+}

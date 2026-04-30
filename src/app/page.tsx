@@ -6,7 +6,7 @@ import { useTranslation, useRendererLang } from '@/lib/i18n'
 import { useAuth } from '@/lib/auth'
 import { Button } from '@/components/ui/button'
 import { LanguageSwitcher } from '@/components/ui/language-switcher'
-import { useSmoothAnchor, useLazyImages } from '@/components/ui/scroll-reveal'
+import { useSmoothAnchor, useLazyImages, useSliderControls } from '@/components/ui/scroll-reveal'
 import {
   Menu, X, User, LayoutDashboard
 } from 'lucide-react'
@@ -614,31 +614,8 @@ export default function HomePage() {
   // Smooth lazy image reveal
   useLazyImages()
 
-  // ✅ SLIDER ARROWS: Attach click handlers (sanitizer strips onclick from rendered HTML)
-  useEffect(() => {
-    if (loading || !blocks.length) return
-    const t = setTimeout(() => {
-      document.querySelectorAll<HTMLElement>('[data-nb-prev]').forEach(el => {
-        if ((el as any)._nbBound) return
-        ;(el as any)._nbBound = true
-        el.addEventListener('click', () => {
-          const sid = el.getAttribute('data-nb-prev')
-          const track = document.querySelector('.' + sid + '-track') as HTMLElement
-          if (track) track.scrollBy({ left: -track.offsetWidth, behavior: 'smooth' })
-        })
-      })
-      document.querySelectorAll<HTMLElement>('[data-nb-next]').forEach(el => {
-        if ((el as any)._nbBound) return
-        ;(el as any)._nbBound = true
-        el.addEventListener('click', () => {
-          const sid = el.getAttribute('data-nb-next')
-          const track = document.querySelector('.' + sid + '-track') as HTMLElement
-          if (track) track.scrollBy({ left: track.offsetWidth, behavior: 'smooth' })
-        })
-      })
-    }, 150)
-    return () => clearTimeout(t)
-  }, [loading, blocks])
+  // ✅ SLIDER ARROWS / DOTS: Event delegation (sanitizer strips inline onclick from rendered HTML)
+  useSliderControls()
 
   // ✅ SMOOTH ANIMATIONS: Set up IntersectionObserver AFTER blocks render
   useEffect(() => {

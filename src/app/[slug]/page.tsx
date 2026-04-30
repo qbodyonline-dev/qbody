@@ -13,6 +13,7 @@ import { renderCta2HTML } from '@/app/dashboard/page-editor/cta'
 import { renderFaq2HTML } from '@/app/dashboard/page-editor/faq'
 import { renderContact2HTML } from '@/app/dashboard/page-editor/contact'
 import { renderFooter2HTML } from '@/app/dashboard/page-editor/footer'
+import { useSliderControls } from '@/components/ui/scroll-reveal'
 import { Loader2 } from 'lucide-react'
 
 interface PageBlock {
@@ -137,6 +138,9 @@ export default function SlugPage() {
     primaryLanguage: siteLC.primaryLanguage,
     secondaryLanguage: siteLC.secondaryLanguage,
   }
+
+  // ✅ SLIDER ARROWS / DOTS: Event delegation (sanitizer strips inline onclick from rendered HTML)
+  useSliderControls()
 
   // Event delegation for language switcher buttons
   useEffect(() => {
