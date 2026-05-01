@@ -35,8 +35,8 @@ const diffLabels: Record<string, { en: string; ru: string }> = {
 const dayNames = { en: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'], ru: ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'] }
 
 export default function ProgramPage() {
-  const { locale, langConfig } = useTranslation()
-  const ru = locale === langConfig.secondaryLanguage
+  const { locale } = useTranslation()
+  const ru = locale === 'ru'
   const { user, session, isAdmin, isTrainer, loading: authLoading } = useAuth()
   const router = useRouter()
   const params = useParams()
