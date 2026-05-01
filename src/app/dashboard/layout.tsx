@@ -63,23 +63,23 @@ function SidebarNavItem({ item, isActive, isSidebarOpen, pathname, onNavigate }:
       className={cn('flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 relative', isActive ? 'bg-teal-500 text-white shadow-lg shadow-teal-500/25' : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800')}>
       <div className="relative">
         <Icon className="w-5 h-5 flex-shrink-0" />
-        {item.badge && item.badge > 0 && !isSidebarOpen && (
+        {(item.badge ?? 0) > 0 && !isSidebarOpen ? (
           <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
-            {item.badge > 9 ? '9+' : item.badge}
+            {item.badge! > 9 ? '9+' : item.badge}
           </span>
-        )}
+        ) : null}
       </div>
       {isSidebarOpen && (
         <>
           <span className="font-medium flex-1">{item.name}</span>
-          {item.badge && item.badge > 0 && (
+          {(item.badge ?? 0) > 0 ? (
             <span className={cn(
               "px-2 py-0.5 text-xs font-bold rounded-full",
               isActive ? "bg-white/20 text-white" : "bg-red-500 text-white"
             )}>
-              {item.badge > 99 ? '99+' : item.badge}
+              {item.badge! > 99 ? '99+' : item.badge}
             </span>
-          )}
+          ) : null}
         </>
       )}
     </Link>
