@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js'
 import { createServerClient } from '@/lib/supabase-server'
 import { requireAdmin } from '@/lib/api-auth'
 import { sanitizeString } from '@/lib/security'
+import { invalidateSiteSettingsCache } from '@/lib/site-settings'
 
 /** Public-safe Supabase client (anon key) */
 function getPublicSupabase() {
@@ -74,6 +75,7 @@ export async function POST(request: Request) {
       throw error
     }
 
+    invalidateSiteSettingsCache()
     return NextResponse.json(data)
   } catch (err: any) {
     console.error('POST /api/settings error:', err)
@@ -121,8 +123,11 @@ export async function PUT(request: Request) {
       }
     }
 
+    invalidateSiteSettingsCache()
+
     if (errors.length > 0) {
-      return NextResponse.json({ success: false, errors, saved: results }, { status: 207 })
+      // Use 200 (not 207) so fetch().ok === true and the UI can read the partial-failure body.
+      return NextResponse.json({ success: false, errors, saved: results })
     }
 
     return NextResponse.json({ success: true, saved: results })
@@ -167,8 +172,10 @@ export async function PATCH(request: Request) {
       }
     }
 
+    invalidateSiteSettingsCache()
+
     if (errors.length > 0) {
-      return NextResponse.json({ success: false, errors, saved: results }, { status: 207 })
+      return NextResponse.json({ success: false, errors, saved: results })
     }
 
     return NextResponse.json({ success: true, saved: results })

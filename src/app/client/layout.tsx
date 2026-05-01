@@ -29,9 +29,26 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
   const [showUserMenu, setShowUserMenu] = useState(false)
   const [showMoreMenu, setShowMoreMenu] = useState(false)
   const [unreadMessages, setUnreadMessages] = useState(0)
+  const [branding, setBranding] = useState<{ logoUrl?: string; siteName?: string }>({})
   const menuRef = useRef<HTMLDivElement>(null)
   const moreMenuRef = useRef<HTMLDivElement>(null)
   const supabaseRef = useRef<ReturnType<typeof createClient> | null>(null)
+
+  // Load logo + site name from public settings (cached by browser on subsequent visits)
+  useEffect(() => {
+    let cancelled = false
+    fetch('/api/settings')
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (cancelled || !data) return
+        setBranding({
+          logoUrl: data.branding?.logoUrl || '',
+          siteName: data.general?.siteName || '',
+        })
+      })
+      .catch(() => {})
+    return () => { cancelled = true }
+  }, [])
 
   const initials = profile?.full_name
     ? profile.full_name.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2)
@@ -155,8 +172,18 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
         <div className="container-custom">
           <div className="flex items-center justify-between h-16">
             <Link href="/client/home" className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-teal-400 to-teal-600 flex items-center justify-center"><span className="text-white font-bold">Q</span></div>
-              <span className="font-semibold text-zinc-900 hidden sm:block">Qbody</span>
+              {branding.logoUrl ? (
+                <img
+                  src={branding.logoUrl}
+                  alt={branding.siteName || 'Logo'}
+                  className="w-9 h-9 rounded-xl object-cover"
+                />
+              ) : (
+                <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-teal-400 to-teal-600 flex items-center justify-center">
+                  <span className="text-white font-bold">{(branding.siteName || 'Q').charAt(0).toUpperCase()}</span>
+                </div>
+              )}
+              <span className="font-semibold text-zinc-900 hidden sm:block">{branding.siteName || 'Qbody'}</span>
             </Link>
 
             {/* Desktop nav */}

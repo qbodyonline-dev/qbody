@@ -8,7 +8,6 @@ import { Save, Globe, Palette, FileText, Instagram, Upload, Eye, Image, Edit, La
 import { toast } from 'sonner'
 import { fetchWithAuth, fetchWithAuthUpload } from '@/lib/api'
 import LanguageSettingsTab from './LanguageSettingsTab'
-import { SUPPORTED_LANGUAGES } from '@/lib/languages'
 
 const tabs = [
   { id: 'general', icon: Globe },
@@ -46,7 +45,6 @@ export default function SettingsPage() {
     taglineRu: '',
     email: '',
     phone: '',
-    defaultLanguage: 'en',
     // Branding
     primaryColor: '#14b8a6',
     logoUrl: '',
@@ -55,11 +53,6 @@ export default function SettingsPage() {
     instagram: '',
     telegram: '',
     whatsapp: '',
-    // Content (hero)
-    heroTitle: '',
-    heroTitleRu: '',
-    heroSubtitle: '',
-    heroSubtitleRu: '',
     // SEO
     seoTitle: '',
     seoTitleRu: '',
@@ -100,7 +93,6 @@ export default function SettingsPage() {
           taglineRu: data.general?.taglineRu ?? prev.taglineRu,
           email: data.general?.email ?? prev.email,
           phone: data.general?.phone ?? prev.phone,
-          defaultLanguage: data.general?.defaultLanguage ?? prev.defaultLanguage,
           // Branding
           primaryColor: data.branding?.primaryColor ?? prev.primaryColor,
           logoUrl: data.branding?.logoUrl ?? prev.logoUrl,
@@ -109,11 +101,6 @@ export default function SettingsPage() {
           instagram: data.social?.instagram ?? prev.instagram,
           telegram: data.social?.telegram ?? prev.telegram,
           whatsapp: data.social?.whatsapp ?? prev.whatsapp,
-          // Content
-          heroTitle: data.content?.heroTitle ?? prev.heroTitle,
-          heroTitleRu: data.content?.heroTitleRu ?? prev.heroTitleRu,
-          heroSubtitle: data.content?.heroSubtitle ?? prev.heroSubtitle,
-          heroSubtitleRu: data.content?.heroSubtitleRu ?? prev.heroSubtitleRu,
           // SEO
           seoTitle: data.seo?.seoTitle ?? prev.seoTitle,
           seoTitleRu: data.seo?.seoTitleRu ?? prev.seoTitleRu,
@@ -265,7 +252,6 @@ export default function SettingsPage() {
           taglineRu: settings.taglineRu,
           email: settings.email,
           phone: settings.phone,
-          defaultLanguage: settings.defaultLanguage,
         },
         branding: {
           primaryColor: settings.primaryColor,
@@ -276,12 +262,6 @@ export default function SettingsPage() {
           instagram: settings.instagram,
           telegram: settings.telegram,
           whatsapp: settings.whatsapp,
-        },
-        content: {
-          heroTitle: settings.heroTitle,
-          heroTitleRu: settings.heroTitleRu,
-          heroSubtitle: settings.heroSubtitle,
-          heroSubtitleRu: settings.heroSubtitleRu,
         },
         seo: {
           seoTitle: settings.seoTitle,
@@ -405,20 +385,6 @@ export default function SettingsPage() {
               <CardContent className="space-y-6">
                 <div className="grid sm:grid-cols-2 gap-6">
                   <Input label={t('settings.general.siteName')} value={settings.siteName} onChange={(e) => setSettings({ ...settings, siteName: e.target.value })} />
-                  <div>
-                    <label className="block text-sm font-medium text-zinc-700 mb-2">{t('settings.general.defaultLanguage')}</label>
-                    <select 
-                      className="w-full h-12 px-4 rounded-xl border border-zinc-200"
-                      value={settings.defaultLanguage}
-                      onChange={(e) => setSettings({ ...settings, defaultLanguage: e.target.value })}
-                    >
-                      {SUPPORTED_LANGUAGES.map(lang => (
-                        <option key={lang.code} value={lang.code}>
-                          {lang.flag} {lang.name} ({lang.nativeName})
-                        </option>
-                      ))}
-                    </select>
-                  </div>
                 </div>
                 <div className="grid sm:grid-cols-2 gap-6">
                   <Input label={`${t('settings.general.tagline')} (EN)`} value={settings.tagline} onChange={(e) => setSettings({ ...settings, tagline: e.target.value })} />
