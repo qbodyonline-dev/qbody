@@ -8,9 +8,10 @@ import { Modal } from '@/components/ui/modal'
 import { useTranslation } from '@/lib/i18n'
 import { fetchWithAuth } from '@/lib/api'
 import { uploadFile as uploadToStorage } from '@/lib/upload'
-import { Search, Plus, Play, Edit, Trash2, Video, Loader2, Dumbbell, ExternalLink, Upload, X } from 'lucide-react'
+import { Search, Plus, Play, Edit, Trash2, Video, Loader2, Dumbbell, ExternalLink, Upload, X, Settings } from 'lucide-react'
 import { toast } from 'sonner'
 import { useLanguageConfig } from '@/lib/useLanguageConfig'
+import CategoriesManager, { type Category } from '@/components/dashboard/CategoriesManager'
 
 /* ═══════════ TYPES ═══════════ */
 type Exercise = {
@@ -66,8 +67,6 @@ const EMPTY_FORM: FormData = {
   video_url: ''
 }
 
-const MUSCLE_GROUPS = ['chest', 'back', 'legs', 'shoulders', 'arms', 'core', 'glutes', 'cardio']
-const EQUIPMENT = ['bodyweight', 'dumbbells', 'barbell', 'kettlebell', 'machine', 'cables', 'bands', 'ball', 'bench', 'other']
 const CATEGORIES = ['strength', 'cardio', 'mobility', 'stretching', 'warmup', 'plyometric', 'balance']
 const DIFFICULTIES = ['beginner', 'intermediate', 'advanced']
 
@@ -92,6 +91,32 @@ export default function ExercisesPage() {
   const [activeTab, setActiveTab] = useState<'basic' | 'technique' | 'video'>('basic')
   const [uploading, setUploading] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // DB-backed categories (replaces hardcoded MUSCLE_GROUPS / EQUIPMENT)
+  const [muscleGroups, setMuscleGroups] = useState<Category[]>([])
+  const [equipmentTypes, setEquipmentTypes] = useState<Category[]>([])
+  const [isCategoriesOpen, setIsCategoriesOpen] = useState(false)
+
+  const fetchCategories = useCallback(async () => {
+    try {
+      const [mg, eq] = await Promise.all([
+        fetchWithAuth('/api/muscle-groups'),
+        fetchWithAuth('/api/equipment-types'),
+      ])
+      if (mg.ok) {
+        const data = await mg.json()
+        setMuscleGroups(data.items || [])
+      }
+      if (eq.ok) {
+        const data = await eq.json()
+        setEquipmentTypes(data.items || [])
+      }
+    } catch (err) {
+      console.error('Failed to load categories', err)
+    }
+  }, [])
+
+  useEffect(() => { fetchCategories() }, [fetchCategories])
 
   /* ─── FETCH ─── */
   const fetchExercises = useCallback(async () => {
@@ -263,9 +288,13 @@ export default function ExercisesPage() {
     try { return t(`exercises.${key}`) } catch { return key }
   }
   const mgLabel = (g: string) => {
+    const found = muscleGroups.find(m => m.slug === g)
+    if (found) return ru ? found.name_ru : found.name_en
     try { return t(`exercises.filters.${g}`) } catch { return g }
   }
   const eqLabel = (e: string) => {
+    const found = equipmentTypes.find(m => m.slug === e)
+    if (found) return ru ? found.name_ru : found.name_en
     try { return t(`exercises.equipment.${e}`) } catch { return e }
   }
 
@@ -292,29 +321,46 @@ export default function ExercisesPage() {
           <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">{ru ? 'Библиотека упражнений' : 'Exercise Library'}</h1>
           <p className="text-zinc-500 mt-1">{total} {ru ? 'упражнений' : 'exercises'}</p>
         </div>
-        <Button variant="gradient" onClick={openAdd}><Plus className="w-4 h-4 mr-2" />{ru ? 'Добавить' : 'Add Exercise'}</Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={() => setIsCategoriesOpen(true)}>
+            <Settings className="w-4 h-4 mr-2" />
+            {ru ? 'Категории' : 'Categories'}
+          </Button>
+          <Button variant="gradient" onClick={openAdd}><Plus className="w-4 h-4 mr-2" />{ru ? 'Добавить' : 'Add Exercise'}</Button>
+        </div>
       </div>
 
       {/* Filters */}
       <Card><CardContent className="p-4">
-        <div className="flex flex-col sm:flex-row gap-4">
+        <div className="flex flex-col sm:flex-row gap-3">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
             <Input placeholder={ru ? 'Поиск упражнений...' : 'Search exercises...'} className="pl-10" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
           </div>
-          <div className="flex gap-2 flex-wrap">
-            <Button variant={!muscleFilter ? 'default' : 'outline'} size="sm" onClick={() => setMuscleFilter('')}>{ru ? 'Все' : 'All'}</Button>
-            {MUSCLE_GROUPS.map((f) => (
-              <Button key={f} variant={muscleFilter === f ? 'default' : 'outline'} size="sm" onClick={() => setMuscleFilter(muscleFilter === f ? '' : f)}>{mgLabel(f)}</Button>
-            ))}
+          <div className="flex gap-2">
+            <select
+              value={muscleFilter}
+              onChange={e => setMuscleFilter(e.target.value)}
+              className="h-10 px-3 pr-8 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-sm text-zinc-700 dark:text-zinc-200 hover:border-teal-400 focus:outline-none focus:border-teal-500 transition-colors min-w-[160px]"
+              aria-label={ru ? 'Группа мышц' : 'Muscle group'}
+            >
+              <option value="">{ru ? 'Все группы' : 'All Muscles'}</option>
+              {muscleGroups.map(m => (
+                <option key={m.id} value={m.slug}>{ru ? m.name_ru : m.name_en}</option>
+              ))}
+            </select>
+            <select
+              value={equipmentFilter}
+              onChange={e => setEquipmentFilter(e.target.value)}
+              className="h-10 px-3 pr-8 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-sm text-zinc-700 dark:text-zinc-200 hover:border-teal-400 focus:outline-none focus:border-teal-500 transition-colors min-w-[160px]"
+              aria-label={ru ? 'Инвентарь' : 'Equipment'}
+            >
+              <option value="">{ru ? 'Любой инвентарь' : 'Any Equipment'}</option>
+              {equipmentTypes.map(eq => (
+                <option key={eq.id} value={eq.slug}>{ru ? eq.name_ru : eq.name_en}</option>
+              ))}
+            </select>
           </div>
-        </div>
-        {/* Equipment filter */}
-        <div className="flex gap-2 flex-wrap mt-3">
-          <span className="text-sm text-zinc-500 py-1">{ru ? 'Инвентарь:' : 'Equipment:'}</span>
-          {['bodyweight', 'dumbbells', 'barbell', 'kettlebell', 'machine', 'bands'].map(eq => (
-            <Button key={eq} variant={equipmentFilter === eq ? 'default' : 'outline'} size="sm" onClick={() => setEquipmentFilter(equipmentFilter === eq ? '' : eq)}>{eqLabel(eq)}</Button>
-          ))}
         </div>
       </CardContent></Card>
 
@@ -413,10 +459,10 @@ export default function ExercisesPage() {
               <div>
                 <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">{ru ? 'Группы мышц' : 'Muscle Groups'}</label>
                 <div className="flex flex-wrap gap-2">
-                  {MUSCLE_GROUPS.map(g => (
-                    <button key={g} type="button" onClick={() => toggleMuscle(g)}
-                      className={`px-3 py-1.5 rounded-lg text-sm transition-colors ${formData.muscle_groups.includes(g) ? 'bg-teal-500 text-white' : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200'}`}>
-                      {mgLabel(g)}
+                  {muscleGroups.map(m => (
+                    <button key={m.id} type="button" onClick={() => toggleMuscle(m.slug)}
+                      className={`px-3 py-1.5 rounded-lg text-sm transition-colors ${formData.muscle_groups.includes(m.slug) ? 'bg-teal-500 text-white' : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200'}`}>
+                      {ru ? m.name_ru : m.name_en}
                     </button>
                   ))}
                 </div>
@@ -427,7 +473,7 @@ export default function ExercisesPage() {
                 <div>
                   <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">{ru ? 'Инвентарь' : 'Equipment'}</label>
                   <select className="w-full h-10 px-3 rounded-lg border border-zinc-200 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 text-sm" value={formData.equipment} onChange={e => setFormData({...formData, equipment: e.target.value})}>
-                    {EQUIPMENT.map(eq => <option key={eq} value={eq}>{eqLabel(eq)}</option>)}
+                    {equipmentTypes.map(eq => <option key={eq.id} value={eq.slug}>{ru ? eq.name_ru : eq.name_en}</option>)}
                   </select>
                 </div>
                 <div>
@@ -594,6 +640,13 @@ export default function ExercisesPage() {
           </div>
         </form>
       </Modal>
+
+      {/* Categories Manager */}
+      <CategoriesManager
+        isOpen={isCategoriesOpen}
+        onClose={() => setIsCategoriesOpen(false)}
+        onChanged={() => { fetchCategories(); fetchExercises() }}
+      />
 
       {/* Delete Modal */}
       <Modal isOpen={isDeleteModalOpen} onClose={() => { setIsDeleteModalOpen(false); setEditingId(null) }} title={ru ? 'Удалить упражнение' : 'Delete Exercise'} size="sm">
