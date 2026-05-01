@@ -29,8 +29,8 @@ async function ensureBucket(supabase: any, bucketId: string) {
 
 /**
  * Upload image or video to Supabase Storage.
- * Images  → content-images bucket (max 10 MB)
- * Videos  → content-videos bucket (max 100 MB)
+ * Images  → content-images bucket (max 15 MB)
+ * Videos  → content-videos bucket (max 200 MB)
  */
 export async function POST(request: NextRequest) {
   const auth = await requireAdmin(request)

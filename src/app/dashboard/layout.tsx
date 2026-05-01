@@ -97,7 +97,24 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [unreadMessages, setUnreadMessages] = useState(0)
   const [newCheckins, setNewCheckins] = useState(0)
   const [unreadAlerts, setUnreadAlerts] = useState(0)
+  const [branding, setBranding] = useState<{ logoUrl?: string; siteName?: string }>({})
   const supabaseRef = useRef<ReturnType<typeof createClient> | null>(null)
+
+  // Подгружаем брендинг (логотип + название) из настроек сайта
+  useEffect(() => {
+    let cancelled = false
+    fetch('/api/settings')
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (cancelled || !data) return
+        setBranding({
+          logoUrl: data?.branding?.logoUrl || undefined,
+          siteName: data?.general?.siteName || undefined,
+        })
+      })
+      .catch(() => {})
+    return () => { cancelled = true }
+  }, [])
 
   // Initialize Supabase client
   useEffect(() => {
@@ -266,9 +283,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     return (
       <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950 flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-teal-400 to-teal-600 flex items-center justify-center animate-pulse">
-            <span className="text-white font-bold text-lg">Q</span>
-          </div>
+          {branding.logoUrl ? (
+            <img src={branding.logoUrl} alt={branding.siteName || 'Logo'} className="w-10 h-10 rounded-xl object-cover animate-pulse" />
+          ) : (
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-teal-400 to-teal-600 flex items-center justify-center animate-pulse">
+              <span className="text-white font-bold text-lg">{(branding.siteName || 'Q').charAt(0).toUpperCase()}</span>
+            </div>
+          )}
           <div className="w-8 h-8 border-2 border-teal-500 border-t-transparent rounded-full animate-spin" />
         </div>
       </div>
@@ -328,8 +349,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     <>
       <div className="h-16 flex items-center justify-between px-4 border-b border-zinc-200 dark:border-zinc-700">
         <Link href="/dashboard" className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-teal-400 to-teal-600 flex items-center justify-center"><span className="text-white font-bold text-lg">Q</span></div>
-          {(mobile || isSidebarOpen) && <div><span className="font-semibold text-zinc-900 dark:text-zinc-100">Qbody</span><span className="text-teal-500 text-xs block -mt-0.5">Admin</span></div>}
+          {branding.logoUrl ? (
+            <img src={branding.logoUrl} alt={branding.siteName || 'Logo'} className="w-10 h-10 rounded-xl object-cover" />
+          ) : (
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-teal-400 to-teal-600 flex items-center justify-center"><span className="text-white font-bold text-lg">{(branding.siteName || 'Q').charAt(0).toUpperCase()}</span></div>
+          )}
+          {(mobile || isSidebarOpen) && <div><span className="font-semibold text-zinc-900 dark:text-zinc-100">{branding.siteName || 'Qbody'}</span><span className="text-teal-500 text-xs block -mt-0.5">Admin</span></div>}
         </Link>
         {mobile ? (
           <button onClick={() => setIsMobileSidebarOpen(false)} className="p-2 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-700"><X className="w-5 h-5" /></button>
