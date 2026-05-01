@@ -2,7 +2,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { Home, BookOpen, TrendingUp, User, Menu, X, LogOut, MessageCircle, Dumbbell, Scale, Globe, Apple, FileText } from 'lucide-react'
+import { Home, BookOpen, TrendingUp, User, Menu, X, LogOut, MessageCircle, Dumbbell, Scale, Globe, Apple, FileText, MoreHorizontal, ChevronDown } from 'lucide-react'
 import { Avatar } from '@/components/ui/avatar'
 import { LanguageSwitcher } from '@/components/ui/language-switcher'
 import { useTranslation } from '@/lib/i18n'
@@ -27,8 +27,10 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
     }
   }, [authLoading, user, isClient, profile, pathname, router])
   const [showUserMenu, setShowUserMenu] = useState(false)
+  const [showMoreMenu, setShowMoreMenu] = useState(false)
   const [unreadMessages, setUnreadMessages] = useState(0)
   const menuRef = useRef<HTMLDivElement>(null)
+  const moreMenuRef = useRef<HTMLDivElement>(null)
   const supabaseRef = useRef<ReturnType<typeof createClient> | null>(null)
 
   const initials = profile?.full_name
@@ -95,17 +97,28 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
     }
   }, [session?.access_token, fetchUnreadCount])
 
-  const navigation = [
+  // Primary nav — always visible on desktop
+  const primaryNav = [
     { name: t('client.nav.home'), href: '/client/home', icon: Home, badge: 0 },
     { name: ru ? 'Тренировки' : 'Training', href: '/client/training', icon: Dumbbell, badge: 0 },
+    { name: t('client.nav.courses'), href: '/client/courses', icon: BookOpen, badge: 0 },
+    { name: t('client.nav.progress'), href: '/client/progress', icon: TrendingUp, badge: 0 },
+  ]
+
+  // Secondary nav — collapsed under "More" on desktop
+  const moreNav = [
     { name: ru ? 'Чекины' : 'Check-ins', href: '/client/checkins', icon: Scale, badge: 0 },
     { name: ru ? 'Питание' : 'Nutrition', href: '/client/nutrition', icon: Apple, badge: 0 },
-    { name: t('client.nav.courses'), href: '/client/courses', icon: BookOpen, badge: 0 },
     { name: ru ? 'Документы' : 'Documents', href: '/client/documents', icon: FileText, badge: 0 },
-    { name: t('client.nav.progress'), href: '/client/progress', icon: TrendingUp, badge: 0 },
     { name: t('client.nav.support'), href: '/client/messages', icon: MessageCircle, badge: unreadMessages },
     { name: t('client.nav.profile'), href: '/client/profile', icon: User, badge: 0 },
   ]
+
+  // Mobile: combined list (kept full)
+  const navigation = [...primaryNav, ...moreNav]
+
+  const isMoreActive = moreNav.some(item => pathname === item.href || pathname.startsWith(item.href + '/'))
+  const moreBadgeTotal = moreNav.reduce((sum, item) => sum + (item.badge || 0), 0)
 
   // Close menu on outside click
   useEffect(() => {
@@ -113,10 +126,18 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
       if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
         setShowUserMenu(false)
       }
+      if (moreMenuRef.current && !moreMenuRef.current.contains(e.target as Node)) {
+        setShowMoreMenu(false)
+      }
     }
     document.addEventListener('mousedown', handleClick)
     return () => document.removeEventListener('mousedown', handleClick)
   }, [])
+
+  // Close More menu when route changes
+  useEffect(() => {
+    setShowMoreMenu(false)
+  }, [pathname])
 
   const handleSignOut = async () => {
     setShowUserMenu(false)
@@ -140,31 +161,82 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
 
             {/* Desktop nav */}
             <nav className="hidden md:flex items-center gap-1">
-              {navigation.map((item) => {
+              {primaryNav.map((item) => {
                 const Icon = item.icon
                 const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
                 return (
-                  <Link key={item.name} href={item.href} className={cn('flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all relative', isActive ? 'bg-teal-500/10 text-teal-600' : 'text-zinc-600 hover:bg-zinc-100')}>
-                    <div className="relative">
-                      <Icon className="w-4 h-4" />
-                      {item.badge > 0 && (
-                        <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
-                          {item.badge > 9 ? '9+' : item.badge}
-                        </span>
-                      )}
-                    </div>
-                    {item.name}
+                  <Link
+                    key={item.name}
+                    href={item.href}
+                    className={cn(
+                      'flex items-center gap-2 px-3 lg:px-4 py-2 rounded-xl text-sm font-medium transition-all whitespace-nowrap',
+                      isActive ? 'bg-teal-500/10 text-teal-600' : 'text-zinc-600 hover:bg-zinc-100'
+                    )}
+                  >
+                    <Icon className="w-4 h-4 flex-shrink-0" />
+                    <span>{item.name}</span>
                   </Link>
                 )
               })}
+
+              {/* More dropdown */}
+              <div className="relative" ref={moreMenuRef}>
+                <button
+                  onClick={() => setShowMoreMenu(!showMoreMenu)}
+                  className={cn(
+                    'flex items-center gap-2 px-3 lg:px-4 py-2 rounded-xl text-sm font-medium transition-all whitespace-nowrap relative',
+                    isMoreActive ? 'bg-teal-500/10 text-teal-600' : 'text-zinc-600 hover:bg-zinc-100'
+                  )}
+                  aria-haspopup="menu"
+                  aria-expanded={showMoreMenu}
+                >
+                  <MoreHorizontal className="w-4 h-4 flex-shrink-0" />
+                  <span>{ru ? 'Ещё' : 'More'}</span>
+                  <ChevronDown className={cn('w-3.5 h-3.5 flex-shrink-0 transition-transform', showMoreMenu && 'rotate-180')} />
+                  {moreBadgeTotal > 0 && (
+                    <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+                      {moreBadgeTotal > 9 ? '9+' : moreBadgeTotal}
+                    </span>
+                  )}
+                </button>
+
+                {showMoreMenu && (
+                  <div className="absolute right-0 mt-2 w-60 bg-white rounded-2xl shadow-xl border border-zinc-200 py-2 z-50" role="menu">
+                    {moreNav.map((item) => {
+                      const Icon = item.icon
+                      const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
+                      return (
+                        <Link
+                          key={item.name}
+                          href={item.href}
+                          onClick={() => setShowMoreMenu(false)}
+                          className={cn(
+                            'flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-colors',
+                            isActive ? 'bg-teal-500/10 text-teal-600' : 'text-zinc-700 hover:bg-zinc-50'
+                          )}
+                          role="menuitem"
+                        >
+                          <Icon className="w-4 h-4 flex-shrink-0" />
+                          <span className="flex-1">{item.name}</span>
+                          {item.badge > 0 && (
+                            <span className="px-2 py-0.5 text-[10px] font-bold bg-red-500 text-white rounded-full">
+                              {item.badge > 9 ? '9+' : item.badge}
+                            </span>
+                          )}
+                        </Link>
+                      )
+                    })}
+                  </div>
+                )}
+              </div>
             </nav>
 
             {/* Right side */}
             <div className="flex items-center gap-2">
-              {/* Back to site — desktop */}
-              <Link href="/" target="_blank" className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm text-zinc-500 hover:text-zinc-700 hover:bg-zinc-100 transition-colors">
-                <Globe className="w-3.5 h-3.5" />
-                {ru ? 'На сайт' : 'View Site'}
+              {/* Back to site — desktop (hidden on smaller desktops to save room) */}
+              <Link href="/" target="_blank" className="hidden lg:flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm text-zinc-500 hover:text-zinc-700 hover:bg-zinc-100 transition-colors whitespace-nowrap">
+                <Globe className="w-3.5 h-3.5 flex-shrink-0" />
+                <span>{ru ? 'На сайт' : 'View Site'}</span>
               </Link>
 
               <LanguageSwitcher variant="dropdown" />
