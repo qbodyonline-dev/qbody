@@ -190,14 +190,16 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
                   aria-haspopup="menu"
                   aria-expanded={showMoreMenu}
                 >
-                  <MoreHorizontal className="w-4 h-4 flex-shrink-0" />
+                  <div className="relative">
+                    <MoreHorizontal className="w-4 h-4 flex-shrink-0" />
+                    {moreBadgeTotal > 0 && (
+                      <span className="absolute -top-1.5 -right-1.5 min-w-[16px] h-4 px-1 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+                        {moreBadgeTotal > 9 ? '9+' : moreBadgeTotal}
+                      </span>
+                    )}
+                  </div>
                   <span>{ru ? 'Ещё' : 'More'}</span>
                   <ChevronDown className={cn('w-3.5 h-3.5 flex-shrink-0 transition-transform', showMoreMenu && 'rotate-180')} />
-                  {moreBadgeTotal > 0 && (
-                    <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
-                      {moreBadgeTotal > 9 ? '9+' : moreBadgeTotal}
-                    </span>
-                  )}
                 </button>
 
                 {showMoreMenu && (
