@@ -60,16 +60,17 @@ function fieldHTML(f: ContactField, s: ContactSectionData, lang: 'en' | 'ru'): s
   const inp = s.inputBg || '#1e1e1e'
   const base = `width:100%;padding:14px 16px;border:1px solid ${txt}15;border-radius:12px;background:${inp};color:${txt};font-size:14px;font-family:inherit;outline:none;transition:border-color 0.2s;`
   const req = f.required ? `<span style="color:${accent};"> *</span>` : ''
+  const name = (f.label || f.type || 'field').toLowerCase().replace(/[^a-z0-9]+/g, '_').slice(0, 40) || 'field'
 
   let input = ''
   if (f.type === 'textarea') {
-    input = `<textarea placeholder="${ph}" style="${base}min-height:120px;resize:vertical;" ${f.required ? 'required' : ''}></textarea>`
+    input = `<textarea name="${name}" placeholder="${ph}" style="${base}min-height:120px;resize:vertical;" ${f.required ? 'required' : ''}></textarea>`
   } else if (f.type === 'select') {
     const opts = (lang === 'ru' && f.optionsRu ? f.optionsRu : f.options || '').split(',').filter(Boolean)
     const optHtml = opts.map(o => `<option value="${o.trim()}">${o.trim()}</option>`).join('')
-    input = `<select style="${base}cursor:pointer;"><option value="">${ph}</option>${optHtml}</select>`
+    input = `<select name="${name}" style="${base}cursor:pointer;"><option value="">${ph}</option>${optHtml}</select>`
   } else {
-    input = `<input type="${f.type === 'phone' ? 'tel' : f.type}" placeholder="${ph}" style="${base}" ${f.required ? 'required' : ''} />`
+    input = `<input name="${name}" type="${f.type === 'phone' ? 'tel' : f.type}" placeholder="${ph}" style="${base}" ${f.required ? 'required' : ''} />`
   }
 
   const lts = s.labelStyle || {}
@@ -88,7 +89,7 @@ function formHTML(s: ContactSectionData, lang: 'en' | 'ru', id: string): string 
   const btnT = lang === 'ru' ? s.btnTextRu : s.btnText
   const fields = s.fields.map(f => fieldHTML(f, s, lang)).join('')
 
-  return `<form class="ct-form" onsubmit="event.preventDefault();var b=this.querySelector('.ct-btn');var m=this.closest('[id]').querySelector('.ct-success');b.disabled=true;b.textContent='...';setTimeout(function(){b.disabled=false;b.textContent='${btnT}';if(m){m.style.display='block';setTimeout(function(){m.style.display='none'},4000)}},800)" style="display:flex;flex-direction:column;gap:16px;">
+  return `<form class="ct-form" data-contact-form="1" style="display:flex;flex-direction:column;gap:16px;">
     ${fields}
     <button type="submit" class="ct-btn" style="width:100%;padding:16px;border:none;border-radius:14px;background:${accent};color:${(s.btnStyle||{}).color||'#fff'};font-size:${(s.btnStyle||{}).size||15}px;font-weight:700;cursor:pointer;transition:opacity 0.2s;font-family:inherit;${(s.btnStyle||{}).align?'text-align:'+(s.btnStyle||{}).align+';':''}">${btnT}</button>
     <div class="ct-success" style="display:none;padding:12px 16px;border-radius:12px;background:${accent}22;color:${accent};font-size:14px;font-weight:500;text-align:center;">${lang === 'ru' ? s.successMsgRu : s.successMsg}</div>
@@ -155,8 +156,8 @@ function renderMinimal(s: ContactSectionData, lang: 'en' | 'ru', id: string): st
 
   return `<div class="ct-anim" style="max-width:${Math.min(s.innerMaxWidth, 700)}px;margin:0 auto;text-align:center;">
     ${sectionHeader(s, lang, 'center')}
-    <form class="ct-minimal-form" onsubmit="event.preventDefault();var b=this.querySelector('.ct-btn');var m=this.closest('[id]').querySelector('.ct-success');b.disabled=true;b.textContent='...';setTimeout(function(){b.disabled=false;b.textContent='${btnT}';if(m){m.style.display='block';setTimeout(function(){m.style.display='none'},4000)}},800)" style="display:flex;gap:12px;max-width:500px;margin:0 auto;">
-      <input type="email" required placeholder="${emailPh}" style="flex:1;padding:14px 18px;border:1px solid ${txt}15;border-radius:14px;background:${inp};color:${txt};font-size:14px;font-family:inherit;outline:none;" />
+    <form class="ct-minimal-form" data-contact-form="1" style="display:flex;gap:12px;max-width:500px;margin:0 auto;">
+      <input type="email" name="email" required placeholder="${emailPh}" style="flex:1;padding:14px 18px;border:1px solid ${txt}15;border-radius:14px;background:${inp};color:${txt};font-size:14px;font-family:inherit;outline:none;" />
       <button type="submit" class="ct-btn" style="padding:14px 28px;border:none;border-radius:14px;background:${accent};color:#fff;font-size:14px;font-weight:700;cursor:pointer;white-space:nowrap;font-family:inherit;">${btnT}</button>
     </form>
     <div class="ct-success" style="display:none;margin-top:12px;padding:10px 16px;border-radius:12px;background:${accent}22;color:${accent};font-size:13px;font-weight:500;">${succMsg}</div>

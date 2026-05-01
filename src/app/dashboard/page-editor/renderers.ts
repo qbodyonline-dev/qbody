@@ -341,7 +341,26 @@ export function renderHeaderHTML(data: HeaderData, lang: 'en' | 'ru', langConfig
     }
   }
 
-  return `${css}${topBar}<div style="background:${bg};border-bottom:1px solid ${txtCol}12;max-width:100%;">${headerInner}</div>`
+  // Background color with opacity (hex → rgba)
+  const op = typeof data.bgOpacity === 'number' ? Math.max(0, Math.min(1, data.bgOpacity)) : 1
+  const hexToRgba = (hex: string, a: number): string => {
+    const m = (hex || '').replace('#', '').trim()
+    if (m.length !== 3 && m.length !== 6) return hex
+    const full = m.length === 3 ? m.split('').map(c => c + c).join('') : m
+    const r = parseInt(full.slice(0, 2), 16)
+    const g = parseInt(full.slice(2, 4), 16)
+    const b2 = parseInt(full.slice(4, 6), 16)
+    if ([r, g, b2].some(n => Number.isNaN(n))) return hex
+    return `rgba(${r},${g},${b2},${a})`
+  }
+  const bgFinal = op < 1 ? hexToRgba(bg, op) : bg
+  // Sticky positioning (default: true for backward-compat)
+  const stickyOn = data.sticky !== false
+  const stickyCss = stickyOn ? 'position:sticky;top:0;z-index:50;' : ''
+  // Backdrop blur when transparent so content underneath is readable
+  const blurCss = op < 1 ? 'backdrop-filter:saturate(140%) blur(8px);-webkit-backdrop-filter:saturate(140%) blur(8px);' : ''
+
+  return `${css}${topBar}<div style="${stickyCss}${blurCss}background:${bgFinal};border-bottom:1px solid ${txtCol}12;max-width:100%;">${headerInner}</div>`
 }
 
 /* ─────────── HERO RENDERER ─────────── */
