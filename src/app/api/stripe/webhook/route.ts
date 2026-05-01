@@ -7,6 +7,8 @@ import {
   sendPaymentSuccessAdmin,
   sendPaymentRefundedClient,
   sendPaymentRefundedAdmin,
+  sendDocumentPurchaseSuccess,
+  sendDocumentPurchaseAdmin,
 } from '@/lib/email'
 
 // Disable body parsing — Stripe needs raw body for signature verification
@@ -54,8 +56,85 @@ export async function POST(request: NextRequest) {
         const courseSlug = session.metadata?.course_slug
         const userId = session.metadata?.user_id
         const userEmail = session.metadata?.user_email
-        const purchaseType = session.metadata?.type // 'program' or undefined (course)
+        const purchaseType = session.metadata?.type // 'program' | 'document' | undefined (course)
         const programId = session.metadata?.program_id
+        const documentId = session.metadata?.document_id
+
+        // ─── Document purchase: separate flow (uses document_purchases table) ───
+        if (purchaseType === 'document' && documentId && userId) {
+          // Idempotency: check if this session was already processed
+          const { data: existingPurchase } = await supabase
+            .from('document_purchases')
+            .select('id, status, email_sent_at')
+            .eq('stripe_session_id', session.id)
+            .maybeSingle()
+
+          if (existingPurchase?.status === 'paid' && existingPurchase.email_sent_at) {
+            console.log(`[Webhook] ⚠️ Document purchase already processed: ${session.id}`)
+            break
+          }
+
+          // Mark purchase paid
+          const { error: updateError } = await supabase
+            .from('document_purchases')
+            .update({
+              status: 'paid',
+              email_sent_at: new Date().toISOString(),
+            })
+            .eq('stripe_session_id', session.id)
+
+          if (updateError) {
+            console.error('[Webhook] Error updating document_purchase:', updateError)
+            return NextResponse.json({ error: 'Failed to update document purchase' }, { status: 500 })
+          }
+
+          // Fetch document for email
+          const { data: doc } = await supabase
+            .from('documents')
+            .select('title, file_path, file_name, mime_type')
+            .eq('id', documentId)
+            .single()
+
+          // Fetch profile
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('full_name, email')
+            .eq('id', userId)
+            .single()
+
+          const clientName = profile?.full_name || 'Customer'
+          const clientEmail = profile?.email || userEmail || ''
+          const docTitle = doc?.title || 'Document'
+          const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://qbody.vercel.app'
+          const downloadUrl = `${appUrl}/d/${documentId}`
+
+          if (clientEmail && doc) {
+            Promise.allSettled([
+              sendDocumentPurchaseSuccess(clientEmail, clientName, {
+                documentTitle: docTitle,
+                downloadUrl,
+                amount: Math.round(Number(session.amount_total) || 0),
+                currency: session.currency || 'usd',
+              }),
+              sendDocumentPurchaseAdmin({
+                clientName,
+                clientEmail,
+                documentTitle: docTitle,
+                amount: Math.round(Number(session.amount_total) || 0),
+                currency: session.currency || 'usd',
+              }),
+            ]).then(results => {
+              results.forEach((r, i) => {
+                if (r.status === 'rejected') {
+                  console.error(`[Webhook] Document email ${i} failed:`, r.reason)
+                }
+              })
+            })
+          }
+
+          console.log(`[Webhook] ✅ Document purchase: user=${userId} document=${documentId} session=${session.id}`)
+          break
+        }
 
         if (courseSlug && userId) {
           // ✅ Bug 1 fix: Idempotency — check if this order was already processed

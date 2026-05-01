@@ -302,6 +302,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       ]
     },
     { name: ru ? 'Питание' : 'Nutrition', href: '/dashboard/nutrition', icon: Utensils },
+    { name: ru ? 'Документы' : 'Documents', href: '/dashboard/documents', icon: FileText },
     { name: ru ? 'Чек-ины' : 'Check-ins', href: '/dashboard/checkins', icon: BookOpen, badge: newCheckins },
     { name: t('messages.title'), href: '/dashboard/messages', icon: MessageSquare, badge: unreadMessages },
     { name: t('payments.title'), href: '/dashboard/payments', icon: CreditCard },
