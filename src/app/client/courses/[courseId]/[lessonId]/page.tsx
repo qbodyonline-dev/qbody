@@ -15,13 +15,14 @@ type ContentBlock = {
   id: string
   type: 'heading' | 'text' | 'image' | 'video' | 'checklist'
   content: string
+  content_secondary?: string
   items?: { id: string; text: string; text_secondary?: string }[]
 }
 
 type Lesson = {
   id: string
   title: string
-  title_secondary: string
+  title_secondary: string | null
   type: 'video' | 'text' | 'task'
   duration_minutes: number
   completed: boolean
@@ -35,7 +36,7 @@ type Lesson = {
 type Module = {
   id: string
   title: string
-  title_secondary: string
+  title_secondary: string | null
   lessons: Lesson[]
 }
 
@@ -43,7 +44,7 @@ type CourseProgress = {
   course_slug: string
   course_id: string
   course_title: string
-  course_title_secondary: string
+  course_title_secondary: string | null
   modules: Module[]
 }
 
@@ -93,8 +94,8 @@ function getVideoEmbed(url: string): React.ReactNode {
   }
 }
 
-// ✅ FIX: Render content blocks (heading / text / image / checklist)
-function renderContentBlocks(blocks: ContentBlock[] | undefined): React.ReactNode {
+// ✅ FIX: Render content blocks (heading / text / image / video / checklist)
+function renderContentBlocks(blocks: ContentBlock[] | undefined, ru: boolean): React.ReactNode {
   if (!blocks || blocks.length === 0) return null
   return (
     <div className="space-y-4">
@@ -123,13 +124,22 @@ function renderContentBlocks(blocks: ContentBlock[] | undefined): React.ReactNod
             />
           ) : null
         }
+        if (block.type === 'video') {
+          return block.content ? (
+            <div key={block.id || i} className="aspect-video bg-zinc-900 rounded-xl overflow-hidden">
+              {getVideoEmbed(block.content)}
+            </div>
+          ) : null
+        }
         if (block.type === 'checklist') {
           return (
             <div key={block.id || i} className="space-y-2">
               {(block.items || []).map((item, j) => (
                 <div key={item.id || j} className="flex items-start gap-3 p-3 bg-zinc-50 dark:bg-zinc-800 rounded-xl">
                   <CheckCircle2 className="w-5 h-5 text-teal-500 flex-shrink-0 mt-0.5" />
-                  <span className="text-zinc-700 dark:text-zinc-300">{item.text}</span>
+                  <span className="text-zinc-700 dark:text-zinc-300">
+                    {ru ? (item.text_secondary || item.text) : item.text}
+                  </span>
                 </div>
               ))}
             </div>
@@ -255,10 +265,19 @@ export default function LessonPage() {
     )
   }
 
-  // Выбираем контент на нужном языке
+  // Выбираем контент на нужном языке. Для secondary-блоков с пустыми
+  // image/video URL делаем fallback на primary-блок с тем же id.
+  const primaryBlocks: ContentBlock[] = currentLesson.content || []
+  const secondaryBlocks: ContentBlock[] = currentLesson.content_secondary || []
   const contentBlocks: ContentBlock[] = ru
-    ? (currentLesson.content_secondary?.length ? currentLesson.content_secondary : currentLesson.content) || []
-    : currentLesson.content || []
+    ? (secondaryBlocks.length ? secondaryBlocks : primaryBlocks).map(block => {
+        if ((block.type === 'image' || block.type === 'video') && !block.content) {
+          const primary = primaryBlocks.find(p => p.id === block.id)
+          if (primary?.content) return { ...block, content: primary.content }
+        }
+        return block
+      })
+    : primaryBlocks
 
   // Показываем видеоплеер только для уроков типа video или при наличии video_url
   const showVideoPlayer = currentLesson.type === 'video' || !!currentLesson.video_url
@@ -351,7 +370,7 @@ export default function LessonPage() {
           {contentBlocks.length > 0 && (
             <Card>
               <CardContent className="p-6">
-                {renderContentBlocks(contentBlocks)}
+                {renderContentBlocks(contentBlocks, ru)}
               </CardContent>
             </Card>
           )}

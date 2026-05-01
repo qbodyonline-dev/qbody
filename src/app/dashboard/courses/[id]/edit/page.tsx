@@ -83,7 +83,7 @@ export default function CourseEditorPage() {
   const [editingLesson, setEditingLesson] = useState<{ lesson: Lesson; moduleId: string } | null>(null)
   const [lessonForm, setLessonForm] = useState({
     title: '', title_secondary: '', type: 'video' as 'video' | 'text' | 'task',
-    duration_minutes: '10', video_url: '', video_url_secondary: '', is_free: false,
+    duration_minutes: '10', video_url: '', video_url_secondary: '', is_free: false, is_published: true,
     content: [] as ContentBlock[],
     content_secondary: [] as ContentBlock[]
   })
@@ -208,7 +208,6 @@ export default function CourseEditorPage() {
       setLessonForm(prev => ({
         ...prev,
         content: prev.content.map(b => b.id === blockId ? { ...b, content: url } : b),
-        content_secondary: prev.content_secondary.map(b => b.id === blockId ? { ...b, content: url } : b),
       }))
       toast.success(ru ? 'Изображение загружено!' : 'Image uploaded!')
     }
@@ -379,7 +378,7 @@ export default function CourseEditorPage() {
     setAddingToModuleId(moduleId)
     setLessonForm({
       title: '', title_secondary: '', type,
-      duration_minutes: '10', video_url: '', video_url_secondary: '', is_free: false,
+      duration_minutes: '10', video_url: '', video_url_secondary: '', is_free: false, is_published: true,
       content: [], content_secondary: []
     })
     setIsLessonModalOpen(true)
@@ -396,6 +395,7 @@ export default function CourseEditorPage() {
       video_url: lesson.video_url || '',
       video_url_secondary: lesson.video_url_secondary || '',
       is_free: lesson.is_free,
+      is_published: lesson.is_published,
       content: Array.isArray(lesson.content) ? lesson.content : [],
       content_secondary: Array.isArray(lesson.content_secondary) ? lesson.content_secondary : []
     })
@@ -417,6 +417,7 @@ export default function CourseEditorPage() {
         video_url: lessonForm.video_url || null,
         video_url_secondary: lessonForm.video_url_secondary || null,
         is_free: lessonForm.is_free,
+        is_published: lessonForm.is_published,
         content: lessonForm.content,
         content_secondary: lessonForm.content_secondary,
       }
@@ -684,10 +685,14 @@ export default function CourseEditorPage() {
               </select>
             </div>
             <Input label={ru ? 'Длительность (мин)' : 'Duration (min)'} type="number" value={lessonForm.duration_minutes} onChange={(e) => setLessonForm({ ...lessonForm, duration_minutes: e.target.value })} />
-            <div className="flex items-end">
+            <div className="flex items-end gap-4">
               <label className="flex items-center gap-3 cursor-pointer h-12">
                 <input type="checkbox" className="w-5 h-5 rounded accent-teal-500" checked={lessonForm.is_free} onChange={(e) => setLessonForm({ ...lessonForm, is_free: e.target.checked })} />
                 <span className="text-sm">{ru ? 'Бесплатный' : 'Free'}</span>
+              </label>
+              <label className="flex items-center gap-3 cursor-pointer h-12">
+                <input type="checkbox" className="w-5 h-5 rounded accent-teal-500" checked={lessonForm.is_published} onChange={(e) => setLessonForm({ ...lessonForm, is_published: e.target.checked })} />
+                <span className="text-sm">{ru ? 'Опубликован' : 'Published'}</span>
               </label>
             </div>
           </div>
