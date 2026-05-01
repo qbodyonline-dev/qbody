@@ -9,8 +9,8 @@ import { Modal } from '@/components/ui/modal'
 import { useTranslation } from '@/lib/i18n'
 import { fetchWithAuth } from '@/lib/api'
 import {
-  FileText, Plus, Edit, Trash2, Loader2, Upload, Copy,
-  Settings, Eye, EyeOff, Link as LinkIcon, Check,
+  FileText, Plus, Trash2, Loader2, Copy,
+  Settings, Eye, Link as LinkIcon, Check,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useLanguageConfig } from '@/lib/useLanguageConfig'

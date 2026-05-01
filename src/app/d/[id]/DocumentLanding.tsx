@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslation } from '@/lib/i18n'
 import { fetchWithAuth } from '@/lib/api'
@@ -47,9 +47,22 @@ export default function DocumentLanding({
   const [downloading, setDownloading] = useState(false)
   const [buying, setBuying] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const refreshTriedRef = useRef(false)
 
   const title = (ru && doc.title_secondary) ? doc.title_secondary : doc.title
   const description = (ru && doc.description_secondary) ? doc.description_secondary : doc.description
+
+  // After Stripe success redirect, the webhook may not have processed yet (1-3s race).
+  // If we land on ?paid=1 but server still says canDownload=false, refresh once after a short delay.
+  useEffect(() => {
+    if (paidJustNow && !canDownload && !refreshTriedRef.current) {
+      refreshTriedRef.current = true
+      const t = setTimeout(() => {
+        router.refresh()
+      }, 2500)
+      return () => clearTimeout(t)
+    }
+  }, [paidJustNow, canDownload, router])
 
   async function handleDownload() {
     setDownloading(true)
@@ -177,6 +190,11 @@ export default function DocumentLanding({
                   </>
                 )}
               </button>
+            ) : paidJustNow ? (
+              <div className="w-full flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 font-medium">
+                <Loader2 className="w-5 h-5 animate-spin" />
+                {ru ? 'Обрабатываем платёж…' : 'Processing payment…'}
+              </div>
             ) : (
               <div className="space-y-4">
                 <div className="flex items-baseline gap-3">

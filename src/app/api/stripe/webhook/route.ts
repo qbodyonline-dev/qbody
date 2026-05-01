@@ -74,18 +74,39 @@ export async function POST(request: NextRequest) {
             break
           }
 
-          // Mark purchase paid
-          const { error: updateError } = await supabase
-            .from('document_purchases')
-            .update({
-              status: 'paid',
-              email_sent_at: new Date().toISOString(),
-            })
-            .eq('stripe_session_id', session.id)
+          if (existingPurchase) {
+            // Row exists from checkout API — mark as paid
+            const { error: updateError } = await supabase
+              .from('document_purchases')
+              .update({
+                status: 'paid',
+                email_sent_at: new Date().toISOString(),
+              })
+              .eq('id', existingPurchase.id)
 
-          if (updateError) {
-            console.error('[Webhook] Error updating document_purchase:', updateError)
-            return NextResponse.json({ error: 'Failed to update document purchase' }, { status: 500 })
+            if (updateError) {
+              console.error('[Webhook] Error updating document_purchase:', updateError)
+              return NextResponse.json({ error: 'Failed to update document purchase' }, { status: 500 })
+            }
+          } else {
+            // Row missing (rare race / failed pre-checkout insert) — create it now
+            const { error: insertError } = await supabase
+              .from('document_purchases')
+              .insert({
+                user_id: userId,
+                document_id: documentId,
+                stripe_session_id: session.id,
+                amount_paid: (Number(session.amount_total) || 0) / 100,
+                currency: session.currency || 'usd',
+                status: 'paid',
+                email_sent_at: new Date().toISOString(),
+              })
+
+            if (insertError) {
+              console.error('[Webhook] Error inserting document_purchase from webhook:', insertError)
+              return NextResponse.json({ error: 'Failed to create document purchase' }, { status: 500 })
+            }
+            console.log(`[Webhook] ℹ️ document_purchase row created from webhook (no pre-checkout row): ${session.id}`)
           }
 
           // Fetch document for email
