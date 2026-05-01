@@ -793,3 +793,118 @@ export function getAccountDeletedAdminTemplate(params: AccountDeletedAdminParams
     </div>
   `, siteName)
 }
+
+// ============================================
+// DOCUMENT PURCHASE TEMPLATES
+// ============================================
+
+interface DocumentPurchaseSuccessParams {
+  name: string
+  documentTitle: string
+  downloadUrl: string
+  amount: number
+  currency: string
+  siteName: string
+  appUrl: string
+}
+
+export function getDocumentPurchaseSuccessTemplate(params: DocumentPurchaseSuccessParams): string {
+  const { name, documentTitle, downloadUrl, amount, currency, siteName, appUrl } = params
+  const formattedAmount = new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(amount / 100)
+  const eName = escapeHtml(name)
+  const eTitle = escapeHtml(documentTitle)
+  const eSiteName = escapeHtml(siteName)
+
+  return wrapTemplate(`
+    <div class="header">
+      <h1>Your Document Is Ready!</h1>
+    </div>
+    <div class="content">
+      <p>Hello <strong>${eName}</strong>,</p>
+      <div class="success-box">
+        <p>Thank you for your purchase! Your document <strong>${eTitle}</strong> is now available for download.</p>
+      </div>
+      <h3>Order Summary</h3>
+      <div style="background: #f8f9fa; padding: 15px; border-radius: 5px; margin: 15px 0;">
+        <div class="detail-row">
+          <span class="detail-label">Document:</span>
+          <span class="detail-value">${eTitle}</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">Amount Paid:</span>
+          <span class="detail-value">${formattedAmount}</span>
+        </div>
+        <div class="detail-row" style="border-bottom: none;">
+          <span class="detail-label">Date:</span>
+          <span class="detail-value">${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
+        </div>
+      </div>
+      <div style="text-align: center;">
+        <a href="${downloadUrl}" class="button">Download Document</a>
+      </div>
+      <p>You can re-download this document any time from your account.</p>
+      <p>Best regards,<br>The ${eSiteName} Team</p>
+    </div>
+    <div class="footer">
+      <p>&copy; ${new Date().getFullYear()} ${eSiteName}. All rights reserved.</p>
+      <p>This is your purchase confirmation receipt.</p>
+    </div>
+  `, siteName)
+}
+
+interface DocumentPurchaseAdminParams {
+  clientName: string
+  clientEmail: string
+  documentTitle: string
+  amount: number
+  currency: string
+  siteName: string
+  appUrl: string
+}
+
+export function getDocumentPurchaseAdminTemplate(params: DocumentPurchaseAdminParams): string {
+  const { clientName, clientEmail, documentTitle, amount, currency, siteName, appUrl } = params
+  const formattedAmount = new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(amount / 100)
+  const eSiteName = escapeHtml(siteName)
+
+  return wrapTemplate(`
+    <div class="header">
+      <h1>New Document Purchase</h1>
+    </div>
+    <div class="content">
+      <div class="success-box">
+        <p>A document has been purchased.</p>
+      </div>
+      <h3>Purchase Details</h3>
+      <div style="background: #f8f9fa; padding: 15px; border-radius: 5px; margin: 15px 0;">
+        <div class="detail-row">
+          <span class="detail-label">Client:</span>
+          <span class="detail-value">${escapeHtml(clientName)}</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">Email:</span>
+          <span class="detail-value">${escapeHtml(clientEmail)}</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">Document:</span>
+          <span class="detail-value">${escapeHtml(documentTitle)}</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">Amount:</span>
+          <span class="detail-value">${formattedAmount}</span>
+        </div>
+        <div class="detail-row" style="border-bottom: none;">
+          <span class="detail-label">Date:</span>
+          <span class="detail-value">${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+        </div>
+      </div>
+      <div style="text-align: center;">
+        <a href="${appUrl}/dashboard/documents" class="button">View Documents</a>
+      </div>
+    </div>
+    <div class="footer">
+      <p>&copy; ${new Date().getFullYear()} ${eSiteName}. All rights reserved.</p>
+      <p>This is an automated admin notification.</p>
+    </div>
+  `, siteName)
+}

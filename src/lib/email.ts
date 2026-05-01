@@ -16,6 +16,8 @@ import {
   getAccountDeletedTemplate,
   getAccountDeletedAdminTemplate,
   getClientOnboardedTemplate,
+  getDocumentPurchaseSuccessTemplate,
+  getDocumentPurchaseAdminTemplate,
 } from './email-templates'
 
 // Lazy-init: Resend is created on first use, not at import time.
@@ -341,6 +343,53 @@ export async function sendClientOnboarded(
       name,
       temporaryPassword: data.temporaryPassword,
       assignedCourses: data.assignedCourses,
+      siteName: SITE_NAME,
+      appUrl: APP_URL,
+    }),
+  })
+}
+
+// ============================================
+// DOCUMENT PURCHASE EMAILS
+// ============================================
+
+export async function sendDocumentPurchaseSuccess(
+  email: string,
+  name: string,
+  data: {
+    documentTitle: string
+    downloadUrl: string
+    amount: number
+    currency: string
+  }
+) {
+  return sendEmail({
+    to: email,
+    subject: `Document Ready - ${data.documentTitle}`,
+    html: getDocumentPurchaseSuccessTemplate({
+      name,
+      documentTitle: data.documentTitle,
+      downloadUrl: data.downloadUrl,
+      amount: data.amount,
+      currency: data.currency,
+      siteName: SITE_NAME,
+      appUrl: APP_URL,
+    }),
+  })
+}
+
+export async function sendDocumentPurchaseAdmin(data: {
+  clientName: string
+  clientEmail: string
+  documentTitle: string
+  amount: number
+  currency: string
+}) {
+  return sendEmail({
+    to: ADMIN_EMAIL,
+    subject: `New Document Purchase - ${data.documentTitle}`,
+    html: getDocumentPurchaseAdminTemplate({
+      ...data,
       siteName: SITE_NAME,
       appUrl: APP_URL,
     }),

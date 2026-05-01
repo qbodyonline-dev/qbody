@@ -2,7 +2,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { Home, BookOpen, TrendingUp, User, Menu, X, LogOut, MessageCircle, Dumbbell, Scale, Globe, Apple } from 'lucide-react'
+import { Home, BookOpen, TrendingUp, User, Menu, X, LogOut, MessageCircle, Dumbbell, Scale, Globe, Apple, FileText } from 'lucide-react'
 import { Avatar } from '@/components/ui/avatar'
 import { LanguageSwitcher } from '@/components/ui/language-switcher'
 import { useTranslation } from '@/lib/i18n'
@@ -101,6 +101,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
     { name: ru ? 'Чекины' : 'Check-ins', href: '/client/checkins', icon: Scale, badge: 0 },
     { name: ru ? 'Питание' : 'Nutrition', href: '/client/nutrition', icon: Apple, badge: 0 },
     { name: t('client.nav.courses'), href: '/client/courses', icon: BookOpen, badge: 0 },
+    { name: ru ? 'Документы' : 'Documents', href: '/client/documents', icon: FileText, badge: 0 },
     { name: t('client.nav.progress'), href: '/client/progress', icon: TrendingUp, badge: 0 },
     { name: t('client.nav.support'), href: '/client/messages', icon: MessageCircle, badge: unreadMessages },
     { name: t('client.nav.profile'), href: '/client/profile', icon: User, badge: 0 },
