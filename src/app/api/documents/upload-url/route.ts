@@ -20,17 +20,30 @@ const ALLOWED_TYPES = [
 ]
 
 const BUCKET = 'documents'
-const MAX_SIZE = 100 * 1024 * 1024 // 100MB
+const MAX_SIZE = 50 * 1024 * 1024 // 50MB — лимит Supabase проекта
 
-async function ensureBucket(supabase: any) {
-  const { data: buckets } = await supabase.storage.listBuckets()
-  if (!buckets?.find((b: any) => b.id === BUCKET)) {
-    const { error } = await supabase.storage.createBucket(BUCKET, {
-      public: false,
-      fileSizeLimit: MAX_SIZE,
-    })
-    if (error) console.error(`Create bucket "${BUCKET}" error:`, error)
+// Возвращает true если bucket существует/создан, false если создать не удалось.
+// Главный путь создания — SQL-миграция 20260503_documents_storage_bucket.sql.
+// Этот fallback пытается поднять bucket в runtime, но если падает —
+// ошибка пробрасывается наружу (а не глотается, как было раньше).
+async function ensureBucket(supabase: any): Promise<{ ok: boolean; error?: string }> {
+  const { data: buckets, error: listError } = await supabase.storage.listBuckets()
+  if (listError) {
+    return { ok: false, error: `listBuckets: ${listError.message}` }
   }
+  if (buckets?.find((b: any) => b.id === BUCKET)) {
+    return { ok: true }
+  }
+  const { error: createError } = await supabase.storage.createBucket(BUCKET, {
+    public: false,
+    fileSizeLimit: MAX_SIZE,
+  })
+  if (createError) {
+    // Если bucket уже создан другим процессом параллельно — это ок
+    if (/already exists/i.test(createError.message)) return { ok: true }
+    return { ok: false, error: `createBucket: ${createError.message}` }
+  }
+  return { ok: true }
 }
 
 /**
@@ -62,7 +75,13 @@ export async function POST(request: NextRequest) {
     const filePath = `${crypto.randomUUID()}.${ext}`
 
     const supabase = createServerClient()
-    await ensureBucket(supabase)
+    const bucketCheck = await ensureBucket(supabase)
+    if (!bucketCheck.ok) {
+      console.error('Document bucket unavailable:', bucketCheck.error)
+      return NextResponse.json({
+        error: `Storage bucket "${BUCKET}" is not available. Run migration 20260503_documents_storage_bucket.sql or create the bucket manually in Supabase Studio. Reason: ${bucketCheck.error}`,
+      }, { status: 500 })
+    }
 
     const { data, error } = await supabase.storage
       .from(BUCKET)
