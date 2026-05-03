@@ -11,6 +11,7 @@ import { fetchWithAuth } from '@/lib/api'
 import {
   FileText, Plus, Trash2, Loader2, Copy,
   Settings, Eye, Link as LinkIcon, Check, Upload, X,
+  Send, Search, Gift, DollarSign,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useLanguageConfig } from '@/lib/useLanguageConfig'
@@ -75,6 +76,18 @@ export default function DocumentsAdminPage() {
   const [pendingFile, setPendingFile] = useState<{ path: string; name: string; size: number; mime: string } | null>(null)
   const [form, setForm] = useState<Form>({ ...EMPTY_FORM })
   const [copiedId, setCopiedId] = useState<string | null>(null)
+
+  // ── Send-to-client state ──
+  type Client = { id: string; full_name: string | null; email: string | null; avatar_url?: string | null }
+  const [sendOpen, setSendOpen] = useState(false)
+  const [sendingDoc, setSendingDoc] = useState<Doc | null>(null)
+  const [sendMode, setSendMode] = useState<'gift' | 'offer'>('gift')
+  const [sendMessage, setSendMessage] = useState('')
+  const [sendSearch, setSendSearch] = useState('')
+  const [selectedClientIds, setSelectedClientIds] = useState<string[]>([])
+  const [clients, setClients] = useState<Client[]>([])
+  const [clientsLoading, setClientsLoading] = useState(false)
+  const [sending, setSending] = useState(false)
 
   const fileInputRef = useRef<HTMLInputElement>(null)
   const coverInputRef = useRef<HTMLInputElement>(null)
@@ -269,6 +282,85 @@ export default function DocumentsAdminPage() {
     }
   }
 
+  // ─── Send to client ───
+  function openSendModal(doc: Doc) {
+    setSendingDoc(doc)
+    setSendMode(doc.is_paid ? 'gift' : 'gift') // дефолт всегда gift
+    setSendMessage('')
+    setSendSearch('')
+    setSelectedClientIds([])
+    setSendOpen(true)
+    // Подгружаем клиентов
+    if (clients.length === 0) {
+      setClientsLoading(true)
+      fetchWithAuth('/api/clients')
+        .then(r => r.ok ? r.json() : [])
+        .then((data: any[]) => {
+          setClients((data || []).map((c: any) => ({
+            id: c.id,
+            full_name: c.full_name,
+            email: c.email,
+            avatar_url: c.avatar_url,
+          })))
+        })
+        .catch(err => {
+          console.error(err)
+          toast.error(ru ? 'Не удалось загрузить клиентов' : 'Failed to load clients')
+        })
+        .finally(() => setClientsLoading(false))
+    }
+  }
+
+  function toggleClient(id: string) {
+    setSelectedClientIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id])
+  }
+
+  async function handleSend() {
+    if (!sendingDoc) return
+    if (selectedClientIds.length === 0) {
+      toast.error(ru ? 'Выберите хотя бы одного клиента' : 'Select at least one client')
+      return
+    }
+    setSending(true)
+    try {
+      const res = await fetchWithAuth(`/api/documents/${sendingDoc.id}/send`, {
+        method: 'POST',
+        body: JSON.stringify({
+          user_ids: selectedClientIds,
+          mode: sendMode,
+          message: sendMessage.trim() || undefined,
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Send failed')
+
+      const sent = data.sent ?? 0
+      const failed = data.failed ?? 0
+      if (failed > 0) {
+        toast.warning(ru
+          ? `Отправлено: ${sent}, ошибок: ${failed}`
+          : `Sent: ${sent}, failed: ${failed}`)
+      } else {
+        toast.success(ru
+          ? `Отправлено ${sent} ${sendMode === 'gift' ? 'подарок(ов)' : 'предложение(й)'}`
+          : `Sent to ${sent} ${sendMode === 'gift' ? 'gift(s)' : 'offer(s)'}`)
+      }
+      setSendOpen(false)
+      setSendingDoc(null)
+    } catch (err: any) {
+      console.error(err)
+      toast.error(err.message || (ru ? 'Ошибка отправки' : 'Send failed'))
+    } finally {
+      setSending(false)
+    }
+  }
+
+  const filteredClients = clients.filter(c => {
+    if (!sendSearch.trim()) return true
+    const q = sendSearch.toLowerCase()
+    return (c.full_name?.toLowerCase().includes(q) || c.email?.toLowerCase().includes(q))
+  })
+
   // ─── Delete ───
   async function handleDelete() {
     if (!editingDoc) return
@@ -413,7 +505,17 @@ export default function DocumentsAdminPage() {
                         </button>
                       </div>
 
-                      <div className="flex items-center gap-2 mt-3">
+                      <div className="flex items-center gap-2 mt-3 flex-wrap">
+                        <Button
+                          size="sm"
+                          onClick={() => openSendModal(doc)}
+                          disabled={!doc.is_active}
+                          className="bg-teal-500 hover:bg-teal-600 text-white"
+                          title={!doc.is_active ? (ru ? 'Активируйте документ' : 'Activate first') : undefined}
+                        >
+                          <Send className="w-4 h-4 mr-1" />
+                          {ru ? 'Отправить клиенту' : 'Send to client'}
+                        </Button>
                         <Button variant="outline" size="sm" onClick={() => openEdit(doc)}>
                           <Settings className="w-4 h-4 mr-1" />
                           {ru ? 'Настройки' : 'Settings'}
@@ -672,6 +774,191 @@ export default function DocumentsAdminPage() {
             </Button>
           </div>
         </div>
+      </Modal>
+
+      {/* Send-to-client Modal */}
+      <Modal
+        isOpen={sendOpen}
+        onClose={() => { setSendOpen(false); setSendingDoc(null) }}
+        title={ru ? 'Отправить клиенту' : 'Send to client'}
+        size="lg"
+      >
+        {sendingDoc && (
+          <div className="space-y-4">
+            {/* Document info */}
+            <div className="flex items-center gap-3 p-3 rounded-lg bg-zinc-50 dark:bg-zinc-800">
+              <div className="w-10 h-10 rounded-lg bg-teal-100 dark:bg-teal-900/30 flex items-center justify-center flex-shrink-0">
+                <FileText className="w-5 h-5 text-teal-600 dark:text-teal-400" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="font-medium text-sm truncate">{sendingDoc.title}</p>
+                <p className="text-xs text-zinc-500 truncate">
+                  {sendingDoc.is_paid
+                    ? `$${Number(sendingDoc.price).toFixed(2)}`
+                    : (ru ? 'Бесплатный' : 'Free')}
+                </p>
+              </div>
+            </div>
+
+            {/* Mode selector — only meaningful for paid docs */}
+            {sendingDoc.is_paid && (
+              <div>
+                <label className="block text-sm font-medium mb-2">
+                  {ru ? 'Способ отправки' : 'Send mode'}
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setSendMode('gift')}
+                    className={`p-3 rounded-lg border-2 text-left transition-colors ${
+                      sendMode === 'gift'
+                        ? 'border-teal-500 bg-teal-50 dark:bg-teal-900/20'
+                        : 'border-zinc-200 dark:border-zinc-700 hover:border-zinc-300'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2 mb-1">
+                      <Gift className="w-4 h-4 text-teal-500" />
+                      <span className="font-medium text-sm">
+                        {ru ? 'Подарок' : 'Gift'}
+                      </span>
+                    </div>
+                    <p className="text-xs text-zinc-500">
+                      {ru ? 'Доступ открывается сразу, без оплаты' : 'Instant access, no payment'}
+                    </p>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSendMode('offer')}
+                    className={`p-3 rounded-lg border-2 text-left transition-colors ${
+                      sendMode === 'offer'
+                        ? 'border-teal-500 bg-teal-50 dark:bg-teal-900/20'
+                        : 'border-zinc-200 dark:border-zinc-700 hover:border-zinc-300'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2 mb-1">
+                      <DollarSign className="w-4 h-4 text-teal-500" />
+                      <span className="font-medium text-sm">
+                        {ru ? 'С оплатой' : 'Paid offer'}
+                      </span>
+                    </div>
+                    <p className="text-xs text-zinc-500">
+                      {ru
+                        ? `Клиент должен оплатить $${Number(sendingDoc.price).toFixed(2)}`
+                        : `Client pays $${Number(sendingDoc.price).toFixed(2)}`}
+                    </p>
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Message */}
+            <div>
+              <label className="block text-sm font-medium mb-1">
+                {ru ? 'Сообщение (необязательно)' : 'Message (optional)'}
+              </label>
+              <textarea
+                className="w-full rounded-md border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-3 py-2 text-sm"
+                rows={3}
+                value={sendMessage}
+                onChange={(e) => setSendMessage(e.target.value)}
+                placeholder={ru
+                  ? 'Привет! Я подготовил для тебя…'
+                  : 'Hi! I prepared this for you…'}
+              />
+              <p className="text-xs text-zinc-500 mt-1">
+                {ru
+                  ? 'Ссылка на документ добавится автоматически'
+                  : 'Document link will be added automatically'}
+              </p>
+            </div>
+
+            {/* Client picker */}
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <label className="text-sm font-medium">
+                  {ru ? 'Получатели' : 'Recipients'}{' '}
+                  <span className="text-zinc-500 font-normal">
+                    ({selectedClientIds.length})
+                  </span>
+                </label>
+                {selectedClientIds.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setSelectedClientIds([])}
+                    className="text-xs text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
+                  >
+                    {ru ? 'Очистить' : 'Clear'}
+                  </button>
+                )}
+              </div>
+              <div className="relative mb-2">
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
+                <Input
+                  value={sendSearch}
+                  onChange={(e) => setSendSearch(e.target.value)}
+                  placeholder={ru ? 'Поиск по имени или email…' : 'Search by name or email…'}
+                  className="pl-9"
+                />
+              </div>
+              <div className="max-h-60 overflow-y-auto rounded-lg border border-zinc-200 dark:border-zinc-700">
+                {clientsLoading ? (
+                  <div className="p-4 text-center text-zinc-500">
+                    <Loader2 className="w-5 h-5 animate-spin mx-auto" />
+                  </div>
+                ) : filteredClients.length === 0 ? (
+                  <div className="p-4 text-center text-sm text-zinc-500">
+                    {ru ? 'Клиенты не найдены' : 'No clients found'}
+                  </div>
+                ) : (
+                  filteredClients.map(c => {
+                    const checked = selectedClientIds.includes(c.id)
+                    return (
+                      <label
+                        key={c.id}
+                        className={`flex items-center gap-3 px-3 py-2 cursor-pointer border-b border-zinc-100 dark:border-zinc-800 last:border-b-0 hover:bg-zinc-50 dark:hover:bg-zinc-800 ${
+                          checked ? 'bg-teal-50 dark:bg-teal-900/10' : ''
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={() => toggleClient(c.id)}
+                          className="w-4 h-4"
+                        />
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-medium truncate">
+                            {c.full_name || c.email || 'Unknown'}
+                          </p>
+                          {c.full_name && c.email && (
+                            <p className="text-xs text-zinc-500 truncate">{c.email}</p>
+                          )}
+                        </div>
+                      </label>
+                    )
+                  })
+                )}
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="flex justify-end gap-2 pt-2 border-t border-zinc-100 dark:border-zinc-800">
+              <Button
+                variant="outline"
+                onClick={() => { setSendOpen(false); setSendingDoc(null) }}
+                disabled={sending}
+              >
+                {ru ? 'Отмена' : 'Cancel'}
+              </Button>
+              <Button onClick={handleSend} disabled={sending || selectedClientIds.length === 0}>
+                {sending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                <Send className="w-4 h-4 mr-1" />
+                {ru
+                  ? `Отправить (${selectedClientIds.length})`
+                  : `Send (${selectedClientIds.length})`}
+              </Button>
+            </div>
+          </div>
+        )}
       </Modal>
     </div>
   )

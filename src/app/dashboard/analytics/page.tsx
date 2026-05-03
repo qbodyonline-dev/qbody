@@ -10,21 +10,32 @@ import { fetchWithAuth } from '@/lib/api'
 import {
   Users, TrendingUp, TrendingDown, DollarSign, BookOpen, Download, Loader2,
   BarChart3, ShoppingBag, Trophy, Dumbbell, Scale, Search, ChevronRight,
-  Activity, Flag, ArrowLeft, AlertTriangle, Minus
+  Activity, Flag, ArrowLeft, AlertTriangle, Minus, FileText, Gift
 } from 'lucide-react'
 import { toast } from 'sonner'
 
 /* ═══════════ TYPES ═══════════ */
 type BizMetrics = {
   totalClients: number; activeClients: number; totalRevenue: number
+  courseRevenue?: number; documentRevenue?: number
   avgCompletion: number; clientGrowthPct: number; revenueGrowthPct: number
   clientsThisMonth: number; revenueThisMonth: number; paidOrdersCount: number
+  documentSalesCount?: number; documentGiftsCount?: number
 }
 type ChartPoint = { month: string; value: number }
 type CourseSale = { slug: string; title: string; titleSecondary: string; count: number; revenue: number }
+type DocumentSale = { id: string; title: string; titleSecondary: string; count: number; gifts: number; revenue: number }
 type TopClient = { id: string; name: string; completionPct: number }
-type RecentOrder = { id: string; clientName: string; courseTitle: string; courseTitleSecondary: string; amount: number; paidAt: string | null }
-type BizData = { metrics: BizMetrics; clientGrowth: ChartPoint[]; revenueByMonth: ChartPoint[]; courseSales: CourseSale[]; topClients: TopClient[]; recentOrders: RecentOrder[] }
+type RecentOrder = {
+  id: string; type?: 'course' | 'document'
+  clientName: string; courseTitle: string; courseTitleSecondary: string
+  amount: number; paidAt: string | null
+}
+type BizData = {
+  metrics: BizMetrics; clientGrowth: ChartPoint[]; revenueByMonth: ChartPoint[]
+  courseSales: CourseSale[]; documentSales?: DocumentSale[]
+  topClients: TopClient[]; recentOrders: RecentOrder[]
+}
 
 type TrainingMetrics = {
   activePrograms: number; totalWorkoutsCompleted: number; workoutsLast30d: number
@@ -672,7 +683,23 @@ export default function AnalyticsPage() {
             {[
               { label: ru ? 'Всего клиентов' : 'Total Clients', value: String(bizData.metrics.totalClients), change: fmtPct(bizData.metrics.clientGrowthPct), positive: bizData.metrics.clientGrowthPct >= 0, icon: Users, sub: `+${bizData.metrics.clientsThisMonth} ${ru ? 'за месяц' : 'this month'}` },
               { label: ru ? 'Активные' : 'Active', value: String(bizData.metrics.activeClients), change: bizData.metrics.totalClients > 0 ? `${Math.round((bizData.metrics.activeClients / bizData.metrics.totalClients) * 100)}%` : '0%', positive: true, icon: TrendingUp, sub: ru ? 'с курсами' : 'with courses' },
-              { label: ru ? 'Выручка' : 'Revenue', value: fmtMoney(bizData.metrics.totalRevenue), change: fmtPct(bizData.metrics.revenueGrowthPct), positive: bizData.metrics.revenueGrowthPct >= 0, icon: DollarSign, sub: `${bizData.metrics.paidOrdersCount} ${ru ? 'продаж' : 'sales'}` },
+              {
+                label: ru ? 'Выручка' : 'Revenue',
+                value: fmtMoney(bizData.metrics.totalRevenue),
+                change: fmtPct(bizData.metrics.revenueGrowthPct),
+                positive: bizData.metrics.revenueGrowthPct >= 0,
+                icon: DollarSign,
+                sub: (() => {
+                  const courses = bizData.metrics.paidOrdersCount
+                  const docs = bizData.metrics.documentSalesCount ?? 0
+                  if (docs > 0) {
+                    return ru
+                      ? `${courses} курс. + ${docs} док.`
+                      : `${courses} courses + ${docs} docs`
+                  }
+                  return `${courses} ${ru ? 'продаж' : 'sales'}`
+                })(),
+              },
               { label: ru ? 'Прохождение' : 'Completion', value: `${bizData.metrics.avgCompletion}%`, change: '', positive: true, icon: BookOpen, sub: ru ? 'уроков' : 'lessons' },
             ].map((m) => {
               const Icon = m.icon
@@ -700,6 +727,44 @@ export default function AnalyticsPage() {
               <CardContent><BarChart data={bizData.revenueByMonth.map(d => ({ label: d.month, value: d.value }))} color="bg-green-500" formatValue={(v) => v > 0 ? `$${(v / 100).toFixed(0)}` : '0'} /></CardContent>
             </Card>
           </div>
+
+          {/* Documents revenue breakdown */}
+          {bizData.documentSales && bizData.documentSales.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <FileText className="w-5 h-5 text-teal-500" />
+                  {ru ? 'Продажи документов' : 'Document Sales'}
+                  <Badge className="ml-2 bg-teal-100 text-teal-700 border-0 text-xs">
+                    {fmtMoney(bizData.metrics.documentRevenue ?? 0)}
+                  </Badge>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {bizData.documentSales.map((d, i) => (
+                    <div key={d.id} className="flex items-center gap-3">
+                      <span className="w-7 h-7 rounded-full bg-teal-500/10 text-teal-600 text-xs font-bold flex items-center justify-center flex-shrink-0">{i + 1}</span>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100 truncate">
+                          {ru ? d.titleSecondary : d.title}
+                        </p>
+                        <p className="text-xs text-zinc-500 flex items-center gap-2">
+                          <span>{d.count} {ru ? 'продаж' : 'sales'}</span>
+                          {d.gifts > 0 && (
+                            <span className="inline-flex items-center gap-1 text-zinc-400">
+                              <Gift className="w-3 h-3" /> {d.gifts} {ru ? 'подарков' : 'gifts'}
+                            </span>
+                          )}
+                        </p>
+                      </div>
+                      <span className="text-sm font-bold text-zinc-900 dark:text-zinc-100">{fmtMoney(d.revenue)}</span>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           <div className="grid lg:grid-cols-3 gap-6">
             <Card>
@@ -734,12 +799,25 @@ export default function AnalyticsPage() {
               <CardHeader><CardTitle className="text-base flex items-center gap-2"><DollarSign className="w-5 h-5 text-green-500" />{ru ? 'Последние продажи' : 'Recent Sales'}</CardTitle></CardHeader>
               <CardContent>
                 {bizData.recentOrders.length === 0 ? <div className="text-center py-8 text-zinc-400">{ru ? 'Нет продаж' : 'No sales'}</div> : (
-                  <div className="space-y-3">{bizData.recentOrders.map(o => (
-                    <div key={o.id} className="flex items-center gap-3 text-sm">
-                      <div className="flex-1 min-w-0"><p className="font-medium text-zinc-900 dark:text-zinc-100 truncate">{o.clientName}</p><p className="text-xs text-zinc-500 truncate">{ru ? o.courseTitleSecondary : o.courseTitle}</p></div>
-                      <div className="text-right flex-shrink-0"><p className="font-bold text-zinc-900 dark:text-zinc-100">{fmtMoney(o.amount)}</p>{o.paidAt && <p className="text-xs text-zinc-400">{new Date(o.paidAt).toLocaleDateString(ru ? 'ru-RU' : 'en-US', { month: 'short', day: 'numeric' })}</p>}</div>
-                    </div>
-                  ))}</div>
+                  <div className="space-y-3">{bizData.recentOrders.map(o => {
+                    const isDoc = o.type === 'document'
+                    const TypeIcon = isDoc ? FileText : ShoppingBag
+                    return (
+                      <div key={o.id} className="flex items-center gap-3 text-sm">
+                        <div className={`w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 ${isDoc ? 'bg-teal-500/10 text-teal-600' : 'bg-blue-500/10 text-blue-600'}`}>
+                          <TypeIcon className="w-3.5 h-3.5" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-zinc-900 dark:text-zinc-100 truncate">{o.clientName}</p>
+                          <p className="text-xs text-zinc-500 truncate">{ru ? o.courseTitleSecondary : o.courseTitle}</p>
+                        </div>
+                        <div className="text-right flex-shrink-0">
+                          <p className="font-bold text-zinc-900 dark:text-zinc-100">{fmtMoney(o.amount)}</p>
+                          {o.paidAt && <p className="text-xs text-zinc-400">{new Date(o.paidAt).toLocaleDateString(ru ? 'ru-RU' : 'en-US', { month: 'short', day: 'numeric' })}</p>}
+                        </div>
+                      </div>
+                    )
+                  })}</div>
                 )}
               </CardContent>
             </Card>
