@@ -10,7 +10,7 @@ import { useTranslation } from '@/lib/i18n'
 import { fetchWithAuth } from '@/lib/api'
 import {
   FileText, Plus, Trash2, Loader2, Copy,
-  Settings, Eye, Link as LinkIcon, Check,
+  Settings, Eye, Link as LinkIcon, Check, Upload, X,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useLanguageConfig } from '@/lib/useLanguageConfig'
@@ -67,6 +67,7 @@ export default function DocumentsAdminPage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [uploading, setUploading] = useState(false)
+  const [coverUploading, setCoverUploading] = useState(false)
 
   const [editorOpen, setEditorOpen] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
@@ -76,6 +77,7 @@ export default function DocumentsAdminPage() {
   const [copiedId, setCopiedId] = useState<string | null>(null)
 
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const coverInputRef = useRef<HTMLInputElement>(null)
 
   // ─── Fetch ───
   const fetchDocs = useCallback(async () => {
@@ -146,6 +148,35 @@ export default function DocumentsAdminPage() {
       toast.error(err.message || (ru ? 'Ошибка загрузки файла' : 'Upload failed'))
     } finally {
       setUploading(false)
+    }
+  }
+
+  // ─── Upload cover image ───
+  async function handleCoverChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file) return
+
+    if (!file.type.startsWith('image/')) {
+      toast.error(ru ? 'Файл должен быть изображением' : 'File must be an image')
+      return
+    }
+
+    setCoverUploading(true)
+    try {
+      const fd = new FormData()
+      fd.append('file', file)
+      fd.append('folder', 'documents/covers')
+      const res = await fetchWithAuth('/api/upload', { method: 'POST', body: fd })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Upload failed')
+      setForm((prev) => ({ ...prev, preview_url: data.url }))
+      toast.success(ru ? 'Обложка загружена' : 'Cover uploaded')
+    } catch (err: any) {
+      console.error(err)
+      toast.error(err.message || (ru ? 'Не удалось загрузить' : 'Upload failed'))
+    } finally {
+      setCoverUploading(false)
     }
   }
 
@@ -471,16 +502,70 @@ export default function DocumentsAdminPage() {
             </div>
           )}
 
-          {/* Preview image URL */}
+          {/* Preview image (URL or upload) */}
           <div>
             <label className="block text-sm font-medium mb-1">
-              {ru ? 'URL обложки (необязательно)' : 'Cover image URL (optional)'}
+              {ru ? 'Обложка (необязательно)' : 'Cover image (optional)'}
             </label>
-            <Input
-              value={form.preview_url}
-              onChange={(e) => setForm({ ...form, preview_url: e.target.value })}
-              placeholder="https://..."
+            <input
+              ref={coverInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp,image/gif,image/avif,image/heic,image/heif"
+              className="hidden"
+              onChange={handleCoverChange}
             />
+            <div className="flex items-start gap-3">
+              {/* Preview thumb */}
+              {form.preview_url && (
+                <div className="relative w-20 h-20 rounded-lg overflow-hidden border border-zinc-200 dark:border-zinc-700 flex-shrink-0">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={form.preview_url}
+                    alt=""
+                    className="w-full h-full object-cover"
+                    onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none' }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setForm({ ...form, preview_url: '' })}
+                    className="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/60 hover:bg-black/80 text-white flex items-center justify-center"
+                    title={ru ? 'Удалить' : 'Remove'}
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </div>
+              )}
+              {/* URL input + upload button */}
+              <div className="flex-1 space-y-2">
+                <div className="flex gap-2">
+                  <Input
+                    value={form.preview_url}
+                    onChange={(e) => setForm({ ...form, preview_url: e.target.value })}
+                    placeholder="https://..."
+                    className="flex-1"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => coverInputRef.current?.click()}
+                    disabled={coverUploading}
+                    title={ru ? 'Загрузить с компьютера' : 'Upload from computer'}
+                  >
+                    {coverUploading
+                      ? <Loader2 className="w-4 h-4 animate-spin" />
+                      : <Upload className="w-4 h-4" />}
+                    <span className="ml-2 hidden sm:inline">
+                      {ru ? 'Загрузить' : 'Upload'}
+                    </span>
+                  </Button>
+                </div>
+                <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                  {ru
+                    ? 'Вставьте URL изображения или загрузите файл (JPG, PNG, WebP, до 15 МБ)'
+                    : 'Paste image URL or upload a file (JPG, PNG, WebP, up to 15 MB)'}
+                </p>
+              </div>
+            </div>
           </div>
 
           {/* Paid toggle */}
