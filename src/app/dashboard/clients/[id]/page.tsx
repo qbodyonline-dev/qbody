@@ -13,7 +13,7 @@ import {
   ArrowLeft, Edit, Trash2, Mail, Phone, Calendar, 
   BookOpen, ShoppingBag, DollarSign, CheckCircle2,
   Save, Loader2, Heart, Baby, Key, Plus, X, Play, Pause,
-  Eye, BarChart3, CreditCard, ExternalLink
+  Eye, BarChart3, CreditCard, ExternalLink, Dumbbell
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { fetchWithAuth } from '@/lib/api'
@@ -99,6 +99,26 @@ type AvailableCourse = {
   title_secondary: string
 }
 
+type ClientProgram = {
+  id: string
+  program_id: string
+  name: string
+  name_secondary?: string | null
+  status: string
+  start_date: string | null
+  end_date: string | null
+  current_week: number
+  duration_weeks: number
+  progress_percent: number
+}
+
+type AvailableProgram = {
+  id: string
+  name: string
+  name_secondary?: string | null
+  duration_weeks?: number
+}
+
 export default function ClientDetailPage() {
   const { t, locale } = useTranslation()
   const params = useParams()
@@ -120,6 +140,12 @@ export default function ClientDetailPage() {
   const [selectedCourse, setSelectedCourse] = useState('')
   const [courseProgress, setCourseProgress] = useState<CourseAccess[]>([])
   const [removeCourseSlug, setRemoveCourseSlug] = useState<string | null>(null)
+  const [clientPrograms, setClientPrograms] = useState<ClientProgram[]>([])
+  const [availablePrograms, setAvailablePrograms] = useState<AvailableProgram[]>([])
+  const [isAddProgramModalOpen, setIsAddProgramModalOpen] = useState(false)
+  const [selectedProgram, setSelectedProgram] = useState('')
+  const [assignStartDate, setAssignStartDate] = useState(new Date().toISOString().split('T')[0])
+  const [removeProgramId, setRemoveProgramId] = useState<string | null>(null)
 
   const ru = locale === 'ru'
 
@@ -150,6 +176,19 @@ export default function ClientDetailPage() {
         if (progressRes.ok) {
           const progressData = await progressRes.json()
           setCourseProgress(progressData.courses || [])
+        }
+
+        const programsRes = await fetchWithAuth(`/api/clients/${clientId}/programs`)
+        if (programsRes.ok) {
+          const pData = await programsRes.json()
+          setClientPrograms(pData.programs || [])
+        }
+
+        const allProgramsRes = await fetchWithAuth('/api/programs')
+        if (allProgramsRes.ok) {
+          const apData = await allProgramsRes.json()
+          const list = Array.isArray(apData) ? apData : (apData.programs || [])
+          setAvailablePrograms(list.map((p: any) => ({ id: p.id, name: p.name, name_secondary: p.name_secondary, duration_weeks: p.duration_weeks })))
         }
       } catch {
         setClient(null)
@@ -335,6 +374,77 @@ export default function ClientDetailPage() {
         })
       }
       toast.success(ru ? 'Доступ удалён' : 'Access removed')
+    } catch {
+      toast.error(ru ? 'Ошибка удаления' : 'Remove failed')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleAddProgram = async () => {
+    if (!selectedProgram) {
+      toast.error(ru ? 'Выберите программу' : 'Select a program')
+      return
+    }
+    setSaving(true)
+    try {
+      const res = await fetchWithAuth(`/api/clients/${clientId}/programs`, {
+        method: 'POST',
+        body: JSON.stringify({ program_id: selectedProgram, start_date: assignStartDate }),
+      })
+      if (!res.ok) {
+        const err = await res.json()
+        throw new Error(err.error || 'Failed')
+      }
+      const programsRes = await fetchWithAuth(`/api/clients/${clientId}/programs`)
+      if (programsRes.ok) {
+        const pData = await programsRes.json()
+        setClientPrograms(pData.programs || [])
+      }
+      setIsAddProgramModalOpen(false)
+      setSelectedProgram('')
+      toast.success(ru ? 'Программа назначена!' : 'Program assigned!')
+    } catch (e: any) {
+      toast.error(e.message || (ru ? 'Ошибка назначения программы' : 'Failed to assign program'))
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleToggleProgramStatus = async (clientProgramId: string, isActive: boolean) => {
+    setSaving(true)
+    try {
+      const res = await fetchWithAuth(`/api/clients/${clientId}/programs`, {
+        method: 'PATCH',
+        body: JSON.stringify({ client_program_id: clientProgramId, status: isActive ? 'paused' : 'active' }),
+      })
+      if (!res.ok) throw new Error('Failed')
+      setClientPrograms(prev => prev.map(p =>
+        p.id === clientProgramId ? { ...p, status: isActive ? 'paused' : 'active' } : p
+      ))
+      toast.success(ru
+        ? (isActive ? 'Программа приостановлена' : 'Программа возобновлена')
+        : (isActive ? 'Program paused' : 'Program resumed')
+      )
+    } catch {
+      toast.error(ru ? 'Ошибка обновления' : 'Update failed')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const confirmRemoveProgram = async () => {
+    if (!removeProgramId) return
+    const cpId = removeProgramId
+    setRemoveProgramId(null)
+    setSaving(true)
+    try {
+      const res = await fetchWithAuth(`/api/clients/${clientId}/programs?client_program_id=${cpId}`, {
+        method: 'DELETE',
+      })
+      if (!res.ok) throw new Error('Failed')
+      setClientPrograms(prev => prev.filter(p => p.id !== cpId))
+      toast.success(ru ? 'Программа удалена' : 'Program removed')
     } catch {
       toast.error(ru ? 'Ошибка удаления' : 'Remove failed')
     } finally {
@@ -528,6 +638,75 @@ export default function ClientDetailPage() {
         </CardContent>
       </Card>
 
+      {/* Programs */}
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle className="flex items-center gap-2"><Dumbbell className="w-5 h-5" />{ru ? 'Доступ к программам' : 'Program Access'}</CardTitle>
+          <Button variant="outline" size="sm" onClick={() => setIsAddProgramModalOpen(true)}><Plus className="w-4 h-4 mr-2" />{ru ? 'Назначить программу' : 'Assign Program'}</Button>
+        </CardHeader>
+        <CardContent>
+          {clientPrograms.length > 0 ? (
+            <div className="space-y-3">
+              {clientPrograms.map((prog) => {
+                const isActive = prog.status === 'active'
+                const statusLabel = prog.status === 'active' ? (ru ? 'Активна' : 'Active')
+                  : prog.status === 'paused' ? (ru ? 'Приостановлена' : 'Paused')
+                  : prog.status === 'completed' ? (ru ? 'Завершена' : 'Completed')
+                  : prog.status === 'expired' ? (ru ? 'Истекла' : 'Expired')
+                  : prog.status === 'cancelled' ? (ru ? 'Отменена' : 'Cancelled')
+                  : prog.status
+                return (
+                  <div key={prog.id} className={`flex flex-col p-4 rounded-xl ${isActive ? 'bg-zinc-50 dark:bg-zinc-800/50' : 'bg-zinc-100 dark:bg-zinc-800/30 opacity-70'}`}>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-teal-500 to-emerald-500 flex items-center justify-center"><Dumbbell className="w-6 h-6 text-white/80" /></div>
+                        <div>
+                          <p className="font-semibold text-zinc-900 dark:text-zinc-100">{ru ? (prog.name_secondary || prog.name) : prog.name}</p>
+                          <p className="text-sm text-zinc-500">
+                            {prog.start_date ? new Date(prog.start_date).toLocaleDateString(ru ? 'ru-RU' : 'en-US') : '—'}
+                            {prog.end_date ? ` → ${new Date(prog.end_date).toLocaleDateString(ru ? 'ru-RU' : 'en-US')}` : ''}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Badge variant={isActive ? 'success' : prog.status === 'paused' ? 'warning' : 'secondary'}>
+                          {isActive ? <CheckCircle2 className="w-3 h-3 mr-1" /> : <Pause className="w-3 h-3 mr-1" />}{statusLabel}
+                        </Badge>
+                        {(prog.status === 'active' || prog.status === 'paused') && (
+                          <Button variant="ghost" size="sm" onClick={() => handleToggleProgramStatus(prog.id, isActive)} disabled={saving} title={isActive ? (ru ? 'Приостановить' : 'Pause') : (ru ? 'Возобновить' : 'Resume')}>
+                            {isActive ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+                          </Button>
+                        )}
+                        <Button variant="ghost" size="sm" className="text-red-500 hover:bg-red-50" onClick={() => setRemoveProgramId(prog.id)} disabled={saving} title={ru ? 'Удалить' : 'Remove'}>
+                          <X className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </div>
+                    {prog.duration_weeks > 0 && (
+                      <div className="mt-4 pt-3 border-t border-zinc-200 dark:border-zinc-700">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-sm text-zinc-500 flex items-center gap-1"><BarChart3 className="w-4 h-4" />{ru ? 'Прогресс' : 'Progress'}</span>
+                          <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">{ru ? 'Неделя' : 'Week'} {prog.current_week}/{prog.duration_weeks} ({prog.progress_percent}%)</span>
+                        </div>
+                        <div className="w-full h-2 bg-zinc-200 dark:bg-zinc-700 rounded-full overflow-hidden">
+                          <div className="h-full bg-gradient-to-r from-teal-500 to-emerald-500 rounded-full transition-all duration-300" style={{ width: `${prog.progress_percent}%` }} />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          ) : (
+            <div className="text-center py-8">
+              <Dumbbell className="w-12 h-12 mx-auto text-zinc-300 mb-3" />
+              <p className="text-zinc-500 mb-4">{ru ? 'Нет назначенных программ' : 'No assigned programs'}</p>
+              <Button variant="outline" onClick={() => setIsAddProgramModalOpen(true)}><Plus className="w-4 h-4 mr-2" />{ru ? 'Назначить программу' : 'Assign Program'}</Button>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       {/* Orders */}
       <Card>
         <CardHeader><CardTitle className="flex items-center gap-2"><ShoppingBag className="w-5 h-5" />{ru ? 'История заказов' : 'Order History'}</CardTitle></CardHeader>
@@ -669,6 +848,58 @@ export default function ClientDetailPage() {
           <div className="flex justify-end gap-3">
             <Button variant="outline" onClick={() => setRemoveCourseSlug(null)}>{ru ? 'Отмена' : 'Cancel'}</Button>
             <Button variant="destructive" onClick={confirmRemoveCourse} disabled={saving} className="bg-red-500 hover:bg-red-600 text-white">
+              {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Trash2 className="w-4 h-4 mr-2" />}
+              {ru ? 'Удалить' : 'Remove'}
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Assign Program Modal */}
+      <Modal isOpen={isAddProgramModalOpen} onClose={() => setIsAddProgramModalOpen(false)} title={ru ? 'Назначить программу' : 'Assign Program'} size="md">
+        <div className="space-y-4">
+          <p className="text-sm text-zinc-500">{ru ? 'Выберите программу. Если у клиента уже есть активная программа, она будет отменена.' : 'Select a program. If the client already has an active program, it will be cancelled.'}</p>
+          <div>
+            <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1 block">{ru ? 'Дата начала' : 'Start date'}</label>
+            <Input type="date" value={assignStartDate} onChange={(e) => setAssignStartDate(e.target.value)} />
+          </div>
+          <div className="space-y-2 max-h-72 overflow-y-auto">
+            {availablePrograms.filter(p => !clientPrograms.some(cp => cp.program_id === p.id && cp.status === 'active')).length > 0 ? (
+              availablePrograms.filter(p => !clientPrograms.some(cp => cp.program_id === p.id && cp.status === 'active')).map(program => (
+                <div key={program.id} onClick={() => setSelectedProgram(program.id)}
+                  className={`flex items-center gap-4 p-4 rounded-xl cursor-pointer transition-colors ${selectedProgram === program.id ? 'bg-teal-50 dark:bg-teal-900/20 border-2 border-teal-500' : 'bg-zinc-50 dark:bg-zinc-800/50 border-2 border-transparent hover:border-zinc-300'}`}>
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-teal-500 to-emerald-500 flex items-center justify-center"><Dumbbell className="w-5 h-5 text-white/80" /></div>
+                  <div className="flex-1">
+                    <p className="font-semibold text-zinc-900 dark:text-zinc-100">{ru ? (program.name_secondary || program.name) : program.name}</p>
+                    {program.duration_weeks ? <p className="text-xs text-zinc-500">{program.duration_weeks} {ru ? 'нед.' : 'wk'}</p> : null}
+                  </div>
+                  {selectedProgram === program.id && <CheckCircle2 className="w-5 h-5 text-teal-500" />}
+                </div>
+              ))
+            ) : (
+              <div className="text-center py-8">
+                <CheckCircle2 className="w-12 h-12 mx-auto text-green-300 mb-3" />
+                <p className="text-zinc-500">{ru ? 'Нет доступных программ' : 'No programs available'}</p>
+              </div>
+            )}
+          </div>
+          <div className="flex justify-end gap-3 pt-4">
+            <Button variant="outline" onClick={() => setIsAddProgramModalOpen(false)}>{ru ? 'Отмена' : 'Cancel'}</Button>
+            <Button variant="gradient" onClick={handleAddProgram} disabled={saving || !selectedProgram}>
+              {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Plus className="w-4 h-4 mr-2" />}
+              {ru ? 'Назначить' : 'Assign'}
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Remove Program Confirm Modal */}
+      <Modal isOpen={!!removeProgramId} onClose={() => setRemoveProgramId(null)} title={ru ? 'Удалить программу' : 'Remove Program'} size="sm">
+        <div className="space-y-4">
+          <p className="text-zinc-600 dark:text-zinc-400">{ru ? 'Удалить эту программу у клиента?' : 'Remove this program from the client?'}</p>
+          <div className="flex justify-end gap-3">
+            <Button variant="outline" onClick={() => setRemoveProgramId(null)}>{ru ? 'Отмена' : 'Cancel'}</Button>
+            <Button variant="destructive" onClick={confirmRemoveProgram} disabled={saving} className="bg-red-500 hover:bg-red-600 text-white">
               {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Trash2 className="w-4 h-4 mr-2" />}
               {ru ? 'Удалить' : 'Remove'}
             </Button>
