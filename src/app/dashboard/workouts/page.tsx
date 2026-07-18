@@ -6,10 +6,11 @@ import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Modal } from '@/components/ui/modal'
 import { useTranslation } from '@/lib/i18n'
-import { fetchWithAuth } from '@/lib/api'
+import { fetchWithAuth, fetchWithAuthUpload } from '@/lib/api'
+import { compressImage } from '@/lib/compress-image'
 import {
   Search, Plus, Edit, Trash2, Clock, Dumbbell, GripVertical,
-  Loader2, Copy, ChevronDown, ChevronUp, Flame, Snowflake, Zap, X
+  Loader2, Copy, ChevronDown, ChevronUp, Flame, Snowflake, Zap, X, Upload
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useLanguageConfig } from '@/lib/useLanguageConfig'
@@ -49,6 +50,7 @@ type Workout = {
   type: string
   difficulty: string
   estimated_duration: number
+  image_url: string | null
   workout_exercises: WorkoutExercise[]
   created_at: string
 }
@@ -106,6 +108,8 @@ export default function WorkoutsPage() {
   const [formType, setFormType] = useState('strength')
   const [formDiff, setFormDiff] = useState('intermediate')
   const [formDuration, setFormDuration] = useState(45)
+  const [formImage, setFormImage] = useState('')
+  const [imgUploading, setImgUploading] = useState(false)
   const [formExercises, setFormExercises] = useState<FormExercise[]>([])
 
   // Exercise picker
@@ -171,11 +175,38 @@ export default function WorkoutsPage() {
     }
   }, [pickerOpen, pickerSearch, fetchExercises])
 
+  /* ─── IMAGE UPLOAD (banner) ─── */
+  const handleBannerUpload = () => {
+    const input = document.createElement('input')
+    input.type = 'file'
+    input.accept = 'image/*'
+    input.onchange = async () => {
+      const file = input.files?.[0]
+      if (!file) return
+      setImgUploading(true)
+      try {
+        const compressed = await compressImage(file)
+        const formData = new FormData()
+        formData.append('file', compressed)
+        const res = await fetchWithAuthUpload('/api/upload', { method: 'POST', body: formData })
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({ error: `HTTP ${res.status}` }))
+          throw new Error(err.error || 'Upload failed')
+        }
+        const data = await res.json()
+        setFormImage(data.url)
+        toast.success(ru ? 'Баннер загружен' : 'Banner uploaded')
+      } catch (e: any) { toast.error(e?.message || (ru ? 'Ошибка загрузки' : 'Upload failed')) }
+      finally { setImgUploading(false) }
+    }
+    input.click()
+  }
+
   /* ─── MODAL HELPERS ─── */
   const resetForm = () => {
     setFormName(''); setFormNameSecondary(''); setFormDesc(''); setFormDescSecondary('')
     setFormType('strength'); setFormDiff('intermediate'); setFormDuration(45)
-    setFormExercises([]); setEditingId(null)
+    setFormImage(''); setFormExercises([]); setEditingId(null)
   }
 
   const openAdd = () => { resetForm(); setIsModalOpen(true) }
@@ -185,6 +216,7 @@ export default function WorkoutsPage() {
     setFormName(w.name); setFormNameSecondary(w.name_secondary || '')
     setFormDesc(w.description || ''); setFormDescSecondary(w.description_secondary || '')
     setFormType(w.type); setFormDiff(w.difficulty); setFormDuration(w.estimated_duration)
+    setFormImage(w.image_url || '')
     setFormExercises((w.workout_exercises || []).map((we, i) => ({
       _key: `${we.exercise_id}-${i}-${Date.now()}`,
       exercise_id: we.exercise_id,
@@ -212,6 +244,7 @@ export default function WorkoutsPage() {
         name_secondary: w.name_secondary ? `${w.name_secondary} (копия)` : null,
         description: w.description, description_secondary: w.description_secondary,
         type: w.type, difficulty: w.difficulty, estimated_duration: w.estimated_duration,
+        image_url: w.image_url,
         exercises: (w.workout_exercises || []).map((we, i) => ({
           exercise_id: we.exercise_id,
           section: we.section, position: i,
@@ -303,6 +336,7 @@ export default function WorkoutsPage() {
       type: formType,
       difficulty: formDiff,
       estimated_duration: formDuration,
+      image_url: formImage || null,
       exercises,
     }
 
@@ -450,6 +484,26 @@ export default function WorkoutsPage() {
           <div className={`grid ${lang.isBilingual ? 'sm:grid-cols-2' : ''} gap-4`}>
             <Input label={lang.pl(ru ? 'Описание' : 'Description')} value={formDesc} onChange={e => setFormDesc(e.target.value)} />
             {lang.isBilingual && <Input label={lang.sl(ru ? 'Описание' : 'Description')} value={formDescSecondary} onChange={e => setFormDescSecondary(e.target.value)} />}
+          </div>
+
+          {/* ─── Banner image ─── */}
+          <div className="bg-zinc-50 dark:bg-zinc-800/50 rounded-xl p-4 space-y-2">
+            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">{ru ? 'Баннер тренировки' : 'Workout Banner'}</label>
+            {formImage ? (
+              <div className="relative">
+                <img src={formImage} alt="Banner" className="w-full h-32 object-cover rounded-lg" />
+                <button type="button" onClick={() => setFormImage('')}
+                  className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-full hover:bg-red-600 shadow-lg">
+                  <Trash2 className="w-3 h-3" />
+                </button>
+              </div>
+            ) : (
+              <Button type="button" variant="outline" onClick={handleBannerUpload} disabled={imgUploading}>
+                {imgUploading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Upload className="w-4 h-4 mr-2" />}
+                {ru ? 'Загрузить фото' : 'Upload photo'}
+              </Button>
+            )}
+            <p className="text-xs text-zinc-400">{ru ? 'Показывается фоном в шапке тренировки в приложении' : 'Shown as the header background on the workout screen in the app'}</p>
           </div>
           <div className="grid grid-cols-3 gap-4">
             <div>

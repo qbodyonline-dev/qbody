@@ -69,7 +69,7 @@ export async function POST(request: NextRequest) {
     const supabase = createServerClient()
     const body = await request.json()
 
-    const { name, name_secondary, description, description_secondary, type, difficulty, estimated_duration, exercises } = body
+    const { name, name_secondary, description, description_secondary, type, difficulty, estimated_duration, image_url, exercises } = body
 
     if (!name) {
       return NextResponse.json({ error: 'Name is required' }, { status: 400 })
@@ -86,6 +86,7 @@ export async function POST(request: NextRequest) {
         type: type || 'strength',
         difficulty: difficulty || 'intermediate',
         estimated_duration: estimated_duration || 45,
+        image_url: image_url || null,
         created_by: auth.data.user.id,
       })
       .select()

@@ -57,7 +57,7 @@ export async function PUT(
   try {
     const supabase = createServerClient()
     const body = await request.json()
-    const { name, name_secondary, description, description_secondary, type, difficulty, estimated_duration, exercises } = body
+    const { name, name_secondary, description, description_secondary, type, difficulty, estimated_duration, image_url, exercises } = body
 
     // Update workout fields
     const updates: Record<string, any> = {}
@@ -68,6 +68,7 @@ export async function PUT(
     if (type !== undefined) updates.type = type
     if (difficulty !== undefined) updates.difficulty = difficulty
     if (estimated_duration !== undefined) updates.estimated_duration = estimated_duration
+    if (image_url !== undefined) updates.image_url = image_url || null
 
     if (Object.keys(updates).length > 0) {
       const { error: uError } = await supabase

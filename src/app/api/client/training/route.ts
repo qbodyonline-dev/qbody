@@ -82,7 +82,7 @@ export async function GET(request: NextRequest) {
       .select(`
         id, week_number, day_of_week, is_rest_day, notes,
         workouts (
-          id, name, name_secondary, type, difficulty, estimated_duration,
+          id, name, name_secondary, type, difficulty, estimated_duration, image_url,
           workout_exercises (
             id, section, position, sets, reps, weight, rest_seconds, notes,
             exercises (
