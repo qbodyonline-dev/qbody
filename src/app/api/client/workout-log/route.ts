@@ -42,6 +42,22 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Reuse an already running session for this workout instead of stacking
+    // duplicate in_progress logs (previously every tap on "Start" created one).
+    const { data: existing } = await supabase
+      .from('workout_logs')
+      .select('*')
+      .eq('client_id', userId)
+      .eq('workout_id', workout_id)
+      .eq('status', 'in_progress')
+      .order('started_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+
+    if (existing) {
+      return NextResponse.json(existing, { status: 200 })
+    }
+
     // Create workout log
     const { data: log, error: logErr } = await supabase
       .from('workout_logs')

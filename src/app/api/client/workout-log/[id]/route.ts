@@ -148,6 +148,9 @@ export async function PUT(
             .from('exercise_logs')
             .update(update)
             .eq('id', el.id)
+            // Scope to this log — otherwise any authenticated user could
+            // update arbitrary exercise_logs rows by guessing ids
+            .eq('workout_log_id', params.id)
         }
       }
     }
