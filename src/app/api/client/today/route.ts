@@ -61,7 +61,7 @@ export async function GET(request: NextRequest) {
       startDate.setHours(0, 0, 0, 0)
       const diffDays = Math.floor((today.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24))
       currentWeek = Math.min(Math.floor(diffDays / 7) + 1, prog.duration_weeks)
-      const dayOfWeek = today.getDay()
+      const dayOfWeek = today.getDay() || 7 // JS 0=Sun → DB 7=Sun; DB convention is ISO 1=Mon..7=Sun
 
       program = {
         id: prog.id,

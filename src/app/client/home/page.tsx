@@ -166,7 +166,7 @@ export default function ClientHomePage() {
                 <div className="flex items-center gap-2">
                   <Target className="w-5 h-5 text-teal-500" />
                   <h3 className="font-semibold text-zinc-900 dark:text-zinc-100">
-                    {ru ? 'Сегодня' : 'Today'} — {dayFull[todayWorkout.day_of_week]}
+                    {ru ? 'Сегодня' : 'Today'} — {dayFull[todayWorkout.day_of_week % 7]}
                   </h3>
                 </div>
                 {todayWorkout.workouts && (
