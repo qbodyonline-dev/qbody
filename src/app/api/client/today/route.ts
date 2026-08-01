@@ -26,6 +26,8 @@ export async function GET(request: NextRequest) {
       { data: checkins },
       { data: courseAccess },
       { data: unreadMessages },
+      { data: nutritionDays },
+      { data: nutritionTarget },
     ] = await Promise.all([
       // Active program
       supabase.from('client_programs')
@@ -45,6 +47,16 @@ export async function GET(request: NextRequest) {
       // Unread messages count
       supabase.from('conversations')
         .select('id, unread_count').eq('client_id', userId),
+      // Nutrition summary for the home card: last 7 days of logs + targets
+      supabase.from('nutrition_logs')
+        .select('log_date, calories_hit, protein_hit, carbs_hit, fat_hit')
+        .eq('client_id', userId)
+        .gte('log_date', new Date(Date.now() - 6 * 24 * 60 * 60 * 1000).toISOString().split('T')[0])
+        .order('log_date', { ascending: true }),
+      supabase.from('nutrition_targets')
+        .select('calories, protein, carbs, fat')
+        .eq('client_id', userId)
+        .maybeSingle(),
     ])
 
     const today = new Date()
@@ -137,6 +149,10 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       program,
+      nutrition: {
+        target: nutritionTarget || null,
+        days: nutritionDays || [],
+      },
       today_workout: todayWorkout,
       in_progress_workout: inProgressLog ? { id: inProgressLog.id, started_at: inProgressLog.started_at } : null,
       stats: {
