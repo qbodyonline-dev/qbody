@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase-server'
 import { authenticateRequest } from '@/lib/api-auth'
 import { autoExpirePrograms, daysRemaining } from '@/lib/subscription'
+import { findCatchupWorkout, addDaysStr, localDateStr } from '@/lib/catchup'
 
 export const dynamic = 'force-dynamic'
 
@@ -61,10 +62,12 @@ export async function GET(request: NextRequest) {
 
     const today = new Date()
     today.setHours(0, 0, 0, 0)
+    const todayStr = localDateStr(today)
 
     // ═══ Program & today's workout ═══
     let program = null
     let todayWorkout = null
+    let catchupWorkout = null
     let currentWeek = 0
 
     if (cp) {
@@ -88,19 +91,22 @@ export async function GET(request: NextRequest) {
         days_remaining: daysRemaining(cp.end_date),
       }
 
-      // Get today's workout
+      // Get the whole current week once — today's card comes from it, and so does
+      // the catch-up lookup below (which needs the days that already passed).
       if (diffDays >= 0 && currentWeek <= prog.duration_weeks) {
-        const { data: todayDay } = await supabase
+        const { data: weekDays } = await supabase
           .from('program_days')
           .select(`
-            id, is_rest_day, notes,
+            id, day_of_week, is_rest_day, notes,
             workouts(id, name, name_secondary, type, estimated_duration,
               workout_exercises(id, exercise_id, section))
           `)
           .eq('program_id', prog.id)
           .eq('week_number', currentWeek)
-          .eq('day_of_week', dayOfWeek)
-          .maybeSingle()
+          .order('day_of_week', { ascending: true })
+
+        const days = weekDays || []
+        const todayDay = days.find((d: any) => d.day_of_week === dayOfWeek) || null
 
         if (todayDay) {
           const w = todayDay.workouts as any
@@ -117,6 +123,16 @@ export async function GET(request: NextRequest) {
             } : null,
           }
         }
+
+        // ═══ Catch-up: one missed workout from THIS program week ═══
+        catchupWorkout = findCatchupWorkout({
+          weekDays: days,
+          weekStart: addDaysStr(String(cp.start_date).slice(0, 10), (currentWeek - 1) * 7),
+          todayStr,
+          logs: workoutLogs || [],
+          clientProgramId: cp.id,
+          todayIsFree: !todayWorkout || todayWorkout.is_rest_day === true || !todayWorkout.workout,
+        })
       }
     }
 
@@ -154,6 +170,7 @@ export async function GET(request: NextRequest) {
         days: nutritionDays || [],
       },
       today_workout: todayWorkout,
+      catchup_workout: catchupWorkout,
       in_progress_workout: inProgressLog ? { id: inProgressLog.id, started_at: inProgressLog.started_at } : null,
       stats: {
         workouts_completed: completedLogs.length,

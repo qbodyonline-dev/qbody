@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase-server'
 import { authenticateRequest } from '@/lib/api-auth'
 import { autoExpirePrograms, isProgramAccessible, daysRemaining } from '@/lib/subscription'
+import { findCatchupWorkout, addDaysStr, localDateStr } from '@/lib/catchup'
 
 export const dynamic = 'force-dynamic'
 
@@ -140,6 +141,16 @@ export async function GET(request: NextRequest) {
       .order('started_at', { ascending: false })
       .limit(20)
 
+    // Workout missed earlier this program week, offered only on a free / rest day.
+    const catchupWorkout = findCatchupWorkout({
+      weekDays: schedule.filter((d: any) => d.week_number === currentWeek),
+      weekStart: addDaysStr(String(cp.start_date).slice(0, 10), (currentWeek - 1) * 7),
+      todayStr: localDateStr(today),
+      logs: logs || [],
+      clientProgramId: cp.id,
+      todayIsFree: !todayWorkout || (todayWorkout as any).is_rest_day === true || !(todayWorkout as any).workouts,
+    })
+
     return NextResponse.json({
       program: {
         ...program,
@@ -154,6 +165,7 @@ export async function GET(request: NextRequest) {
       },
       schedule,
       today_workout: todayWorkout,
+      catchup_workout: catchupWorkout,
       recent_logs: logs || [],
     })
   } catch (err: any) {

@@ -11,7 +11,7 @@ import { fetchWithAuth } from '@/lib/api'
 import {
   BookOpen, Clock, CheckCircle2, ArrowRight, Target,
   Heart, Baby, Loader2, Dumbbell, Scale, Calendar,
-  Play, Moon, TrendingDown, TrendingUp, MessageCircle
+  Play, Moon, TrendingDown, TrendingUp, MessageCircle, History
 } from 'lucide-react'
 
 const coursesMeta: Record<string, { title: string; titleSecondary: string; icon: any; color: string; lessons: number }> = {
@@ -25,6 +25,11 @@ type TodayWorkout = {
   is_rest_day: boolean
   day_of_week: number
   workouts: { id: string; name: string; name_secondary: string; type: string; duration_minutes: number | null; workout_exercises: any[] } | null
+}
+type CatchupWorkout = {
+  missed_date: string
+  day_of_week: number
+  workout: { id: string; name: string | null; name_secondary: string | null; type: string | null; estimated_duration: number | null; exercise_count: number } | null
 }
 type ProgramInfo = {
   name: string; name_secondary: string; goal: string; duration_weeks: number
@@ -47,6 +52,7 @@ export default function ClientHomePage() {
   const [orders, setOrders] = useState<Order[]>([])
   const [program, setProgram] = useState<ProgramInfo | null>(null)
   const [todayWorkout, setTodayWorkout] = useState<TodayWorkout | null>(null)
+  const [catchupWorkout, setCatchupWorkout] = useState<CatchupWorkout | null>(null)
   const [latestCheckin, setLatestCheckin] = useState<LatestCheckin | null>(null)
   const [checkinCount, setCheckinCount] = useState(0)
   const [loading, setLoading] = useState(true)
@@ -79,6 +85,7 @@ export default function ClientHomePage() {
           const tdata = await trainingRes.json()
           if (tdata.program) setProgram(tdata.program)
           if (tdata.today_workout) setTodayWorkout(tdata.today_workout)
+          if (tdata.catchup_workout) setCatchupWorkout(tdata.catchup_workout)
         }
       } catch { /* ignore */ }
 
@@ -214,6 +221,42 @@ export default function ClientHomePage() {
                 <div className="h-full bg-gradient-to-r from-teal-400 to-teal-600 rounded-full" style={{ width: `${progressPercent}%` }} />
               </div>
             </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Missed earlier this week — the server only sends it on a free / rest day */}
+      {program && catchupWorkout?.workout && (
+        <Card className="border-2 border-amber-200 dark:border-amber-900/60 overflow-hidden">
+          <CardContent className="p-5">
+            <div className="flex items-center gap-2 mb-3">
+              <History className="w-5 h-5 text-amber-500" />
+              <h3 className="font-semibold text-zinc-900 dark:text-zinc-100">
+                {ru ? 'Пропущено на этой неделе' : 'Missed this week'}
+              </h3>
+              <Badge variant="outline" className="ml-auto">
+                {dayFull[catchupWorkout.day_of_week % 7]}
+              </Badge>
+            </div>
+            <h4 className="text-lg font-bold text-zinc-900 dark:text-zinc-100">
+              {ru ? catchupWorkout.workout.name_secondary || catchupWorkout.workout.name : catchupWorkout.workout.name}
+            </h4>
+            <div className="flex gap-4 text-sm text-zinc-500 mt-1 mb-4">
+              {catchupWorkout.workout.estimated_duration && (
+                <span className="flex items-center gap-1"><Clock className="w-3.5 h-3.5" />{catchupWorkout.workout.estimated_duration} {ru ? 'мин' : 'min'}</span>
+              )}
+              <span>{catchupWorkout.workout.exercise_count} {ru ? 'упражнений' : 'exercises'}</span>
+            </div>
+            <Link href="/client/training">
+              <Button variant="outline" size="sm">
+                <Play className="w-4 h-4 mr-2" />{ru ? 'Наверстать тренировку' : 'Catch up on this workout'}
+              </Button>
+            </Link>
+            <p className="text-xs text-zinc-400 mt-3">
+              {ru
+                ? 'Можно и не делать — на следующую неделю тренировка не переносится.'
+                : 'Optional — it does not carry over into next week.'}
+            </p>
           </CardContent>
         </Card>
       )}
