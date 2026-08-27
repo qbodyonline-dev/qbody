@@ -265,7 +265,9 @@ export function renderHeroTemplateHTML(data: HeroTemplateData, lang: 'en' | 'ru'
   const feats = lang === 'ru' ? data.featuresRu : data.features
   const accent = data.accentColor || '#2dd4bf'
   const txtColor = data.textColor || '#ffffff'
-  const minH = data.minHeight || '100vh'
+  // Empty min-height means "as tall as the content" — silently forcing 100vh
+  // made it impossible to ever remove the full-screen height in the editor.
+  const minH = data.minHeight || 'auto'
   const anim = ANIM_CSS[data.animation || 'fadeIn']
 
   const buttonsHtml = (data.buttons || []).map(btn => {
@@ -283,16 +285,23 @@ export function renderHeroTemplateHTML(data: HeroTemplateData, lang: 'en' | 'ru'
 
   const featHtml = feats?.length ? `<div style="display:flex;flex-wrap:wrap;gap:12px 16px;${v === 'centered' ? 'justify-content:center;' : ''}margin-top:12px;">${feats.map(f => `<span style="font-size:14px;color:${accent};">✓ ${f}</span>`).join('')}</div>` : ''
 
-  // Background
-  let bgStyle = ''
-  if (data.bgType === 'gradient') bgStyle = `background:${data.bgGradient || 'linear-gradient(135deg,#0f766e,#18181b)'};`
-  else if (data.bgType === 'color') bgStyle = `background:${data.bgColor || '#09090b'};`
-  else if (data.bgType === 'image') bgStyle = `background-image:url(${data.bgImage});background-size:cover;background-position:center;`
+  // Background. The 'videobg' / 'fullimage' templates promise a video / photo
+  // background, so they force the background type once the asset is there —
+  // otherwise picking those templates visibly did nothing.
+  let bgType = data.bgType
+  if (v === 'videobg' && data.bgVideo) bgType = 'video'
+  else if (v === 'fullimage' && data.bgImage) bgType = 'image'
 
-  const overlay = (data.bgType === 'image' || data.bgType === 'video') && data.overlayOpacity > 0
+  let bgStyle = ''
+  if (bgType === 'gradient') bgStyle = `background:${data.bgGradient || 'linear-gradient(135deg,#0f766e,#18181b)'};`
+  else if (bgType === 'color') bgStyle = `background:${data.bgColor || '#09090b'};`
+  else if (bgType === 'image' && data.bgImage) bgStyle = `background-image:url(${data.bgImage});background-size:cover;background-position:center;`
+  else if (bgType === 'video') bgStyle = `background:${data.bgColor || '#09090b'};`
+
+  const overlay = (bgType === 'image' || bgType === 'video') && data.overlayOpacity > 0
     ? `<div style="position:absolute;inset:0;background:${data.overlayColor || '#000'};opacity:${data.overlayOpacity};z-index:1;"></div>` : ''
 
-  const video = data.bgType === 'video' && data.bgVideo
+  const video = bgType === 'video' && data.bgVideo
     ? `<video autoplay muted loop playsinline style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0;"><source src="${data.bgVideo}" type="video/mp4"></video>` : ''
 
   // TextStyle overrides

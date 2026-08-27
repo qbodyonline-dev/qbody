@@ -492,10 +492,24 @@ export function HeroTemplateEditor({ data, onChange, lang }: HeroTemplateEditorP
   const ru = lang === 'ru'
   const upd = (u: Partial<HeroTemplateData>) => onChange({ ...data, ...u })
 
-  const addButton = () => upd({ buttons: [...data.buttons, { text: 'Button', textRu: 'Кнопка', link: '#', variant: 'outline' }] })
-  const removeButton = (i: number) => upd({ buttons: data.buttons.filter((_, idx) => idx !== i) })
+  // Guard against blocks saved without these arrays — .length/.map on
+  // undefined would crash the whole editor page.
+  const buttons = data.buttons || []
+  const features = data.features || []
+  const featuresRu = data.featuresRu || []
+
+  const addButton = () => upd({ buttons: [...buttons, { text: 'Button', textRu: 'Кнопка', link: '#', variant: 'outline' }] })
+  const removeButton = (i: number) => upd({ buttons: buttons.filter((_, idx) => idx !== i) })
   const updateButton = (i: number, u: Partial<HeroTemplateButton>) => {
-    const btns = [...data.buttons]; btns[i] = { ...btns[i], ...u }; upd({ buttons: btns })
+    const btns = [...buttons]; btns[i] = { ...btns[i], ...u }; upd({ buttons: btns })
+  }
+
+  // The videobg / fullimage templates only make sense with the matching
+  // background type — switch it along with the variant.
+  const pickVariant = (value: HeroTemplateData['variant']) => {
+    if (value === 'videobg') upd({ variant: value, bgType: 'video' })
+    else if (value === 'fullimage') upd({ variant: value, bgType: 'image' })
+    else upd({ variant: value })
   }
 
   return (
@@ -510,7 +524,7 @@ export function HeroTemplateEditor({ data, onChange, lang }: HeroTemplateEditorP
           <label className="text-xs text-zinc-500">{ru ? 'Шаблон' : 'Template'}</label>
           <div className="grid grid-cols-5 gap-1.5">
             {HERO_VARIANTS.map(v => (
-              <button key={v.value} onClick={() => upd({ variant: v.value })}
+              <button key={v.value} onClick={() => pickVariant(v.value)}
                 className={`p-2 rounded-xl border text-center transition-all ${data.variant === v.value ? 'border-teal-500 bg-teal-50 dark:bg-teal-900/20' : 'border-zinc-200 dark:border-zinc-700'}`}>
                 <div className="text-lg mb-1">{v.icon}</div>
                 <div className="text-[10px] font-medium text-zinc-600 dark:text-zinc-300">{ru ? v.labelRu : v.label}</div>
@@ -556,10 +570,10 @@ export function HeroTemplateEditor({ data, onChange, lang }: HeroTemplateEditorP
         {/* Buttons */}
         <div className="p-3 bg-zinc-50 dark:bg-zinc-800 rounded-lg space-y-3">
           <div className="flex items-center justify-between">
-            <label className="text-xs font-medium text-zinc-500">{ru ? 'Кнопки' : 'Buttons'} ({data.buttons.length})</label>
+            <label className="text-xs font-medium text-zinc-500">{ru ? 'Кнопки' : 'Buttons'} ({buttons.length})</label>
             <button onClick={addButton} className="text-xs text-teal-500 flex items-center gap-1"><Plus className="w-3 h-3" /> {ru ? 'Добавить' : 'Add'}</button>
           </div>
-          {data.buttons.map((btn, i) => (
+          {buttons.map((btn, i) => (
             <div key={i} className="grid grid-cols-[1fr_1fr_auto_auto_auto] gap-2 items-center">
               <Input value={btn.text} onChange={e => updateButton(i, { text: e.target.value })} placeholder="EN" className="text-xs h-7" />
               <Input value={btn.textRu} onChange={e => updateButton(i, { textRu: e.target.value })} placeholder="RU" className="text-xs h-7" />
@@ -613,7 +627,7 @@ export function HeroTemplateEditor({ data, onChange, lang }: HeroTemplateEditorP
           </div>
           <div>
             <label className="text-xs text-zinc-500 block mb-1">{ru ? 'Мин. высота' : 'Min Height'}</label>
-            <Input value={data.minHeight} onChange={e => upd({ minHeight: e.target.value })} className="text-xs h-7" placeholder="100vh" />
+            <Input value={data.minHeight} onChange={e => upd({ minHeight: e.target.value })} className="text-xs h-7" placeholder={ru ? 'авто (80vh, 600px…)' : 'auto (80vh, 600px…)'} />
           </div>
         </div>
 
@@ -636,8 +650,8 @@ export function HeroTemplateEditor({ data, onChange, lang }: HeroTemplateEditorP
         <div className="p-3 bg-zinc-50 dark:bg-zinc-800 rounded-lg space-y-2">
           <label className="text-xs font-medium text-zinc-500">{ru ? 'Особенности (под кнопками)' : 'Features (below buttons)'}</label>
           <div className="grid grid-cols-2 gap-3">
-            <FeatList items={data.features} onChange={f => upd({ features: f })} lang="en" />
-            <FeatList items={data.featuresRu} onChange={f => upd({ featuresRu: f })} lang="ru" />
+            <FeatList items={features} onChange={f => upd({ features: f })} lang="en" />
+            <FeatList items={featuresRu} onChange={f => upd({ featuresRu: f })} lang="ru" />
           </div>
         </div>
       </CardContent>

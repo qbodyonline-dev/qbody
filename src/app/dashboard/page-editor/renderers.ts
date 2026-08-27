@@ -365,15 +365,25 @@ export function renderHeaderHTML(data: HeaderData, lang: 'en' | 'ru', langConfig
 
 /* ─────────── HERO RENDERER ─────────── */
 export function renderHeroHTML(data: HeroData, lang: 'en' | 'ru'): string {
-  const badge = lang === 'ru' ? data.badgeRu : data.badge
-  const title = lang === 'ru' ? data.titleRu : data.title
-  const subtitle = lang === 'ru' ? data.subtitleRu : data.subtitle
-  const description = lang === 'ru' ? data.descriptionRu : data.description
-  const primaryBtn = lang === 'ru' ? data.primaryBtnTextRu : data.primaryBtnText
-  const secondaryBtn = lang === 'ru' ? data.secondaryBtnTextRu : data.secondaryBtnText
-  const features = lang === 'ru' ? data.featuresRu : data.features
+  // `?? ''` everywhere: a field missing from an older save must render as
+  // nothing, not as the literal word "undefined" on the page.
+  const badge = (lang === 'ru' ? data.badgeRu : data.badge) ?? ''
+  const title = (lang === 'ru' ? data.titleRu : data.title) ?? ''
+  const subtitle = (lang === 'ru' ? data.subtitleRu : data.subtitle) ?? ''
+  const description = (lang === 'ru' ? data.descriptionRu : data.description) ?? ''
+  const primaryBtn = (lang === 'ru' ? data.primaryBtnTextRu : data.primaryBtnText) ?? ''
+  const secondaryBtn = (lang === 'ru' ? data.secondaryBtnTextRu : data.secondaryBtnText) ?? ''
+  const features = (lang === 'ru' ? data.featuresRu : data.features) || []
 
-  const featuresHtml = features.map(f => `✓ ${f}`).join('&nbsp;&nbsp;')
+  const featuresHtml = features.filter(Boolean).map(f => `✓ ${f}`).join('&nbsp;&nbsp;')
+
+  // A button with no text is a cleared button — skip it entirely instead of
+  // leaving an empty pill on the page.
+  const btn = (text: string, link: string, style: string) =>
+    text.trim() ? `<a href="${link || '#'}" style="${style}">${text}</a>` : ''
+  const primaryBtnHtml = btn(primaryBtn, data.primaryBtnLink, 'padding:14px 32px;border-radius:16px;background:#14b8a6;color:white;font-weight:600;font-size:16px;text-decoration:none;display:inline-block;')
+  const secondaryBtnHtml = btn(secondaryBtn, data.secondaryBtnLink, 'padding:14px 32px;border-radius:16px;border:1px solid rgba(255,255,255,0.3);color:white;font-size:16px;text-decoration:none;display:inline-block;')
+  const buttonsHtml = primaryBtnHtml + secondaryBtnHtml
 
   // Badge image helper
   const addPx = (val: string) => /^\d+$/.test(val) ? val + 'px' : val
@@ -427,10 +437,7 @@ export function renderHeroHTML(data: HeroData, lang: 'en' | 'ru'): string {
             <h1 class="hero-title" style="font-size:42px;font-weight:800;margin-bottom:8px;line-height:1.1;">${title}</h1>
             <h1 class="hero-title" style="font-size:42px;font-weight:800;color:#2dd4bf;margin-bottom:24px;line-height:1.1;">${subtitle}</h1>
             <p style="color:#d4d4d8;font-size:18px;margin-bottom:32px;line-height:1.6;">${description}</p>
-            <div class="hero-buttons" style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:24px;">
-              <a href="${data.primaryBtnLink}" style="padding:14px 32px;border-radius:16px;background:#14b8a6;color:white;font-weight:600;font-size:16px;text-decoration:none;display:inline-block;">${primaryBtn}</a>
-              <a href="${data.secondaryBtnLink}" style="padding:14px 32px;border-radius:16px;border:1px solid rgba(255,255,255,0.3);color:white;font-size:16px;text-decoration:none;display:inline-block;">${secondaryBtn}</a>
-            </div>
+            ${buttonsHtml ? `<div class="hero-buttons" style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:24px;">${buttonsHtml}</div>` : ''}
             <p class="hero-features" style="font-size:14px;color:#a1a1aa;">${featuresHtml}</p>
           </div>
           <div class="hero-image-wrap" style="display:flex;justify-content:center;align-items:center;padding:${imgPadding};">
@@ -450,7 +457,7 @@ export function renderHeroHTML(data: HeroData, lang: 'en' | 'ru'): string {
       #${heroNoImgId} .hero-btns { flex-direction: column !important; align-items: center !important; }
     }
   </style>
-  <div id="${heroNoImgId}" style="text-align:center;padding:60px 20px;background:${data.gradient};color:white;">${badgeImageHtml}<p style="color:#2dd4bf;font-weight:600;font-size:14px;margin-bottom:16px;">${badge}</p><h1 style="font-size:48px;font-weight:800;margin-bottom:8px;">${title}</h1><h1 style="font-size:48px;font-weight:800;color:#2dd4bf;margin-bottom:24px;">${subtitle}</h1><p style="color:#d4d4d8;font-size:18px;max-width:600px;margin:0 auto 32px;">${description}</p><div class="hero-btns" style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-bottom:24px;"><a href="${data.primaryBtnLink}" style="padding:12px 32px;border-radius:16px;background:#14b8a6;color:white;font-weight:600;font-size:16px;text-decoration:none;">${primaryBtn}</a><a href="${data.secondaryBtnLink}" style="padding:12px 32px;border-radius:16px;border:1px solid rgba(255,255,255,0.3);color:white;font-size:16px;text-decoration:none;">${secondaryBtn}</a></div><p style="font-size:14px;color:#a1a1aa;">${featuresHtml}</p></div>`
+  <div id="${heroNoImgId}" style="text-align:center;padding:60px 20px;background:${data.gradient};color:white;">${badgeImageHtml}<p style="color:#2dd4bf;font-weight:600;font-size:14px;margin-bottom:16px;">${badge}</p><h1 style="font-size:48px;font-weight:800;margin-bottom:8px;">${title}</h1><h1 style="font-size:48px;font-weight:800;color:#2dd4bf;margin-bottom:24px;">${subtitle}</h1><p style="color:#d4d4d8;font-size:18px;max-width:600px;margin:0 auto 32px;">${description}</p>${buttonsHtml ? `<div class="hero-btns" style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-bottom:24px;">${buttonsHtml}</div>` : ''}<p style="font-size:14px;color:#a1a1aa;">${featuresHtml}</p></div>`
 }
 
 /* ─────────── ABOUT RENDERER ─────────── */
