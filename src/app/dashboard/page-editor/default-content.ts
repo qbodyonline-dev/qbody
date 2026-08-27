@@ -1,6 +1,6 @@
 import {
   Square, Zap, LayoutGrid, Columns2, Play, MessageSquare,
-  Heart, Hash, Mail, Camera, Code2, SlidersHorizontal, Sparkles, PanelTop, GraduationCap, UserCircle, PanelBottom
+  Heart, Hash, Mail, Camera, Code2, SlidersHorizontal, Sparkles, PanelTop, GraduationCap, UserCircle, PanelBottom, Dumbbell
 } from 'lucide-react'
 import type { PageBlock, SectionStyle, CourseItem, ProgramItem, ResultItem, HeaderData, HeroData, AboutData } from './types'
 import { renderCoursesHTML, renderProgramsHTML, renderResultsHTML, renderHeaderHTML, renderHeroHTML, renderAboutHTML } from './renderers'
@@ -55,6 +55,8 @@ export const TEMPLATES: BlockTemplate[] = [
 
   { id: 'headerblock', l: 'Header', lr: 'Шапка', icon: PanelTop, en: '__STRUCTURED__header', ru: '__STRUCTURED__header' },
   { id: 'courses2block', l: 'Courses Pro', lr: 'Курсы Pro', icon: GraduationCap, en: '__STRUCTURED__courses2', ru: '__STRUCTURED__courses2' },
+  { id: 'programsautoblock', l: 'Programs', lr: 'Программы', icon: Dumbbell, en: '__STRUCTURED__programsauto', ru: '__STRUCTURED__programsauto' },
+  { id: 'programs2block', l: 'Programs Pro', lr: 'Программы Pro', icon: Dumbbell, en: '__STRUCTURED__programs2', ru: '__STRUCTURED__programs2' },
   { id: 'about2block', l: 'About Pro', lr: 'About Pro', icon: UserCircle, en: '__STRUCTURED__about2', ru: '__STRUCTURED__about2' },
   { id: 'cta2block', l: 'CTA Pro', lr: 'CTA Pro', icon: Zap, en: '__STRUCTURED__cta2', ru: '__STRUCTURED__cta2' },
   { id: 'faq2block', l: 'FAQ Pro', lr: 'FAQ Pro', icon: MessageSquare, en: '__STRUCTURED__faq2', ru: '__STRUCTURED__faq2' },

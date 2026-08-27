@@ -4,6 +4,7 @@ import { authenticateRequest, requireAdmin } from '@/lib/api-auth'
 import { isValidUUID, sanitizeString } from '@/lib/security'
 import { escapeHtml } from '@/lib/email-templates'
 import { canSeeProgram } from '@/lib/visibility'
+import { clearPageCache } from '@/lib/cache'
 
 export const dynamic = 'force-dynamic'
 
@@ -355,6 +356,9 @@ export async function PUT(
       .eq('id', params.id)
       .single()
 
+    // The auto "Programs" section is built from this catalogue
+    clearPageCache()
+
     return NextResponse.json(full)
   } catch (err: any) {
     console.error('PUT /api/programs/[id] error:', err)
@@ -401,6 +405,8 @@ export async function DELETE(
       console.error('Delete program error:', error)
       return NextResponse.json({ error: 'Failed to delete program' }, { status: 500 })
     }
+
+    clearPageCache()
 
     return NextResponse.json({ success: true })
   } catch (err: any) {

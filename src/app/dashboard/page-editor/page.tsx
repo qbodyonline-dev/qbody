@@ -29,6 +29,8 @@ import { renderHtmlBlockHTML, renderSliderHTML, renderHeroTemplateHTML, defaultH
 import type { HtmlBlockData, SliderData, HeroTemplateData } from './types'
 import { CoursesSectionEditor, renderCourses2HTML, defaultCourseItems2, defaultCourseSectionData } from './courses'
 import type { CourseItem2, CourseSectionData } from './courses'
+import { ProgramsAutoEditor, ProgramsProEditor, useEditorPrograms, renderProgramsAutoHTML, renderPrograms2HTML, defaultProgramAutoData, defaultPrograms2Data, defaultProgramSectionData } from './programs'
+import type { ProgramAutoData, Programs2Data } from './programs'
 import { AboutSectionEditor, renderAbout2HTML, defaultAboutSectionData } from './about'
 import type { AboutSectionData } from './about'
 import { CtaSectionEditor, renderCta2HTML, defaultCtaSectionData } from './cta'
@@ -217,6 +219,8 @@ function PageEditorInner() {
   const [history, setHistory] = useState<PageBlock[][]>([initBlocks])
   const [histIdx, setHistIdx] = useState(0)
   const [showResetConfirm, setShowResetConfirm] = useState(false)
+  // Live programs for the auto block — the section is built from them
+  const { programs: dbPrograms, loading: dbProgramsLoading } = useEditorPrograms(true)
   // editMode removed — structured blocks always use Items editor, custom blocks use RichEditor
 
   const ab = blocks.find(b => b.id === active) || null
@@ -362,6 +366,12 @@ function PageEditorInner() {
         const sec = { ...defaultCourseSectionData }
         const items = defaultCourseItems2.map(i => ({ ...i }))
         nb = { id: nid, type: 'courses2', label: tpl.l, labelRu: tpl.lr, visible: true, contentEn: renderCourses2HTML(items, sec, 'en'), contentRu: renderCourses2HTML(items, sec, 'ru'), style: {}, data: { section: sec, items } as any }
+      } else if (structType === 'programsauto') {
+        const d = defaultProgramAutoData()
+        nb = { id: nid, type: 'programsauto', label: tpl.l, labelRu: tpl.lr, visible: true, contentEn: renderProgramsAutoHTML(dbPrograms, d, 'en'), contentRu: renderProgramsAutoHTML(dbPrograms, d, 'ru'), style: {}, data: d as any }
+      } else if (structType === 'programs2') {
+        const d = defaultPrograms2Data()
+        nb = { id: nid, type: 'programs2', label: tpl.l, labelRu: tpl.lr, visible: true, contentEn: renderPrograms2HTML(d.items, d.section, 'en'), contentRu: renderPrograms2HTML(d.items, d.section, 'ru'), style: {}, data: d as any }
       } else if (structType === 'about2') {
         const sec = { ...defaultAboutSectionData, blocks: defaultAboutSectionData.blocks.map(b => ({ ...b })) }
         nb = { id: nid, type: 'about2', label: tpl.l, labelRu: tpl.lr, visible: true, contentEn: renderAbout2HTML(sec, 'en'), contentRu: renderAbout2HTML(sec, 'ru'), style: {}, data: { section: sec } as any }
@@ -454,6 +464,8 @@ function PageEditorInner() {
     else if (b.type === 'slider' && b.data) c = renderSliderHTML(b.data as any as SliderData, lt)
     else if (b.type === 'herotemplate' && b.data) c = renderHeroTemplateHTML(b.data as any as HeroTemplateData, lt)
     else if (b.type === 'courses2' && b.data) { const dd = b.data as any; c = renderCourses2HTML(dd.items || [], dd.section || defaultCourseSectionData, lt) }
+    else if (b.type === 'programsauto' && b.data) { c = renderProgramsAutoHTML(dbPrograms, b.data as any as ProgramAutoData, lt) }
+    else if (b.type === 'programs2' && b.data) { const dd = b.data as any; c = renderPrograms2HTML(dd.items || [], dd.section || defaultProgramSectionData, lt) }
     else if (b.type === 'about2' && b.data) { const dd = b.data as any; c = renderAbout2HTML(dd.section || defaultAboutSectionData, lt) }
     else if (b.type === 'cta2' && b.data) { const dd = b.data as any; c = renderCta2HTML(dd.section || defaultCtaSectionData, lt) }
     else if (b.type === 'faq2' && b.data) { const dd = b.data as any; c = renderFaq2HTML(dd.section || defaultFaqSectionData, lt) }
@@ -858,6 +870,56 @@ function PageEditorInner() {
                       <Eye className="w-3 h-3 text-teal-500" /><span className="text-[10px] font-bold text-teal-600 uppercase tracking-widest">{lang === 'ru' ? 'Превью' : 'Live Preview'}</span>
                     </div>
                     <div className="bg-zinc-950 max-h-[600px] overflow-y-auto"><div dangerouslySetInnerHTML={{ __html: renderHeroTemplateHTML((ab.data as any as HeroTemplateData) || defaultHeroTemplateData(), lt) }} className="pointer-events-none" /></div>
+                  </CardContent></Card>
+                </>
+              ) : ab.type === 'programsauto' ? (
+                <>
+                  <ProgramsAutoEditor
+                    data={(ab.data as any as ProgramAutoData) || defaultProgramAutoData()}
+                    programs={dbPrograms}
+                    loadingPrograms={dbProgramsLoading}
+                    onChange={(d) => {
+                      updStructured(ab.id, { data: d as any }, (b) => {
+                        const dd = (b.data as any as ProgramAutoData) || defaultProgramAutoData()
+                        return { contentEn: renderProgramsAutoHTML(dbPrograms, dd, 'en'), contentRu: renderProgramsAutoHTML(dbPrograms, dd, 'ru') }
+                      })
+                    }}
+                    lang={lt}
+                  />
+                  <Card className="overflow-hidden"><CardContent className="p-0">
+                    <div className="flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-teal-50 to-zinc-50 dark:from-teal-900/20 dark:to-zinc-800 border-b border-zinc-200 dark:border-zinc-700">
+                      <Eye className="w-3 h-3 text-teal-500" /><span className="text-[10px] font-bold text-teal-600 uppercase tracking-widest">{lang === 'ru' ? 'Превью' : 'Live Preview'}</span>
+                    </div>
+                    <div className="bg-zinc-950 max-h-[400px] overflow-y-auto"><div dangerouslySetInnerHTML={{ __html: renderProgramsAutoHTML(dbPrograms, (ab.data as any as ProgramAutoData) || defaultProgramAutoData(), lt) }} className="pointer-events-none" /></div>
+                  </CardContent></Card>
+                </>
+              ) : ab.type === 'programs2' ? (
+                <>
+                  <ProgramsProEditor
+                    items={((ab.data as any)?.items as Programs2Data['items']) || defaultPrograms2Data().items}
+                    section={((ab.data as any)?.section as Programs2Data['section']) || defaultProgramSectionData}
+                    programs={dbPrograms}
+                    onChangeItems={(items) => {
+                      const sec = ((ab.data as any)?.section as Programs2Data['section']) || defaultProgramSectionData
+                      updStructured(ab.id, { data: { section: sec, items } as any, label: `Programs (${items.length})`, labelRu: `Программы (${items.length})` }, (b) => {
+                        const d = b.data as any
+                        return { contentEn: renderPrograms2HTML(d.items || [], d.section || defaultProgramSectionData, 'en'), contentRu: renderPrograms2HTML(d.items || [], d.section || defaultProgramSectionData, 'ru') }
+                      })
+                    }}
+                    onChangeSection={(sec) => {
+                      const items = ((ab.data as any)?.items as Programs2Data['items']) || defaultPrograms2Data().items
+                      updStructured(ab.id, { data: { section: sec, items } as any }, (b) => {
+                        const d = b.data as any
+                        return { contentEn: renderPrograms2HTML(d.items || [], d.section || defaultProgramSectionData, 'en'), contentRu: renderPrograms2HTML(d.items || [], d.section || defaultProgramSectionData, 'ru') }
+                      })
+                    }}
+                    lang={lt}
+                  />
+                  <Card className="overflow-hidden"><CardContent className="p-0">
+                    <div className="flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-teal-50 to-zinc-50 dark:from-teal-900/20 dark:to-zinc-800 border-b border-zinc-200 dark:border-zinc-700">
+                      <Eye className="w-3 h-3 text-teal-500" /><span className="text-[10px] font-bold text-teal-600 uppercase tracking-widest">{lang === 'ru' ? 'Превью' : 'Live Preview'}</span>
+                    </div>
+                    <div className="bg-zinc-950 max-h-[400px] overflow-y-auto"><div dangerouslySetInnerHTML={{ __html: renderPrograms2HTML(((ab.data as any)?.items as Programs2Data['items']) || defaultPrograms2Data().items, ((ab.data as any)?.section as Programs2Data['section']) || defaultProgramSectionData, lt) }} className="pointer-events-none" /></div>
                   </CardContent></Card>
                 </>
               ) : ab.type === 'courses2' ? (

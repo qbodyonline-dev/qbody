@@ -3,6 +3,9 @@ import { createClient } from '@supabase/supabase-js'
 import { requireAdmin } from '@/lib/api-auth'
 import { sanitizeString, sanitizeHTMLContent } from '@/lib/security'
 import { pageBlocksCache, getPageCacheTTL, isCacheEnabled } from '@/lib/cache'
+import { renderProgramsAutoHTML } from '@/app/dashboard/page-editor/programs/renderer'
+import { defaultProgramAutoData } from '@/app/dashboard/page-editor/programs/defaults'
+import type { ProgramAutoData } from '@/app/dashboard/page-editor/programs/types'
 
 export const dynamic = 'force-dynamic'
 
@@ -73,7 +76,7 @@ export async function GET(request: Request) {
       return NextResponse.json({ blocks: [], pageSlug: cleanSlug, error: 'Failed to load blocks' })
     }
 
-    const blocks = (data || []).map(row => ({
+    let blocks = (data || []).map(row => ({
       id: row.block_id,
       type: row.type,
       label: row.label,
@@ -85,6 +88,29 @@ export async function GET(request: Request) {
       data: row.data || undefined,
       items: row.items || undefined,
     }))
+
+    // ─── Auto programs block ───
+    // Its HTML is rebuilt from the live catalogue on every read (the copy saved
+    // in the row is only the editor's snapshot), so a new program appears — and
+    // a hidden one disappears — without re-saving the page.
+    if (blocks.some((b: any) => b.type === 'programsauto')) {
+      const admin = getAdminSupabase()
+      const { data: programs } = await admin
+        .from('training_programs')
+        .select('id, slug, name, name_secondary, description, description_secondary, hero_image_url, duration_weeks, goal, difficulty, price, original_price, features, features_secondary, includes, includes_secondary, created_at, program_days(is_rest_day, workout_id)')
+        .eq('is_active', true)
+        .eq('is_private', false)
+
+      blocks = blocks.map((b: any) => {
+        if (b.type !== 'programsauto') return b
+        const cfg = (b.data as ProgramAutoData) || defaultProgramAutoData()
+        return {
+          ...b,
+          contentEn: renderProgramsAutoHTML((programs as any) || [], cfg, 'en'),
+          contentRu: renderProgramsAutoHTML((programs as any) || [], cfg, 'ru'),
+        }
+      })
+    }
 
     const responseData = { blocks, pageSlug: cleanSlug }
 

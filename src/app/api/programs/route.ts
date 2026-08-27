@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase-server'
 import { requireAdmin } from '@/lib/api-auth'
 import { sanitizeString } from '@/lib/security'
+import { clearPageCache } from '@/lib/cache'
 
 export const dynamic = 'force-dynamic'
 
@@ -185,6 +186,9 @@ export async function POST(request: NextRequest) {
       .select(`*, program_days ( *, workouts:workout_id ( id, name, name_secondary, type, difficulty, estimated_duration ) )`)
       .eq('id', program.id)
       .single()
+
+    // The auto "Programs" section is built from this catalogue
+    clearPageCache()
 
     return NextResponse.json(full || program, { status: 201 })
   } catch (err: any) {

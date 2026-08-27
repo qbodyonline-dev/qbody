@@ -401,6 +401,20 @@ export async function DELETE(
       .eq('program_id', params.id)
       .eq('client_id', clientId)
 
+    // Never cancel an enrollment the client actually paid for — dropping the
+    // assignment is enough. A refund goes through the Stripe webhook.
+    const { data: paidOrder } = await supabase
+      .from('orders')
+      .select('id')
+      .eq('user_id', clientId)
+      .eq('program_id', params.id)
+      .eq('status', 'paid')
+      .limit(1)
+
+    if (paidOrder && paidOrder.length > 0) {
+      return NextResponse.json({ success: true, kept_paid_access: true })
+    }
+
     const { error } = await supabase
       .from('client_programs')
       .update({ status: 'cancelled', end_date: today() })

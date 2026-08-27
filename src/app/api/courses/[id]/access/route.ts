@@ -309,6 +309,12 @@ export async function DELETE(request: Request, { params }: { params: { id: strin
       .eq('course_id', course.id)
       .eq('client_id', clientId)
 
+    // Never strip access the client actually paid for — dropping the assignment
+    // is enough. A refund goes through the Stripe webhook, not through here.
+    if (await hasPaidOrder(supabase, clientId, course.slug)) {
+      return NextResponse.json({ success: true, kept_paid_access: true })
+    }
+
     const { error } = await supabase
       .from('course_access')
       .delete()

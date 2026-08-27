@@ -53,6 +53,7 @@ export function AccessManager({ isOpen, onClose, kind, itemId, itemTitle, isPriv
   const [saving, setSaving] = useState(false)
   const [clients, setClients] = useState<Client[]>([])
   const [assigned, setAssigned] = useState<Map<string, AssignedClient>>(new Map())
+  const [initial, setInitial] = useState<Set<string>>(new Set())
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [newMode, setNewMode] = useState<Mode>('free')
   const [search, setSearch] = useState('')
@@ -70,8 +71,17 @@ export function AccessManager({ isOpen, onClose, kind, itemId, itemTitle, isPriv
     for (const c of data.clients || []) {
       if (c.user_id) map.set(c.user_id, c)
     }
+    // Only real assignments are pre-ticked. A client who simply bought the item
+    // shows up with a badge but stays unticked, so saving this dialog can never
+    // revoke a purchase it did not create.
+    const assignedIds = new Set(
+      Array.from(map.values())
+        .filter(c => c.assigned && c.user_id)
+        .map(c => c.user_id as string)
+    )
     setAssigned(map)
-    setSelected(new Set(map.keys()))
+    setInitial(assignedIds)
+    setSelected(new Set(assignedIds))
   }
 
   useEffect(() => {
@@ -143,8 +153,8 @@ export function AccessManager({ isOpen, onClose, kind, itemId, itemTitle, isPriv
     }
   }
 
-  const toGrant = Array.from(selected).filter(id => !assigned.has(id))
-  const toRevoke = Array.from(assigned.keys()).filter(id => !selected.has(id))
+  const toGrant = Array.from(selected).filter(id => !initial.has(id))
+  const toRevoke = Array.from(initial).filter(id => !selected.has(id))
   const dirty = toGrant.length > 0 || toRevoke.length > 0
 
   const save = async () => {
@@ -171,6 +181,7 @@ export function AccessManager({ isOpen, onClose, kind, itemId, itemTitle, isPriv
       }
 
       toast.success(ru ? 'Доступ обновлён' : 'Access updated')
+      await loadAccess()
       onSaved?.()
       onClose()
     } catch (err: any) {
@@ -275,7 +286,8 @@ export function AccessManager({ isOpen, onClose, kind, itemId, itemTitle, isPriv
 
                   {current?.has_access && (
                     <Badge variant="secondary" className="shrink-0">
-                      <Check className="w-3 h-3 mr-1" />{ru ? 'есть доступ' : 'has access'}
+                      <Check className="w-3 h-3 mr-1" />
+                      {current.assigned ? (ru ? 'есть доступ' : 'has access') : (ru ? 'купил сам' : 'bought it')}
                     </Badge>
                   )}
 
