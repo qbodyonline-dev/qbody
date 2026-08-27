@@ -1168,6 +1168,22 @@ export function HeroEditor({ data, onChange, lang }: HeroEditorProps) {
           🦸 {lang === 'ru' ? 'Настройки Hero' : 'Hero Settings'}
         </h3>
 
+        {/* Section height */}
+        <div className="p-3 bg-zinc-50 dark:bg-zinc-800 rounded-lg space-y-2">
+          <label className="text-xs font-medium text-zinc-500 block">{lang === 'ru' ? 'Мин. высота секции' : 'Section Min Height'}</label>
+          <div className="flex gap-1.5">
+            {(['100vh', '80vh', 'auto'] as const).map(v => (
+              <button key={v} type="button" onClick={() => onChange({ ...data, minHeight: v === '100vh' ? undefined : v })}
+                className={`px-3 h-8 rounded-lg text-[11px] font-bold ${(data.minHeight || '100vh') === v ? 'bg-teal-500 text-white' : 'bg-zinc-100 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-400'}`}>
+                {v === 'auto' ? (lang === 'ru' ? 'По контенту' : 'Auto') : v}
+              </button>
+            ))}
+            <Input value={data.minHeight || ''} onChange={e => onChange({ ...data, minHeight: e.target.value || undefined })}
+              placeholder="100vh" className="text-xs h-8 w-24" />
+          </div>
+          <p className="text-[10px] text-zinc-400">{lang === 'ru' ? '100vh — на весь экран (как раньше). «По контенту» убирает пустоту под hero. Видно на сайте, в превью редактора высота не применяется.' : '100vh — full screen (as before). Auto removes the empty space below the hero. Applies on the site; the editor preview does not simulate it.'}</p>
+        </div>
+
         {/* Background Gradient */}
         <div className="p-3 bg-zinc-50 dark:bg-zinc-800 rounded-lg space-y-2">
           <label className="text-xs font-medium text-zinc-500 block">{lang === 'ru' ? 'Фоновый градиент' : 'Background Gradient'}</label>

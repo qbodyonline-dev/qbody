@@ -495,8 +495,11 @@ function DynamicBlock({ block, lang, index }: { block: PageBlock; lang: 'en' | '
     : block.type === 'footer' ? 'contacts'
     : cleanHtmlId || undefined
 
-  // ✅ CLS FIX: Reserve space for hero section to prevent layout shift
-  const heroStyle = block.type === 'hero' ? { minHeight: '100vh', ...sectionStyle } : sectionStyle
+  // ✅ CLS FIX: Reserve space for hero section to prevent layout shift.
+  // The height is editable in the hero block settings; empty keeps the
+  // original full-viewport behaviour.
+  const heroMinHeight = block.type === 'hero' ? ((block.data as any)?.minHeight || '100vh') : undefined
+  const heroStyle = block.type === 'hero' ? { minHeight: heroMinHeight, ...sectionStyle } : sectionStyle
 
   // ✅ SMOOTH ANIMATIONS: Assign reveal class based on block type
   // Hero gets instant reveal (above fold), other blocks get scroll-triggered

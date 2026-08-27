@@ -141,6 +141,8 @@ export interface HeroData {
   features: string[]
   featuresRu: string[]
   gradient: string
+  /** Min height of the hero <section> on the public home page ('' = 100vh). */
+  minHeight?: string
   heroImage?: string  // Optional hero image for two-column layout
   // Image style settings
   imageMaxWidth?: string   // e.g., "480px", "100%"
