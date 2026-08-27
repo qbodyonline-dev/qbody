@@ -27,12 +27,17 @@ export async function POST(request: NextRequest) {
     // Validate course from DB (dynamic — supports all courses created in admin)
     const { data: course, error: courseError } = await supabase
       .from('courses')
-      .select('id, slug, title, title_secondary, price, is_published')
+      .select('id, slug, title, title_secondary, price, is_published, is_private')
       .eq('slug', courseSlug)
       .eq('is_published', true)
-      .single()
+      .maybeSingle()
 
     if (courseError || !course) {
+      return NextResponse.json({ error: 'Course not found' }, { status: 404 })
+    }
+
+    // A private course is not for sale — it is handed out by assignment only.
+    if (course.is_private) {
       return NextResponse.json({ error: 'Course not found' }, { status: 404 })
     }
 

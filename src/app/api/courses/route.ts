@@ -82,6 +82,7 @@ export async function POST(request: Request) {
         duration_weeks: body.duration_weeks || 8,
         image_url: body.image_url || null,
         is_published: body.is_published || false,
+        is_private: !!body.is_private,
     }
     // _secondary columns may not exist if rename migration wasn't applied
     if (body.title_secondary) {

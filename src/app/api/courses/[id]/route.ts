@@ -96,6 +96,7 @@ export async function PATCH(
     if (body.duration_weeks !== undefined) updateData.duration_weeks = Math.max(1, Math.min(Number(body.duration_weeks) || 8, 104))
     if (body.image_url !== undefined) updateData.image_url = body.image_url || null
     if (body.is_published !== undefined) updateData.is_published = !!body.is_published
+    if (body.is_private !== undefined) updateData.is_private = !!body.is_private
     
     // Page builder fields
     if (body.hero_video_url !== undefined) updateData.hero_video_url = body.hero_video_url || null

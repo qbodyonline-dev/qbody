@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase-server'
+import { authenticateRequest } from '@/lib/api-auth'
+import { hasProgramAssignment, isAdminRole } from '@/lib/visibility'
 
 export const dynamic = 'force-dynamic'
 
@@ -28,7 +30,7 @@ export async function GET(
       .select(`
         id, name, name_secondary, description, description_secondary,
         full_description, full_description_secondary,
-        duration_weeks, goal, difficulty, slug, is_active, price, original_price,
+        duration_weeks, goal, difficulty, slug, is_active, is_private, price, original_price,
         features, features_secondary, includes, includes_secondary,
         hero_image_url, created_at,
         program_days (
@@ -38,10 +40,24 @@ export async function GET(
       `)
       .eq('slug', slug)
       .eq('is_active', true)
-      .single()
+      .maybeSingle()
 
     if (error || !data) {
       return NextResponse.json({ error: 'Program not found' }, { status: 404 })
+    }
+
+    // Private program — visible only to the clients it was assigned to (and
+    // admins/trainers). Everyone else gets the same 404 as for a missing one,
+    // so sharing the link with a third party reveals nothing.
+    if (data.is_private) {
+      const auth = await authenticateRequest(request)
+      const allowed = auth.success && (
+        isAdminRole(auth.data.profile?.role) ||
+        await hasProgramAssignment(auth.data.user.id, data.id)
+      )
+      if (!allowed) {
+        return NextResponse.json({ error: 'Program not found' }, { status: 404 })
+      }
     }
 
     // Sort days

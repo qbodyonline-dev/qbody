@@ -11,13 +11,14 @@ import { useTranslation } from '@/lib/i18n'
 import { fetchWithAuth, fetchWithAuthUpload } from '@/lib/api'
 import {
   Plus, Edit, Trash2, Calendar, Users, Dumbbell, Loader2,
-  ChevronDown, ChevronUp, Copy, UserPlus, X, Power, Check, ExternalLink
+  ChevronDown, ChevronUp, Copy, UserPlus, X, Power, Check, ExternalLink, Lock
 } from 'lucide-react'
 import BlockEditor, { type Block } from '@/components/ui/block-editor'
 import { compressImage } from '@/lib/compress-image'
 import { toast } from 'sonner'
 import { useLanguageConfig } from '@/lib/useLanguageConfig'
 import { slugify } from '@/lib/utils'
+import { AccessManager } from '@/components/dashboard/AccessManager'
 
 /* ═══════════ TYPES ═══════════ */
 type WorkoutRef = { id: string; name: string; name_secondary: string | null; type: string; difficulty: string; estimated_duration: number }
@@ -25,7 +26,7 @@ type ProgramDay = { id?: string; week_number: number; day_of_week: number; worko
 type AssignedClient = { id: string; status: string; start_date: string; current_week: number; profiles: { id: string; full_name: string | null; email: string; avatar_url: string | null } }
 type Program = {
   id: string; name: string; name_secondary: string | null; description: string | null; description_secondary: string | null
-  duration_weeks: number; goal: string; difficulty: string; is_active: boolean
+  duration_weeks: number; goal: string; difficulty: string; is_active: boolean; is_private?: boolean
   program_days: ProgramDay[]; clients_count: number; assigned_clients?: AssignedClient[]; created_at: string
 }
 
@@ -104,6 +105,8 @@ function ProgramsPage() {
   const [expandedWeek, setExpandedWeek] = useState<number | null>(null)
 
   // Price & extras
+  const [fIsPrivate, setFIsPrivate] = useState(false)
+  const [accessProgram, setAccessProgram] = useState<Program | null>(null)
   const [fPrice, setFPrice] = useState('')           // in dollars (display), stored as cents
   const [fOriginalPrice, setFOriginalPrice] = useState('')
   const [fFeatures, setFFeatures] = useState<string[]>([])
@@ -264,7 +267,7 @@ function ProgramsPage() {
     setFFullDesc([]); setFFullDescSecondary([]); setDescTab('primary'); setFHeroImage('')
     setFWeeks(8); setFGoal('general'); setFDiff('intermediate')
     setFSchedule(Array.from({ length: 8 }, () => emptyWeek()))
-    setFPrice(''); setFOriginalPrice('')
+    setFPrice(''); setFOriginalPrice(''); setFIsPrivate(false)
     setFFeatures([]); setFFeaturesSecondary([]); setFIncludes([]); setFIncludesSecondary([])
     setEditingId(null); setExpandedWeek(null)
   }
@@ -285,7 +288,7 @@ function ProgramsPage() {
     setFName(p.name); setFNameSecondary(p.name_secondary || ''); setFSlug((p as any).slug || generateSlug(p.name)); setFDesc(p.description || ''); setFDescSecondary(p.description_secondary || '')
     setFFullDesc(parseBlocks((p as any).full_description)); setFFullDescSecondary(parseBlocks((p as any).full_description_secondary)); setDescTab('primary')
     setFHeroImage((p as any).hero_image_url || '')
-    setFWeeks(p.duration_weeks); setFGoal(p.goal); setFDiff(p.difficulty)
+    setFWeeks(p.duration_weeks); setFGoal(p.goal); setFDiff(p.difficulty); setFIsPrivate(!!p.is_private)
     setFSchedule(buildScheduleFromDays(p.program_days, p.duration_weeks))
     // Price (stored as cents, display as dollars)
     setFPrice((p as any).price ? String((p as any).price / 100) : '')
@@ -328,6 +331,7 @@ function ProgramsPage() {
       duration_weeks: fWeeks,
       goal: fGoal,
       difficulty: fDiff,
+      is_private: fIsPrivate,
       days: scheduleToPayload(fSchedule),
       price: fPrice ? Math.round(parseFloat(fPrice) * 100) : 0,
       original_price: fOriginalPrice ? Math.round(parseFloat(fOriginalPrice) * 100) : null,
@@ -438,7 +442,10 @@ function ProgramsPage() {
               <CardContent className="p-5">
                 <div className="flex items-start justify-between mb-2">
                   <h3 className="font-semibold text-zinc-900 dark:text-zinc-100 text-lg">{ru ? (p.name_secondary || p.name) : p.name}</h3>
-                  {!p.is_active && <Badge variant="secondary">{ru ? 'Неакт.' : 'Inactive'}</Badge>}
+                  <div className="flex gap-1 shrink-0">
+                    {p.is_private && <Badge variant="secondary"><Lock className="w-3 h-3 mr-1" />{ru ? 'Скрытая' : 'Hidden'}</Badge>}
+                    {!p.is_active && <Badge variant="secondary">{ru ? 'Неакт.' : 'Inactive'}</Badge>}
+                  </div>
                 </div>
                 {(p.description || p.description_secondary) && (
                   <p className="text-sm text-zinc-500 mb-4 line-clamp-2">{ru ? (p.description_secondary || p.description) : p.description}</p>
@@ -477,6 +484,9 @@ function ProgramsPage() {
                   <Button variant="ghost" size="sm" title={ru ? 'Назначить клиенту' : 'Assign to client'} onClick={() => openAssign(p.id)}>
                     <UserPlus className="w-4 h-4 text-teal-500" />
                   </Button>
+                  <Button variant="ghost" size="sm" title={ru ? 'Доступ клиентов' : 'Client access'} onClick={() => setAccessProgram(p)}>
+                    <Users className="w-4 h-4 text-teal-500" />
+                  </Button>
                   <Button variant="ghost" size="sm" onClick={() => toggleActive(p)} title={p.is_active ? (ru ? 'Деактивировать' : 'Deactivate') : (ru ? 'Активировать' : 'Activate')}>
                     <Power className={`w-4 h-4 ${p.is_active ? 'text-green-500' : 'text-zinc-400'}`} />
                   </Button>
@@ -489,6 +499,18 @@ function ProgramsPage() {
           ))}
         </div>
       )}
+
+      {/* ═══════════ ACCESS MODAL — assign to one or several clients ═══════════ */}
+      <AccessManager
+        isOpen={!!accessProgram}
+        onClose={() => setAccessProgram(null)}
+        kind="program"
+        itemId={accessProgram?.id || null}
+        itemTitle={(ru ? (accessProgram?.name_secondary || accessProgram?.name) : accessProgram?.name) || ''}
+        isPrivate={!!accessProgram?.is_private}
+        ru={ru}
+        onSaved={fetchPrograms}
+      />
 
       {/* ═══════════ ADD/EDIT MODAL ═══════════ */}
       <Modal isOpen={isModalOpen} onClose={() => { setIsModalOpen(false); resetForm() }}
@@ -580,6 +602,18 @@ function ProgramsPage() {
             ) : (
               <BlockEditor value={fFullDesc} onChange={setFFullDesc} locale={lang.primaryLanguage} uploadImage={uploadImageFile} />
             )}
+          </div>
+
+          {/* ─── Visibility ─── */}
+          <div className="border-t border-zinc-100 dark:border-zinc-800 pt-4">
+            <h3 className="font-semibold text-sm mb-3">{ru ? 'Видимость' : 'Visibility'}</h3>
+            <label className="flex items-start gap-3 cursor-pointer">
+              <input type="checkbox" className="w-5 h-5 mt-0.5 rounded accent-teal-500" checked={fIsPrivate} onChange={e => setFIsPrivate(e.target.checked)} />
+              <span>
+                <span className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">{ru ? 'Скрытая — только для назначенных клиентов' : 'Hidden — assigned clients only'}</span>
+                <span className="block text-xs text-zinc-500 mt-0.5">{ru ? 'Программа исчезнет из каталога на сайте и в приложении, а прямая ссылка перестанет работать для всех, кроме назначенных клиентов. Назначить их можно кнопкой «Доступ» на карточке.' : 'The program leaves the catalog on the site and in the app, and its direct link stops working for everyone but the assigned clients. Assign them with the "Access" button on the card.'}</span>
+              </span>
+            </label>
           </div>
 
           {/* ─── Price ─── */}

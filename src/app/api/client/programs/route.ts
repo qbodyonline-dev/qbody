@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase-server'
 import { authenticateRequest } from '@/lib/api-auth'
+import { ASSIGNED_STATUSES, isAdminRole } from '@/lib/visibility'
 
 /**
  * Client-facing programs endpoint.
@@ -49,7 +50,7 @@ export async function GET(request: NextRequest) {
     // Get all programs
     const { data: programs, error } = await supabase
       .from('training_programs')
-      .select('id, name, name_secondary, description, description_secondary, full_description, full_description_secondary, hero_image_url, duration_weeks, goal, difficulty, created_at')
+      .select('id, name, name_secondary, description, description_secondary, full_description, full_description_secondary, hero_image_url, duration_weeks, goal, difficulty, is_private, created_at')
       .order('created_at', { ascending: false })
 
     if (error) {
@@ -57,23 +58,31 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to fetch programs' }, { status: 500 })
     }
 
-    // Get client's active program
-    const { data: activeProgram } = await supabase
+    // Every program this client is enrolled in / was assigned to
+    const { data: assignments } = await supabase
       .from('client_programs')
-      .select('program_id')
+      .select('program_id, status')
       .eq('client_id', userId)
-      .eq('status', 'active')
-      .maybeSingle()
+      .in('status', ASSIGNED_STATUSES)
 
-    const activeProgramId = activeProgram?.program_id || null
+    const assignedIds = new Set((assignments || []).map((a: any) => a.program_id))
+    const activeProgramId = (assignments || []).find((a: any) => a.status === 'active')?.program_id || null
+    const isAdmin = isAdminRole(auth.data.profile?.role)
 
-    // Mark which program is active + convert rich text to plain text
-    const result = (programs || []).map((p: any) => ({
-      ...p,
-      full_description: blocksToText(p.full_description),
-      full_description_secondary: blocksToText(p.full_description_secondary),
-      is_active: p.id === activeProgramId,
-    }))
+    // Mark which program is active + convert rich text to plain text.
+    // Private programs stay out of the catalog for everyone except the
+    // clients they were assigned to (and admins/trainers).
+    const result = (programs || [])
+      .filter((p: any) => !p.is_private || isAdmin || assignedIds.has(p.id))
+      .map((p: any) => {
+        const { is_private, ...rest } = p
+        return {
+          ...rest,
+          full_description: blocksToText(p.full_description),
+          full_description_secondary: blocksToText(p.full_description_secondary),
+          is_active: p.id === activeProgramId,
+        }
+      })
 
     return NextResponse.json(result)
   } catch (err: any) {

@@ -1,5 +1,8 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { createServerClient } from '@/lib/supabase-server'
+import { authenticateRequest } from '@/lib/api-auth'
+import { hasCourseAccess, isAdminRole } from '@/lib/visibility'
 
 export const dynamic = 'force-dynamic'
 
@@ -17,6 +20,27 @@ function getPublicSupabase() {
   )
 }
 
+const COURSE_SELECT = `
+  *,
+  course_modules (
+    id,
+    title,
+    title_secondary,
+    sort_order,
+    is_published,
+    course_lessons (
+      id,
+      title,
+      title_secondary,
+      type,
+      duration_minutes,
+      is_free,
+      is_published,
+      sort_order
+    )
+  )
+`
+
 // GET public course by slug
 export async function GET(
   request: Request,
@@ -30,37 +54,39 @@ export async function GET(
     }
 
     const supabase = getPublicSupabase()
-    
-    const { data, error } = await supabase
+
+    // ─── Public path: published, non-private course (anon key, RLS applies) ───
+    let { data } = await supabase
       .from('courses')
-      .select(`
-        *,
-        course_modules (
-          id,
-          title,
-          title_secondary,
-          sort_order,
-          is_published,
-          course_lessons (
-            id,
-            title,
-            title_secondary,
-            type,
-            duration_minutes,
-            is_free,
-            is_published,
-            sort_order
-          )
-        )
-      `)
+      .select(COURSE_SELECT)
       .eq('slug', slug)
       .eq('is_published', true)
-      .single()
-    
-    if (error || !data) {
+      .eq('is_private', false)
+      .maybeSingle()
+
+    // ─── Private path: only the assigned client (or an admin) may see it ───
+    if (!data) {
+      const auth = await authenticateRequest(request)
+      if (auth.success) {
+        const allowed = isAdminRole(auth.data.profile?.role) || await hasCourseAccess(auth.data.user.id, slug)
+        if (allowed) {
+          const service = createServerClient()
+          const { data: privateCourse } = await service
+            .from('courses')
+            .select(COURSE_SELECT)
+            .eq('slug', slug)
+            .eq('is_published', true)
+            .eq('is_private', true)
+            .maybeSingle()
+          data = privateCourse as any
+        }
+      }
+    }
+
+    if (!data) {
       return NextResponse.json({ error: 'Course not found' }, { status: 404 })
     }
-    
+
     // Sort and filter modules and lessons
     if (data.course_modules) {
       data.course_modules.sort((a: any, b: any) => a.sort_order - b.sort_order)
@@ -72,12 +98,12 @@ export async function GET(
       })
       data.course_modules = data.course_modules.filter((m: any) => m.is_published)
     }
-    
-    const totalLessons = data.course_modules?.reduce((sum: number, m: any) => 
+
+    const totalLessons = data.course_modules?.reduce((sum: number, m: any) =>
       sum + (m.course_lessons?.length || 0), 0) || 0
-    const totalMinutes = data.course_modules?.reduce((sum: number, m: any) => 
+    const totalMinutes = data.course_modules?.reduce((sum: number, m: any) =>
       sum + (m.course_lessons?.reduce((s: number, l: any) => s + l.duration_minutes, 0) || 0), 0) || 0
-    
+
     return NextResponse.json({
       ...data,
       lessons_count: totalLessons,

@@ -31,11 +31,16 @@ export async function POST(request: NextRequest) {
     // Look up program
     const { data: program, error: progError } = await supabase
       .from('training_programs')
-      .select('id, name, name_secondary, price, original_price')
+      .select('id, name, name_secondary, price, original_price, is_private')
       .eq('id', programId)
-      .single()
+      .maybeSingle()
 
     if (progError || !program) {
+      return NextResponse.json({ error: 'Program not found' }, { status: 404 })
+    }
+
+    // A private program is not for sale — it is handed out by assignment only.
+    if (program.is_private) {
       return NextResponse.json({ error: 'Program not found' }, { status: 404 })
     }
 

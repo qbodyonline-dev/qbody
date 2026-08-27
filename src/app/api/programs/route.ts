@@ -93,7 +93,7 @@ export async function POST(request: NextRequest) {
   try {
     const supabase = createServerClient()
     const body = await request.json()
-    const { name, name_secondary, slug, description, description_secondary, full_description, full_description_secondary, hero_image_url, duration_weeks, goal, difficulty, days, price, original_price, features, features_secondary, includes: includesArr, includes_secondary } = body
+    const { name, name_secondary, slug, description, description_secondary, full_description, full_description_secondary, hero_image_url, duration_weeks, goal, difficulty, is_private, days, price, original_price, features, features_secondary, includes: includesArr, includes_secondary } = body
 
     if (!name || !name.trim()) {
       return NextResponse.json({ error: 'Name is required' }, { status: 400 })
@@ -133,6 +133,7 @@ export async function POST(request: NextRequest) {
         duration_weeks: Math.max(1, Math.min(Number(duration_weeks) || 8, 52)),
         goal: safeGoal,
         difficulty: safeDiff,
+        is_private: !!is_private,
         price: Math.max(0, Math.round(Number(price) || 0)),
         original_price: original_price ? Math.max(0, Math.round(Number(original_price) || 0)) : null,
         features: Array.isArray(features) ? features.filter(Boolean).map((f: string) => s(f, 500)) : [],

@@ -44,6 +44,9 @@ export async function GET() {
         )
       `)
       .eq('is_published', true)
+      // Private courses never show up in the catalog — they are visible only
+      // to the clients they were assigned to (see /api/progress + [slug] route).
+      .eq('is_private', false)
       .order('created_at', { ascending: false })
 
     if (error) throw error

@@ -5,6 +5,67 @@ import { isValidUUID } from '@/lib/security'
 
 export const dynamic = 'force-dynamic'
 
+// GET — clients this program is assigned to
+export async function GET(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  const auth = await requireAdmin(request)
+  if (!auth.success) {
+    return NextResponse.json({ error: auth.error.error }, { status: auth.error.status })
+  }
+
+  if (!isValidUUID(params.id)) {
+    return NextResponse.json({ error: 'Invalid program ID' }, { status: 400 })
+  }
+
+  try {
+    const supabase = createServerClient()
+
+    const { data: program } = await supabase
+      .from('training_programs')
+      .select('id, is_private')
+      .eq('id', params.id)
+      .maybeSingle()
+
+    if (!program) {
+      return NextResponse.json({ error: 'Program not found' }, { status: 404 })
+    }
+
+    const { data, error } = await supabase
+      .from('client_programs')
+      .select(`
+        id, status, start_date, end_date, current_week, created_at,
+        profiles:client_id ( id, full_name, email, avatar_url )
+      `)
+      .eq('program_id', params.id)
+      .neq('status', 'cancelled')
+      .order('created_at', { ascending: false })
+
+    if (error) {
+      console.error('List program assignments error:', error)
+      return NextResponse.json({ error: 'Failed to load assignments' }, { status: 500 })
+    }
+
+    return NextResponse.json({
+      is_private: !!program.is_private,
+      clients: (data || []).map((cp: any) => ({
+        client_program_id: cp.id,
+        user_id: cp.profiles?.id || null,
+        full_name: cp.profiles?.full_name || null,
+        email: cp.profiles?.email || null,
+        avatar_url: cp.profiles?.avatar_url || null,
+        status: cp.status,
+        start_date: cp.start_date,
+        end_date: cp.end_date,
+      })),
+    })
+  } catch (err: any) {
+    console.error('GET /api/programs/[id]/assign error:', err)
+    return NextResponse.json({ error: 'Server error' }, { status: 500 })
+  }
+}
+
 // POST — assign program to client
 export async function POST(
   request: NextRequest,
@@ -23,6 +84,72 @@ export async function POST(
     const supabase = createServerClient()
     const body = await request.json()
     const { client_id, start_date, notes } = body
+
+    // ─── Bulk path: assign to several clients at once ───
+    // Used by the dashboard "Access" dialog (mainly for private programs).
+    // Unlike the single-client path below it does NOT cancel the clients'
+    // other active programs — a personal program is granted on top.
+    if (Array.isArray(body.client_ids)) {
+      const clientIds: string[] = Array.from(new Set(
+        body.client_ids.filter((id: any) => typeof id === 'string' && isValidUUID(id))
+      ))
+
+      if (clientIds.length === 0) {
+        return NextResponse.json({ error: 'client_ids is required' }, { status: 400 })
+      }
+
+      const { data: program } = await supabase
+        .from('training_programs')
+        .select('duration_weeks')
+        .eq('id', params.id)
+        .maybeSingle()
+
+      if (!program) {
+        return NextResponse.json({ error: 'Program not found' }, { status: 404 })
+      }
+
+      const { data: alreadyAssigned } = await supabase
+        .from('client_programs')
+        .select('id, client_id, status')
+        .eq('program_id', params.id)
+        .in('client_id', clientIds)
+        .neq('status', 'cancelled')
+
+      const skip = new Set((alreadyAssigned || []).map((a: any) => a.client_id))
+      const toInsert = clientIds.filter(id => !skip.has(id))
+
+      const startDt = start_date || new Date().toISOString().split('T')[0]
+      let endDt: string | null = null
+      if (program.duration_weeks) {
+        const end = new Date(startDt)
+        end.setDate(end.getDate() + program.duration_weeks * 7)
+        endDt = end.toISOString().split('T')[0]
+      }
+
+      if (toInsert.length > 0) {
+        const { error } = await supabase.from('client_programs').insert(
+          toInsert.map(clientId => ({
+            client_id: clientId,
+            program_id: params.id,
+            start_date: startDt,
+            end_date: endDt,
+            status: 'active',
+            current_week: 1,
+            assigned_by: auth.data.user.id,
+            notes: notes || null,
+          }))
+        )
+        if (error) {
+          console.error('Bulk assign program error:', error)
+          return NextResponse.json({ error: 'Failed to assign program' }, { status: 500 })
+        }
+      }
+
+      return NextResponse.json(
+        { success: true, assigned: toInsert.length, skipped: skip.size },
+        { status: 201 }
+      )
+    }
 
     if (!client_id || !isValidUUID(client_id)) {
       return NextResponse.json({ error: 'Valid client_id is required' }, { status: 400 })

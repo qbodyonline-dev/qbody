@@ -7,11 +7,12 @@ import { Badge } from '@/components/ui/badge'
 import { Modal } from '@/components/ui/modal'
 import { Input } from '@/components/ui/input'
 import { useTranslation } from '@/lib/i18n'
-import { Plus, Edit, Eye, EyeOff, BookOpen, DollarSign, Clock, Trash2, Loader2, Layers, FileText, Globe } from 'lucide-react'
+import { Plus, Edit, Eye, EyeOff, BookOpen, DollarSign, Clock, Trash2, Loader2, Layers, FileText, Globe, Lock, Users } from 'lucide-react'
 import { toast } from 'sonner'
 import { fetchWithAuth } from '@/lib/api'
 import { useLanguageConfig } from '@/lib/useLanguageConfig'
 import { slugify } from '@/lib/utils'
+import { AccessManager } from '@/components/dashboard/AccessManager'
 
 type Course = {
   id: string
@@ -25,6 +26,7 @@ type Course = {
   duration_weeks: number
   image_url: string | null
   is_published: boolean
+  is_private: boolean
   created_at: string
   modules_count?: number
   lessons_count?: number
@@ -39,13 +41,14 @@ export default function CoursesAdminPage() {
   const [isAddOpen, setIsAddOpen] = useState(false)
   const [isEditOpen, setIsEditOpen] = useState(false)
   const [isDeleteOpen, setIsDeleteOpen] = useState(false)
+  const [accessCourse, setAccessCourse] = useState<Course | null>(null)
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null)
   const [saving, setSaving] = useState(false)
   const [form, setForm] = useState({
     title: '', title_secondary: '', slug: '',
     description: '', description_secondary: '',
     price: '99', original_price: '', duration_weeks: '8',
-    is_published: false
+    is_published: false, is_private: false
   })
   const [slugManuallyEdited, setSlugManuallyEdited] = useState(false)
   const [slugError, setSlugError] = useState('')
@@ -83,7 +86,7 @@ export default function CoursesAdminPage() {
       title: '', title_secondary: '', slug: '',
       description: '', description_secondary: '',
       price: '99', original_price: '', duration_weeks: '8',
-      is_published: false
+      is_published: false, is_private: false
     })
     setSlugManuallyEdited(false)
   }
@@ -115,6 +118,7 @@ export default function CoursesAdminPage() {
           original_price: form.original_price ? parseFloat(form.original_price) : null,
           duration_weeks: parseInt(form.duration_weeks) || 8,
           is_published: form.is_published,
+          is_private: form.is_private,
         }),
       })
       if (!res.ok) {
@@ -153,6 +157,7 @@ export default function CoursesAdminPage() {
           original_price: form.original_price ? parseFloat(form.original_price) : null,
           duration_weeks: parseInt(form.duration_weeks) || 8,
           is_published: form.is_published,
+          is_private: form.is_private,
         }),
       })
       if (!res.ok) {
@@ -201,6 +206,7 @@ export default function CoursesAdminPage() {
       original_price: course.original_price ? String(course.original_price / 100) : '',
       duration_weeks: String(course.duration_weeks || 8),
       is_published: course.is_published,
+      is_private: !!course.is_private,
     })
     setIsEditOpen(true)
   }
@@ -250,6 +256,13 @@ export default function CoursesAdminPage() {
         <input type="checkbox" className="w-5 h-5 rounded accent-teal-500" checked={form.is_published} onChange={(e) => setForm({ ...form, is_published: e.target.checked })} />
         <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">{ru ? 'Опубликован (виден клиентам)' : 'Published (visible to clients)'}</span>
       </label>
+      <label className="flex items-start gap-3 cursor-pointer">
+        <input type="checkbox" className="w-5 h-5 mt-0.5 rounded accent-teal-500" checked={form.is_private} onChange={(e) => setForm({ ...form, is_private: e.target.checked })} />
+        <span>
+          <span className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">{ru ? 'Скрытый — только для назначенных клиентов' : 'Hidden — assigned clients only'}</span>
+          <span className="block text-xs text-zinc-500 mt-0.5">{ru ? 'Курс исчезнет из каталога, а прямая ссылка перестанет работать для всех, кроме назначенных клиентов. Назначить их можно кнопкой «Доступ».' : 'The course leaves the catalog and its direct link stops working for everyone but the assigned clients. Assign them with the "Access" button.'}</span>
+        </span>
+      </label>
       <div className="flex justify-end gap-3 pt-4">
         <Button type="button" variant="outline" onClick={() => { setIsAddOpen(false); setIsEditOpen(false); setSelectedCourse(null); resetForm(); }}>{ru ? 'Отмена' : 'Cancel'}</Button>
         <Button type="submit" variant="gradient" disabled={saving}>
@@ -297,11 +310,14 @@ export default function CoursesAdminPage() {
                 <div className="flex flex-col lg:flex-row">
                   <div className="lg:w-48 h-32 lg:h-auto bg-gradient-to-br from-teal-500 to-emerald-600 flex items-center justify-center relative">
                     <BookOpen className="w-12 h-12 text-white/80" />
-                    {!course.is_published && (
-                      <div className="absolute top-2 left-2">
+                    <div className="absolute top-2 left-2 flex flex-col gap-1 items-start">
+                      {!course.is_published && (
                         <Badge variant="secondary" className="bg-black/50 text-white">{ru ? 'Черновик' : 'Draft'}</Badge>
-                      </div>
-                    )}
+                      )}
+                      {course.is_private && (
+                        <Badge variant="secondary" className="bg-black/50 text-white"><Lock className="w-3 h-3 mr-1" />{ru ? 'Скрытый' : 'Hidden'}</Badge>
+                      )}
+                    </div>
                   </div>
                   <div className="flex-1 p-6">
                     <div className="flex items-start justify-between mb-3">
@@ -359,6 +375,9 @@ export default function CoursesAdminPage() {
                       <Button variant="outline" size="sm" onClick={() => openEdit(course)}>
                         <Edit className="w-4 h-4 mr-1" />{ru ? 'Настройки' : 'Settings'}
                       </Button>
+                      <Button variant="outline" size="sm" onClick={() => setAccessCourse(course)}>
+                        <Users className="w-4 h-4 mr-1" />{ru ? 'Доступ' : 'Access'}
+                      </Button>
                       <Link href={`/courses/${course.slug}`} target="_blank">
                         <Button variant="ghost" size="sm"><Eye className="w-4 h-4 mr-1" />{ru ? 'Просмотр' : 'View'}</Button>
                       </Link>
@@ -383,6 +402,17 @@ export default function CoursesAdminPage() {
       <Modal isOpen={isEditOpen} onClose={() => { setIsEditOpen(false); setSelectedCourse(null); }} title={ru ? 'Настройки курса' : 'Course Settings'} size="lg">
         {renderCourseForm(handleEdit, ru ? 'Сохранить' : 'Save')}
       </Modal>
+
+      {/* Access Modal — assign the course to one or several clients */}
+      <AccessManager
+        isOpen={!!accessCourse}
+        onClose={() => setAccessCourse(null)}
+        kind="course"
+        itemId={accessCourse?.id || null}
+        itemTitle={(ru && accessCourse?.title_secondary ? accessCourse.title_secondary : accessCourse?.title) || ''}
+        isPrivate={!!accessCourse?.is_private}
+        ru={ru}
+      />
 
       {/* Delete Modal */}
       <Modal isOpen={isDeleteOpen} onClose={() => { setIsDeleteOpen(false); setSelectedCourse(null); }} title={ru ? 'Удалить курс' : 'Delete Course'} size="sm">

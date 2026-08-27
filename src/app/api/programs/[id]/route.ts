@@ -3,6 +3,7 @@ import { createServerClient } from '@/lib/supabase-server'
 import { authenticateRequest, requireAdmin } from '@/lib/api-auth'
 import { isValidUUID, sanitizeString } from '@/lib/security'
 import { escapeHtml } from '@/lib/email-templates'
+import { hasProgramAssignment } from '@/lib/visibility'
 
 export const dynamic = 'force-dynamic'
 
@@ -139,7 +140,7 @@ export async function GET(
         .select(`
           id, name, name_secondary, description, description_secondary,
           full_description, full_description_secondary,
-          hero_image_url, duration_weeks, goal, difficulty,
+          hero_image_url, duration_weeks, goal, difficulty, is_private,
           price, original_price, features, features_secondary, includes, includes_secondary,
           created_at,
           program_days (
@@ -151,6 +152,12 @@ export async function GET(
         .single()
 
       if (error || !data) {
+        return NextResponse.json({ error: 'Program not found' }, { status: 404 })
+      }
+
+      // Private program — readable only by the clients it was assigned to.
+      // Same 404 as a missing program, so a shared link tells a stranger nothing.
+      if (data.is_private && !(await hasProgramAssignment(auth.data.user.id, params.id))) {
         return NextResponse.json({ error: 'Program not found' }, { status: 404 })
       }
 
@@ -250,7 +257,7 @@ export async function PUT(
   try {
     const supabase = createServerClient()
     const body = await request.json()
-    const { name, name_secondary, slug, description, description_secondary, full_description, full_description_secondary, hero_image_url, duration_weeks, goal, difficulty, is_active, days, price, original_price, features, features_secondary, includes: includesArr, includes_secondary } = body
+    const { name, name_secondary, slug, description, description_secondary, full_description, full_description_secondary, hero_image_url, duration_weeks, goal, difficulty, is_active, is_private, days, price, original_price, features, features_secondary, includes: includesArr, includes_secondary } = body
 
     const s = (v: string, len = 1000) => sanitizeString(v, len)
 
@@ -282,6 +289,7 @@ export async function PUT(
     if (goal !== undefined) updates.goal = GOALS.includes(goal) ? goal : 'general'
     if (difficulty !== undefined) updates.difficulty = DIFFS.includes(difficulty) ? difficulty : 'intermediate'
     if (is_active !== undefined) updates.is_active = !!is_active
+    if (is_private !== undefined) updates.is_private = !!is_private
     if (price !== undefined) updates.price = Math.max(0, Math.round(Number(price) || 0))
     if (original_price !== undefined) updates.original_price = original_price ? Math.max(0, Math.round(Number(original_price) || 0)) : null
     if (features !== undefined) updates.features = Array.isArray(features) ? features.filter(Boolean).map((f: string) => s(f, 500)) : []
