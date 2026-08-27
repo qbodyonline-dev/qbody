@@ -5,7 +5,7 @@ import { useTranslation } from '@/lib/i18n'
 import { useAuth } from '@/lib/auth'
 import { fetchWithAuth } from '@/lib/api'
 import { compressImage } from '@/lib/compress-image'
-import { Loader2, CheckCircle2, ChevronLeft, ChevronRight, Camera, ArrowLeft } from 'lucide-react'
+import { Loader2, CheckCircle2, ChevronLeft, ChevronRight, Camera, ArrowLeft, Minus, Plus } from 'lucide-react'
 import { toast } from 'sonner'
 
 /* ═══════════════════════════════════════════
@@ -472,62 +472,138 @@ function WeightPicker({ value, onChange, ru, label }: {
   )
 }
 
-/* ── Height Picker (vertical ruler) ── */
+/* ── Height Picker (vertical ruler, 0.5 cm step + manual input) ── */
+const HEIGHT_MIN = 100
+const HEIGHT_MAX = 220
+const HEIGHT_STEP = 0.5
+const HEIGHT_TICK_H = 14   // px per 0.5 cm — spacing tuned for calm, precise scrolling
+const HEIGHT_BOX_H = 280   // visible ruler height
+
+function fmtHeight(v: number) {
+  return Number.isInteger(v) ? String(v) : v.toFixed(1)
+}
+
+function snapHeight(v: number) {
+  const clamped = Math.min(HEIGHT_MAX, Math.max(HEIGHT_MIN, v))
+  return Math.round(clamped / HEIGHT_STEP) * HEIGHT_STEP
+}
+
 function HeightPicker({ value, onChange, ru }: {
   value: number; onChange: (v: number) => void; ru: boolean
 }) {
   const scrollRef = useRef<HTMLDivElement>(null)
-  const min = 100, max = 220
-  const TICK_H = 12
+  const programmatic = useRef(false)
+  const [text, setText] = useState(fmtHeight(value))
+  const [editing, setEditing] = useState(false)
 
-  useEffect(() => {
-    if (scrollRef.current) {
-      const offset = (max - value) * TICK_H - scrollRef.current.clientHeight / 2
-      scrollRef.current.scrollTop = offset
-    }
-  }, [])
+  const scrollToValue = (v: number) => {
+    const el = scrollRef.current
+    if (!el) return
+    programmatic.current = true
+    el.scrollTop = ((HEIGHT_MAX - v) / HEIGHT_STEP) * HEIGHT_TICK_H
+    requestAnimationFrame(() => { programmatic.current = false })
+  }
+
+  useEffect(() => { scrollToValue(value) }, [])
+  // Keep the input in sync unless the user is typing in it right now
+  useEffect(() => { if (!editing) setText(fmtHeight(value)) }, [value, editing])
 
   const handleScroll = () => {
-    if (!scrollRef.current) return
-    const center = scrollRef.current.scrollTop + scrollRef.current.clientHeight / 2
-    const tick = max - Math.round(center / TICK_H)
-    const clamped = Math.max(min, Math.min(max, tick))
-    if (clamped !== value) onChange(clamped)
+    if (programmatic.current || !scrollRef.current) return
+    const v = snapHeight(HEIGHT_MAX - (scrollRef.current.scrollTop / HEIGHT_TICK_H) * HEIGHT_STEP)
+    if (v !== value) onChange(v)
   }
+
+  const step = (delta: number) => {
+    const v = snapHeight(value + delta)
+    if (v !== value) { onChange(v); scrollToValue(v) }
+  }
+
+  const commitText = () => {
+    setEditing(false)
+    const parsed = parseFloat(text.replace(',', '.'))
+    if (isNaN(parsed)) { setText(fmtHeight(value)); return }
+    const v = snapHeight(parsed)
+    setText(fmtHeight(v))
+    if (v !== value) onChange(v)
+    scrollToValue(v)
+  }
+
+  const ticks = Math.round((HEIGHT_MAX - HEIGHT_MIN) / HEIGHT_STEP)
+  const pad = HEIGHT_BOX_H / 2 - HEIGHT_TICK_H / 2
 
   return (
     <div className="flex items-center gap-8 w-full max-w-sm justify-center">
-      {/* Value */}
+      {/* Value — editable by hand */}
       <div className="text-center">
-        <p className="text-6xl font-bold text-zinc-900 tabular-nums">{value}</p>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => step(-HEIGHT_STEP)}
+            aria-label={ru ? 'Уменьшить' : 'Decrease'}
+            className="w-10 h-10 shrink-0 rounded-full border-2 border-zinc-200 flex items-center justify-center text-zinc-400 hover:border-teal-500 hover:text-teal-500 transition-colors"
+          >
+            <Minus className="w-5 h-5" />
+          </button>
+          <input
+            type="text"
+            inputMode="decimal"
+            value={text}
+            aria-label={ru ? 'Рост в см' : 'Height in cm'}
+            onFocus={(e) => { setEditing(true); e.currentTarget.select() }}
+            onChange={(e) => setText(e.target.value.replace(/[^0-9.,]/g, '').slice(0, 5))}
+            onBlur={commitText}
+            onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); e.currentTarget.blur() } }}
+            className="w-28 bg-transparent text-center text-5xl font-bold text-zinc-900 tabular-nums outline-none border-b-2 border-transparent focus:border-teal-500 transition-colors"
+          />
+          <button
+            type="button"
+            onClick={() => step(HEIGHT_STEP)}
+            aria-label={ru ? 'Увеличить' : 'Increase'}
+            className="w-10 h-10 shrink-0 rounded-full border-2 border-zinc-200 flex items-center justify-center text-zinc-400 hover:border-teal-500 hover:text-teal-500 transition-colors"
+          >
+            <Plus className="w-5 h-5" />
+          </button>
+        </div>
         <p className="text-lg text-zinc-400 font-medium mt-1">{ru ? 'СМ' : 'CM'}</p>
+        <p className="text-[11px] text-zinc-400 mt-3 max-w-[180px] mx-auto">
+          {ru ? 'Введите вручную или прокрутите шкалу — шаг 0,5 см' : 'Type it in or scroll the ruler — 0.5 cm steps'}
+        </p>
       </div>
 
-      {/* Vertical ruler */}
-      <div className="relative h-[280px]">
+      {/* Vertical ruler — one tick per 0.5 cm, snaps to each tick */}
+      <div className="relative" style={{ height: `${HEIGHT_BOX_H}px` }}>
         {/* Center indicator */}
-        <div className="absolute left-0 right-0 top-1/2 h-0.5 bg-teal-500 z-10 -translate-y-px" />
+        <div className="absolute left-0 right-0 top-1/2 h-0.5 bg-teal-500 z-10 -translate-y-px pointer-events-none" />
         <div
           ref={scrollRef}
           onScroll={handleScroll}
           className="h-full overflow-y-auto scrollbar-hide"
-          style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+          style={{
+            scrollbarWidth: 'none',
+            msOverflowStyle: 'none',
+            scrollSnapType: 'y mandatory',
+            overscrollBehavior: 'contain',
+          }}
         >
-          <div style={{ height: `${(max - min) * TICK_H}px` }} className="relative w-24">
-            {Array.from({ length: max - min + 1 }, (_, i) => {
-              const v = max - i
-              const isMajor = v % 10 === 0
+          <div className="w-24">
+            <div style={{ height: `${pad}px` }} />
+            {Array.from({ length: ticks + 1 }, (_, i) => {
+              const v = HEIGHT_MAX - i * HEIGHT_STEP
+              const isMajor = v % 5 === 0
+              const isWhole = Number.isInteger(v)
               return (
                 <div
-                  key={v}
-                  className="absolute right-0 flex items-center"
-                  style={{ top: `${i * TICK_H}px` }}
+                  key={i}
+                  className="flex items-center justify-end gap-2"
+                  style={{ height: `${HEIGHT_TICK_H}px`, scrollSnapAlign: 'center' }}
                 >
-                  {isMajor && <span className="text-[11px] text-zinc-400 mr-2">{v}</span>}
-                  <div className={`h-px ${isMajor ? 'w-8 bg-zinc-400' : 'w-4 bg-zinc-200'}`} />
+                  {isMajor && <span className="text-[11px] text-zinc-400 tabular-nums">{v}</span>}
+                  <div className={`h-px ${isMajor ? 'w-8 bg-zinc-400' : isWhole ? 'w-5 bg-zinc-300' : 'w-3 bg-zinc-200'}`} />
                 </div>
               )
             })}
+            <div style={{ height: `${pad}px` }} />
           </div>
         </div>
       </div>
