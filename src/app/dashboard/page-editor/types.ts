@@ -310,6 +310,16 @@ export interface HeroTemplateData {
   overlayOpacity: number
   sideImage: string
   sideImagePosition: 'right' | 'left'
+  sideImageMaxWidth?: string
+  sideImageMaxHeight?: string
+  sideImageBorderRadius?: string
+  sideImageObjectFit?: 'cover' | 'contain' | 'fill' | 'none'
+  // Photo above the badge text (logo etc.)
+  badgeImage?: string
+  badgeImageMaxWidth?: string
+  badgeImageMaxHeight?: string
+  badgeImageBorderRadius?: string
+  badgeImageObjectFit?: 'cover' | 'contain' | 'fill' | 'none'
   textColor: string
   accentColor: string
   animation: AnimationType

@@ -285,6 +285,11 @@ export function renderHeroTemplateHTML(data: HeroTemplateData, lang: 'en' | 'ru'
 
   const featHtml = feats?.length ? `<div style="display:flex;flex-wrap:wrap;gap:12px 16px;${v === 'centered' ? 'justify-content:center;' : ''}margin-top:12px;">${feats.map(f => `<span style="font-size:14px;color:${accent};">✓ ${f}</span>`).join('')}</div>` : ''
 
+  // Photo above the badge (logo etc.)
+  const badgeImageHtml = data.badgeImage
+    ? `<div style="margin-bottom:16px;${v === 'centered' ? 'display:flex;justify-content:center;' : ''}"><img src="${data.badgeImage}" alt="" loading="eager" style="max-width:${data.badgeImageMaxWidth || '120px'};max-height:${data.badgeImageMaxHeight || '120px'};border-radius:${data.badgeImageBorderRadius || '0'};object-fit:${data.badgeImageObjectFit || 'contain'};display:block;" /></div>`
+    : ''
+
   // Background. The 'videobg' / 'fullimage' templates promise a video / photo
   // background, so they force the background type once the asset is there —
   // otherwise picking those templates visibly did nothing.
@@ -319,6 +324,7 @@ export function renderHeroTemplateHTML(data: HeroTemplateData, lang: 'en' | 'ru'
   const bCl = bs.color || accent
 
   const textBlock = `
+    ${badgeImageHtml}
     ${badge ? `<p style="color:${bCl};font-weight:600;font-size:${bSz};letter-spacing:0.05em;margin-bottom:16px;${bs.align ? 'text-align:' + bs.align + ';' : ''}">⭐ ${badge}</p>` : ''}
     ${title ? `<h1 style="font-size:${tSz};font-weight:800;color:${tCl};letter-spacing:-0.02em;line-height:1.1;margin-bottom:8px;${ts.align ? 'text-align:' + ts.align + ';' : ''}">${title}</h1>` : ''}
     ${subtitle ? `<h2 style="font-size:${sSz};font-weight:800;color:${sCl};letter-spacing:-0.02em;line-height:1.1;margin-bottom:24px;${ss.align ? 'text-align:' + ss.align + ';' : ''}">${subtitle}</h2>` : ''}
@@ -328,7 +334,7 @@ export function renderHeroTemplateHTML(data: HeroTemplateData, lang: 'en' | 'ru'
 
   if (v === 'split') {
     const imgSide = data.sideImage
-      ? `<div class="${id}-img" style="flex:1;min-width:0;"><img src="${data.sideImage}" style="width:100%;max-height:600px;object-fit:cover;border-radius:24px;" alt="" loading="eager"></div>`
+      ? `<div class="${id}-img" style="flex:1;min-width:0;display:flex;justify-content:center;"><img src="${data.sideImage}" style="width:100%;max-width:${data.sideImageMaxWidth || '100%'};max-height:${data.sideImageMaxHeight || '600px'};object-fit:${data.sideImageObjectFit || 'cover'};border-radius:${data.sideImageBorderRadius || '24px'};" alt="" loading="eager"></div>`
       : ''
     const order = data.sideImagePosition === 'left' ? 'flex-direction:row-reverse;' : ''
     return `<style>${animKeyframes()}

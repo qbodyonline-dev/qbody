@@ -606,8 +606,69 @@ export function HeroTemplateEditor({ data, onChange, lang }: HeroTemplateEditorP
                 <button onClick={() => upd({ sideImagePosition: 'left' })} className={`flex-1 text-xs py-1 rounded-md ${data.sideImagePosition === 'left' ? 'bg-white dark:bg-zinc-600 shadow' : ''}`}>{ru ? 'Слева' : 'Left'}</button>
               </div>
             </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="text-xs text-zinc-500 block mb-1">{ru ? 'Макс. ширина' : 'Max Width'}</label>
+                <Input value={data.sideImageMaxWidth || ''} onChange={e => upd({ sideImageMaxWidth: e.target.value || undefined })} placeholder="100%" className="text-xs h-7" />
+              </div>
+              <div>
+                <label className="text-xs text-zinc-500 block mb-1">{ru ? 'Макс. высота' : 'Max Height'}</label>
+                <Input value={data.sideImageMaxHeight || ''} onChange={e => upd({ sideImageMaxHeight: e.target.value || undefined })} placeholder="600px" className="text-xs h-7" />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="text-xs text-zinc-500 block mb-1">{ru ? 'Скругление' : 'Border Radius'}</label>
+                <Input value={data.sideImageBorderRadius || ''} onChange={e => upd({ sideImageBorderRadius: e.target.value || undefined })} placeholder="24px" className="text-xs h-7" />
+              </div>
+              <div>
+                <label className="text-xs text-zinc-500 block mb-1">{ru ? 'Заполнение' : 'Object Fit'}</label>
+                <select value={data.sideImageObjectFit || 'cover'} onChange={e => upd({ sideImageObjectFit: e.target.value as any })}
+                  className="w-full h-7 px-2 text-xs border border-zinc-200 dark:border-zinc-700 dark:bg-zinc-900 rounded-lg">
+                  <option value="cover">Cover</option>
+                  <option value="contain">Contain</option>
+                  <option value="fill">Fill</option>
+                  <option value="none">None</option>
+                </select>
+              </div>
+            </div>
           </div>
         )}
+
+        {/* Photo above the badge (logo) */}
+        <div className="p-3 bg-zinc-50 dark:bg-zinc-800 rounded-lg space-y-2">
+          <ImageField value={data.badgeImage || ''} onChange={url => upd({ badgeImage: url || undefined })} folder="hero" label={ru ? 'Фото над бейджем (логотип)' : 'Photo above badge (logo)'} lang={lang} />
+          {data.badgeImage && (
+            <>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-xs text-zinc-500 block mb-1">{ru ? 'Макс. ширина' : 'Max Width'}</label>
+                  <Input value={data.badgeImageMaxWidth || ''} onChange={e => upd({ badgeImageMaxWidth: e.target.value || undefined })} placeholder="120px" className="text-xs h-7" />
+                </div>
+                <div>
+                  <label className="text-xs text-zinc-500 block mb-1">{ru ? 'Макс. высота' : 'Max Height'}</label>
+                  <Input value={data.badgeImageMaxHeight || ''} onChange={e => upd({ badgeImageMaxHeight: e.target.value || undefined })} placeholder="120px" className="text-xs h-7" />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-xs text-zinc-500 block mb-1">{ru ? 'Скругление' : 'Border Radius'}</label>
+                  <Input value={data.badgeImageBorderRadius || ''} onChange={e => upd({ badgeImageBorderRadius: e.target.value || undefined })} placeholder="0" className="text-xs h-7" />
+                </div>
+                <div>
+                  <label className="text-xs text-zinc-500 block mb-1">{ru ? 'Заполнение' : 'Object Fit'}</label>
+                  <select value={data.badgeImageObjectFit || 'contain'} onChange={e => upd({ badgeImageObjectFit: e.target.value as any })}
+                    className="w-full h-7 px-2 text-xs border border-zinc-200 dark:border-zinc-700 dark:bg-zinc-900 rounded-lg">
+                    <option value="contain">Contain</option>
+                    <option value="cover">Cover</option>
+                    <option value="fill">Fill</option>
+                    <option value="none">None</option>
+                  </select>
+                </div>
+              </div>
+            </>
+          )}
+        </div>
 
         {/* Colors & Style */}
         <div className="grid grid-cols-3 gap-3">
