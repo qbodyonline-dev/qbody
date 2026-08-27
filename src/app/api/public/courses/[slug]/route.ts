@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { createServerClient } from '@/lib/supabase-server'
 import { authenticateRequest } from '@/lib/api-auth'
-import { hasCourseAccess, isAdminRole } from '@/lib/visibility'
+import { canSeeCourse, isAdminRole } from '@/lib/visibility'
 
 export const dynamic = 'force-dynamic'
 
@@ -68,17 +68,19 @@ export async function GET(
     if (!data) {
       const auth = await authenticateRequest(request)
       if (auth.success) {
-        const allowed = isAdminRole(auth.data.profile?.role) || await hasCourseAccess(auth.data.user.id, slug)
-        if (allowed) {
-          const service = createServerClient()
-          const { data: privateCourse } = await service
-            .from('courses')
-            .select(COURSE_SELECT)
-            .eq('slug', slug)
-            .eq('is_published', true)
-            .eq('is_private', true)
-            .maybeSingle()
-          data = privateCourse as any
+        const service = createServerClient()
+        const { data: privateCourse } = await service
+          .from('courses')
+          .select(COURSE_SELECT)
+          .eq('slug', slug)
+          .eq('is_published', true)
+          .eq('is_private', true)
+          .maybeSingle()
+
+        if (privateCourse) {
+          const allowed = isAdminRole(auth.data.profile?.role) ||
+            await canSeeCourse(auth.data.user.id, (privateCourse as any).id, slug)
+          if (allowed) data = privateCourse as any
         }
       }
     }

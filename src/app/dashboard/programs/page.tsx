@@ -11,7 +11,7 @@ import { useTranslation } from '@/lib/i18n'
 import { fetchWithAuth, fetchWithAuthUpload } from '@/lib/api'
 import {
   Plus, Edit, Trash2, Calendar, Users, Dumbbell, Loader2,
-  ChevronDown, ChevronUp, Copy, UserPlus, X, Power, Check, ExternalLink, Lock
+  ChevronDown, ChevronUp, Copy, UserPlus, X, Power, Check, ExternalLink, Lock, Globe, Eye, EyeOff
 } from 'lucide-react'
 import BlockEditor, { type Block } from '@/components/ui/block-editor'
 import { compressImage } from '@/lib/compress-image'
@@ -19,6 +19,7 @@ import { toast } from 'sonner'
 import { useLanguageConfig } from '@/lib/useLanguageConfig'
 import { slugify } from '@/lib/utils'
 import { AccessManager } from '@/components/dashboard/AccessManager'
+import { Segmented } from '@/components/ui/segmented'
 
 /* ═══════════ TYPES ═══════════ */
 type WorkoutRef = { id: string; name: string; name_secondary: string | null; type: string; difficulty: string; estimated_duration: number }
@@ -106,6 +107,7 @@ function ProgramsPage() {
 
   // Price & extras
   const [fIsPrivate, setFIsPrivate] = useState(false)
+  const [fIsActive, setFIsActive] = useState(true)
   const [accessProgram, setAccessProgram] = useState<Program | null>(null)
   const [fPrice, setFPrice] = useState('')           // in dollars (display), stored as cents
   const [fOriginalPrice, setFOriginalPrice] = useState('')
@@ -267,7 +269,7 @@ function ProgramsPage() {
     setFFullDesc([]); setFFullDescSecondary([]); setDescTab('primary'); setFHeroImage('')
     setFWeeks(8); setFGoal('general'); setFDiff('intermediate')
     setFSchedule(Array.from({ length: 8 }, () => emptyWeek()))
-    setFPrice(''); setFOriginalPrice(''); setFIsPrivate(false)
+    setFPrice(''); setFOriginalPrice(''); setFIsPrivate(false); setFIsActive(true)
     setFFeatures([]); setFFeaturesSecondary([]); setFIncludes([]); setFIncludesSecondary([])
     setEditingId(null); setExpandedWeek(null)
   }
@@ -288,7 +290,7 @@ function ProgramsPage() {
     setFName(p.name); setFNameSecondary(p.name_secondary || ''); setFSlug((p as any).slug || generateSlug(p.name)); setFDesc(p.description || ''); setFDescSecondary(p.description_secondary || '')
     setFFullDesc(parseBlocks((p as any).full_description)); setFFullDescSecondary(parseBlocks((p as any).full_description_secondary)); setDescTab('primary')
     setFHeroImage((p as any).hero_image_url || '')
-    setFWeeks(p.duration_weeks); setFGoal(p.goal); setFDiff(p.difficulty); setFIsPrivate(!!p.is_private)
+    setFWeeks(p.duration_weeks); setFGoal(p.goal); setFDiff(p.difficulty); setFIsPrivate(!!p.is_private); setFIsActive(p.is_active !== false)
     setFSchedule(buildScheduleFromDays(p.program_days, p.duration_weeks))
     // Price (stored as cents, display as dollars)
     setFPrice((p as any).price ? String((p as any).price / 100) : '')
@@ -332,6 +334,7 @@ function ProgramsPage() {
       goal: fGoal,
       difficulty: fDiff,
       is_private: fIsPrivate,
+      is_active: fIsActive,
       days: scheduleToPayload(fSchedule),
       price: fPrice ? Math.round(parseFloat(fPrice) * 100) : 0,
       original_price: fOriginalPrice ? Math.round(parseFloat(fOriginalPrice) * 100) : null,
@@ -604,16 +607,33 @@ function ProgramsPage() {
             )}
           </div>
 
-          {/* ─── Visibility ─── */}
-          <div className="border-t border-zinc-100 dark:border-zinc-800 pt-4">
-            <h3 className="font-semibold text-sm mb-3">{ru ? 'Видимость' : 'Visibility'}</h3>
-            <label className="flex items-start gap-3 cursor-pointer">
-              <input type="checkbox" className="w-5 h-5 mt-0.5 rounded accent-teal-500" checked={fIsPrivate} onChange={e => setFIsPrivate(e.target.checked)} />
-              <span>
-                <span className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">{ru ? 'Скрытая — только для назначенных клиентов' : 'Hidden — assigned clients only'}</span>
-                <span className="block text-xs text-zinc-500 mt-0.5">{ru ? 'Программа исчезнет из каталога на сайте и в приложении, а прямая ссылка перестанет работать для всех, кроме назначенных клиентов. Назначить их можно кнопкой «Доступ» на карточке.' : 'The program leaves the catalog on the site and in the app, and its direct link stops working for everyone but the assigned clients. Assign them with the "Access" button on the card.'}</span>
-              </span>
-            </label>
+          {/* ─── Visibility & access ─── */}
+          <div className="border-t border-zinc-100 dark:border-zinc-800 pt-4 space-y-4">
+            <div>
+              <h3 className="font-semibold text-sm mb-2">{ru ? 'Видимость' : 'Visibility'}</h3>
+              <Segmented<'visible' | 'hidden'>
+                value={fIsActive ? 'visible' : 'hidden'}
+                onChange={(v) => setFIsActive(v === 'visible')}
+                options={[
+                  { value: 'visible', label: ru ? 'Видна' : 'Visible', hint: ru ? 'Есть в каталоге сайта и приложения' : 'Listed on the site and in the app', icon: Eye },
+                  { value: 'hidden', label: ru ? 'Не видна' : 'Not visible', hint: ru ? 'Скрыта из каталога у всех' : 'Out of the catalog for everyone', icon: EyeOff },
+                ]}
+              />
+            </div>
+            <div>
+              <h3 className="font-semibold text-sm mb-2">{ru ? 'Кому доступна' : 'Who can see it'}</h3>
+              <Segmented<'public' | 'private'>
+                value={fIsPrivate ? 'private' : 'public'}
+                onChange={(v) => setFIsPrivate(v === 'private')}
+                options={[
+                  { value: 'public', label: ru ? 'Общий доступ' : 'Everyone', hint: ru ? 'Видна в каталоге всем' : 'Listed in the catalog', icon: Globe },
+                  { value: 'private', label: ru ? 'Конкретным клиентам' : 'Selected clients', hint: ru ? 'Нет в каталоге, ссылка не работает у других' : 'Not listed, the link works only for them', icon: Lock },
+                ]}
+              />
+              {fIsPrivate && (
+                <p className="text-xs text-zinc-500 mt-2">{ru ? 'Выбрать клиентов и решить, бесплатно или за оплату, можно кнопкой «Доступ» на карточке программы.' : 'Pick the clients — free or paid — with the "Access" button on the program card.'}</p>
+              )}
+            </div>
           </div>
 
           {/* ─── Price ─── */}

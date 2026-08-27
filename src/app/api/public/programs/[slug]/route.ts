@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase-server'
 import { authenticateRequest } from '@/lib/api-auth'
-import { hasProgramAssignment, isAdminRole } from '@/lib/visibility'
+import { canSeeProgram, isAdminRole } from '@/lib/visibility'
 
 export const dynamic = 'force-dynamic'
 
@@ -53,7 +53,7 @@ export async function GET(
       const auth = await authenticateRequest(request)
       const allowed = auth.success && (
         isAdminRole(auth.data.profile?.role) ||
-        await hasProgramAssignment(auth.data.user.id, data.id)
+        await canSeeProgram(auth.data.user.id, data.id)
       )
       if (!allowed) {
         return NextResponse.json({ error: 'Program not found' }, { status: 404 })

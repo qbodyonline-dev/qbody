@@ -3,7 +3,7 @@ import { createServerClient } from '@/lib/supabase-server'
 import { authenticateRequest, requireAdmin } from '@/lib/api-auth'
 import { isValidUUID, sanitizeString } from '@/lib/security'
 import { escapeHtml } from '@/lib/email-templates'
-import { hasProgramAssignment } from '@/lib/visibility'
+import { canSeeProgram } from '@/lib/visibility'
 
 export const dynamic = 'force-dynamic'
 
@@ -157,7 +157,7 @@ export async function GET(
 
       // Private program — readable only by the clients it was assigned to.
       // Same 404 as a missing program, so a shared link tells a stranger nothing.
-      if (data.is_private && !(await hasProgramAssignment(auth.data.user.id, params.id))) {
+      if (data.is_private && !(await canSeeProgram(auth.data.user.id, params.id))) {
         return NextResponse.json({ error: 'Program not found' }, { status: 404 })
       }
 

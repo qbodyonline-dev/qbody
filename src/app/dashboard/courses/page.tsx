@@ -13,6 +13,7 @@ import { fetchWithAuth } from '@/lib/api'
 import { useLanguageConfig } from '@/lib/useLanguageConfig'
 import { slugify } from '@/lib/utils'
 import { AccessManager } from '@/components/dashboard/AccessManager'
+import { Segmented } from '@/components/ui/segmented'
 
 type Course = {
   id: string
@@ -252,17 +253,33 @@ export default function CoursesAdminPage() {
         <Input label={ru ? 'Старая цена ($)' : 'Original price ($)'} type="number" step="0.01" value={form.original_price} onChange={(e) => setForm({ ...form, original_price: e.target.value })} placeholder="149" />
         <Input label={ru ? 'Недель' : 'Weeks'} type="number" value={form.duration_weeks} onChange={(e) => setForm({ ...form, duration_weeks: e.target.value })} />
       </div>
-      <label className="flex items-center gap-3 cursor-pointer">
-        <input type="checkbox" className="w-5 h-5 rounded accent-teal-500" checked={form.is_published} onChange={(e) => setForm({ ...form, is_published: e.target.checked })} />
-        <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">{ru ? 'Опубликован (виден клиентам)' : 'Published (visible to clients)'}</span>
-      </label>
-      <label className="flex items-start gap-3 cursor-pointer">
-        <input type="checkbox" className="w-5 h-5 mt-0.5 rounded accent-teal-500" checked={form.is_private} onChange={(e) => setForm({ ...form, is_private: e.target.checked })} />
-        <span>
-          <span className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">{ru ? 'Скрытый — только для назначенных клиентов' : 'Hidden — assigned clients only'}</span>
-          <span className="block text-xs text-zinc-500 mt-0.5">{ru ? 'Курс исчезнет из каталога, а прямая ссылка перестанет работать для всех, кроме назначенных клиентов. Назначить их можно кнопкой «Доступ».' : 'The course leaves the catalog and its direct link stops working for everyone but the assigned clients. Assign them with the "Access" button.'}</span>
-        </span>
-      </label>
+      <div className="border-t border-zinc-100 dark:border-zinc-800 pt-4 space-y-4">
+        <div>
+          <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">{ru ? 'Видимость' : 'Visibility'}</label>
+          <Segmented<'visible' | 'hidden'>
+            value={form.is_published ? 'visible' : 'hidden'}
+            onChange={(v) => setForm({ ...form, is_published: v === 'visible' })}
+            options={[
+              { value: 'visible', label: ru ? 'Виден' : 'Visible', hint: ru ? 'Курс доступен клиентам' : 'Clients can open it', icon: Eye },
+              { value: 'hidden', label: ru ? 'Не виден' : 'Not visible', hint: ru ? 'Черновик — не видит никто' : 'Draft — nobody sees it', icon: EyeOff },
+            ]}
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">{ru ? 'Кому доступен' : 'Who can see it'}</label>
+          <Segmented<'public' | 'private'>
+            value={form.is_private ? 'private' : 'public'}
+            onChange={(v) => setForm({ ...form, is_private: v === 'private' })}
+            options={[
+              { value: 'public', label: ru ? 'Общий доступ' : 'Everyone', hint: ru ? 'Виден в каталоге всем' : 'Listed in the catalog', icon: Globe },
+              { value: 'private', label: ru ? 'Конкретным клиентам' : 'Selected clients', hint: ru ? 'Нет в каталоге, ссылка не работает у других' : 'Not listed, the link works only for them', icon: Lock },
+            ]}
+          />
+          {form.is_private && (
+            <p className="text-xs text-zinc-500 mt-2">{ru ? 'Выбрать клиентов и решить, бесплатно или за оплату, можно кнопкой «Доступ» на карточке курса.' : 'Pick the clients — free or paid — with the "Access" button on the course card.'}</p>
+          )}
+        </div>
+      </div>
       <div className="flex justify-end gap-3 pt-4">
         <Button type="button" variant="outline" onClick={() => { setIsAddOpen(false); setIsEditOpen(false); setSelectedCourse(null); resetForm(); }}>{ru ? 'Отмена' : 'Cancel'}</Button>
         <Button type="submit" variant="gradient" disabled={saving}>

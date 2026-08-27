@@ -3,9 +3,12 @@ import React, { useEffect, useMemo, useState } from 'react'
 import { Modal } from '@/components/ui/modal'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Loader2, Search, Users, Check } from 'lucide-react'
+import { Segmented } from '@/components/ui/segmented'
+import { Loader2, Search, Users, Check, Gift, CreditCard } from 'lucide-react'
 import { toast } from 'sonner'
 import { fetchWithAuth } from '@/lib/api'
+
+type Mode = 'free' | 'paid'
 
 type Client = {
   id: string
@@ -16,9 +19,9 @@ type Client = {
 
 type AssignedClient = {
   user_id: string | null
-  full_name: string | null
-  email: string | null
-  status?: string
+  mode: Mode
+  assigned: boolean
+  has_access: boolean
 }
 
 type Props = {
@@ -36,24 +39,40 @@ type Props = {
 }
 
 /**
- * Assign a course / training program to one or several clients.
+ * Assign a course / training program to one or several clients, free or paid.
  *
- * courses  -> POST/DELETE /api/courses/[id]/access
- * programs -> POST/DELETE /api/programs/[id]/assign
+ * courses  -> /api/courses/[id]/access
+ * programs -> /api/programs/[id]/assign
  *
+ * "Free" grants access immediately. "Paid" only makes the item visible to that
+ * client — they buy it themselves and the Stripe webhook grants access.
  * For a private (hidden) item this list is the only way anybody can see it.
  */
 export function AccessManager({ isOpen, onClose, kind, itemId, itemTitle, isPrivate, ru, onSaved }: Props) {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [clients, setClients] = useState<Client[]>([])
-  const [assigned, setAssigned] = useState<Set<string>>(new Set())
+  const [assigned, setAssigned] = useState<Map<string, AssignedClient>>(new Map())
   const [selected, setSelected] = useState<Set<string>>(new Set())
+  const [newMode, setNewMode] = useState<Mode>('free')
   const [search, setSearch] = useState('')
 
   const baseUrl = itemId
     ? (kind === 'course' ? `/api/courses/${itemId}/access` : `/api/programs/${itemId}/assign`)
     : null
+
+  const loadAccess = async () => {
+    if (!baseUrl) return
+    const res = await fetchWithAuth(baseUrl)
+    if (!res.ok) return
+    const data = await res.json()
+    const map = new Map<string, AssignedClient>()
+    for (const c of data.clients || []) {
+      if (c.user_id) map.set(c.user_id, c)
+    }
+    setAssigned(map)
+    setSelected(new Set(map.keys()))
+  }
 
   useEffect(() => {
     if (!isOpen || !baseUrl) return
@@ -62,28 +81,13 @@ export function AccessManager({ isOpen, onClose, kind, itemId, itemTitle, isPriv
     const load = async () => {
       setLoading(true)
       try {
-        const [clientsRes, accessRes] = await Promise.all([
-          fetchWithAuth('/api/clients'),
-          fetchWithAuth(baseUrl),
-        ])
-
+        const clientsRes = await fetchWithAuth('/api/clients')
         if (cancelled) return
-
         if (clientsRes.ok) {
           const data = await clientsRes.json()
           setClients(Array.isArray(data) ? data : [])
         }
-
-        if (accessRes.ok) {
-          const data = await accessRes.json()
-          const ids = new Set<string>(
-            (data.clients || [])
-              .map((c: AssignedClient) => c.user_id)
-              .filter((id: string | null): id is string => !!id)
-          )
-          setAssigned(ids)
-          setSelected(new Set(ids))
-        }
+        await loadAccess()
       } catch {
         if (!cancelled) toast.error(ru ? 'Не удалось загрузить список' : 'Failed to load the list')
       } finally {
@@ -93,6 +97,7 @@ export function AccessManager({ isOpen, onClose, kind, itemId, itemTitle, isPriv
 
     load()
     return () => { cancelled = true }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, baseUrl, ru])
 
   const filtered = useMemo(() => {
@@ -113,8 +118,33 @@ export function AccessManager({ isOpen, onClose, kind, itemId, itemTitle, isPriv
     })
   }
 
+  /** Flip an already-assigned client between free and paid right away. */
+  const switchMode = async (clientId: string, mode: Mode) => {
+    if (!baseUrl) return
+    setSaving(true)
+    try {
+      const res = await fetchWithAuth(baseUrl, {
+        method: 'PATCH',
+        body: JSON.stringify({ client_id: clientId, mode }),
+      })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        throw new Error(err.error || (ru ? 'Не удалось изменить' : 'Failed to update'))
+      }
+      await loadAccess()
+      onSaved?.()
+      toast.success(mode === 'free'
+        ? (ru ? 'Выдано бесплатно' : 'Granted for free')
+        : (ru ? 'Клиент оплачивает сам' : 'Client pays for it'))
+    } catch (err: any) {
+      toast.error(err.message)
+    } finally {
+      setSaving(false)
+    }
+  }
+
   const toGrant = Array.from(selected).filter(id => !assigned.has(id))
-  const toRevoke = Array.from(assigned).filter(id => !selected.has(id))
+  const toRevoke = Array.from(assigned.keys()).filter(id => !selected.has(id))
   const dirty = toGrant.length > 0 || toRevoke.length > 0
 
   const save = async () => {
@@ -124,7 +154,7 @@ export function AccessManager({ isOpen, onClose, kind, itemId, itemTitle, isPriv
       if (toGrant.length > 0) {
         const res = await fetchWithAuth(baseUrl, {
           method: 'POST',
-          body: JSON.stringify({ client_ids: toGrant }),
+          body: JSON.stringify({ client_ids: toGrant, mode: newMode }),
         })
         if (!res.ok) {
           const err = await res.json().catch(() => ({}))
@@ -141,7 +171,6 @@ export function AccessManager({ isOpen, onClose, kind, itemId, itemTitle, isPriv
       }
 
       toast.success(ru ? 'Доступ обновлён' : 'Access updated')
-      setAssigned(new Set(selected))
       onSaved?.()
       onClose()
     } catch (err: any) {
@@ -160,18 +189,40 @@ export function AccessManager({ isOpen, onClose, kind, itemId, itemTitle, isPriv
     >
       <div className="space-y-4">
         <div>
-          <p className="text-sm text-zinc-500">
-            {itemTitle}
-          </p>
+          <p className="text-sm text-zinc-500">{itemTitle}</p>
           <p className="text-xs text-zinc-500 mt-1">
             {isPrivate
               ? (ru
                 ? 'Скрытый материал: его видят только отмеченные клиенты. В общем каталоге и по прямой ссылке он недоступен.'
                 : 'Hidden item: only the clients you tick can see it. It stays out of the catalog and its direct link leads nowhere for anyone else.')
               : (ru
-                ? 'Материал открыт всем. Отмеченным клиентам он будет выдан без оплаты.'
-                : 'This item is public. Ticked clients get it without paying.')}
+                ? 'Материал открыт всем. Здесь можно выдать его конкретным клиентам напрямую.'
+                : 'This item is public. Here you can hand it to specific clients directly.')}
           </p>
+        </div>
+
+        <div>
+          <p className="text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
+            {ru ? 'Как выдать отмеченным клиентам' : 'How to hand it to the ticked clients'}
+          </p>
+          <Segmented<Mode>
+            value={newMode}
+            onChange={setNewMode}
+            options={[
+              {
+                value: 'free',
+                label: ru ? 'Бесплатно' : 'Free',
+                hint: ru ? 'Доступ открывается сразу' : 'Access opens immediately',
+                icon: Gift,
+              },
+              {
+                value: 'paid',
+                label: ru ? 'Платно' : 'Paid',
+                hint: ru ? 'Клиент видит и покупает сам' : 'The client sees it and buys it',
+                icon: CreditCard,
+              },
+            ]}
+          />
         </div>
 
         <div className="relative">
@@ -194,36 +245,60 @@ export function AccessManager({ isOpen, onClose, kind, itemId, itemTitle, isPriv
             <p className="text-sm">{ru ? 'Клиенты не найдены' : 'No clients found'}</p>
           </div>
         ) : (
-          <div className="max-h-[45vh] overflow-y-auto -mx-1 px-1 space-y-1">
+          <div className="max-h-[40vh] overflow-y-auto -mx-1 px-1 space-y-1">
             {filtered.map((c) => {
               const checked = selected.has(c.id)
+              const current = assigned.get(c.id)
               return (
-                <label
+                <div
                   key={c.id}
-                  className={`flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer border transition-colors ${
+                  className={`flex items-center gap-3 px-3 py-2.5 rounded-xl border transition-colors ${
                     checked
                       ? 'border-teal-500 bg-teal-50 dark:bg-teal-900/20'
                       : 'border-transparent hover:bg-zinc-50 dark:hover:bg-zinc-800'
                   }`}
                 >
-                  <input
-                    type="checkbox"
-                    className="w-4 h-4 rounded accent-teal-500"
-                    checked={checked}
-                    onChange={() => toggle(c.id)}
-                  />
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100 truncate">
-                      {c.full_name || (ru ? 'Без имени' : 'No name')}
-                    </p>
-                    <p className="text-xs text-zinc-500 truncate">{c.email}</p>
-                  </div>
-                  {assigned.has(c.id) && (
+                  <label className="flex items-center gap-3 min-w-0 flex-1 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      className="w-4 h-4 rounded accent-teal-500"
+                      checked={checked}
+                      onChange={() => toggle(c.id)}
+                    />
+                    <span className="min-w-0">
+                      <span className="block text-sm font-medium text-zinc-900 dark:text-zinc-100 truncate">
+                        {c.full_name || (ru ? 'Без имени' : 'No name')}
+                      </span>
+                      <span className="block text-xs text-zinc-500 truncate">{c.email}</span>
+                    </span>
+                  </label>
+
+                  {current?.has_access && (
                     <Badge variant="secondary" className="shrink-0">
-                      <Check className="w-3 h-3 mr-1" />{ru ? 'назначен' : 'assigned'}
+                      <Check className="w-3 h-3 mr-1" />{ru ? 'есть доступ' : 'has access'}
                     </Badge>
                   )}
-                </label>
+
+                  {current?.assigned && (
+                    <div className="flex shrink-0 rounded-lg border border-zinc-200 dark:border-zinc-700 overflow-hidden">
+                      {(['free', 'paid'] as Mode[]).map((m) => (
+                        <button
+                          key={m}
+                          type="button"
+                          disabled={saving || current.mode === m}
+                          onClick={() => switchMode(c.id, m)}
+                          className={`px-2 py-1 text-[11px] font-medium transition-colors ${
+                            current.mode === m
+                              ? 'bg-teal-500 text-white'
+                              : 'text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-700'
+                          }`}
+                        >
+                          {m === 'free' ? (ru ? 'бесплатно' : 'free') : (ru ? 'платно' : 'paid')}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
               )
             })}
           </div>

@@ -47,33 +47,49 @@ export async function GET(request: NextRequest) {
   try {
     const supabase = createServerClient()
 
-    // Get all programs
-    const { data: programs, error } = await supabase
+    const isAdmin = isAdminRole(auth.data.profile?.role)
+
+    // Get all programs — clients only see the ones switched on ("visible")
+    let programsQuery = supabase
       .from('training_programs')
       .select('id, name, name_secondary, description, description_secondary, full_description, full_description_secondary, hero_image_url, duration_weeks, goal, difficulty, is_private, created_at')
       .order('created_at', { ascending: false })
+
+    if (!isAdmin) programsQuery = programsQuery.eq('is_active', true)
+
+    const { data: programs, error } = await programsQuery
 
     if (error) {
       console.error('Client programs query error:', error)
       return NextResponse.json({ error: 'Failed to fetch programs' }, { status: 500 })
     }
 
-    // Every program this client is enrolled in / was assigned to
-    const { data: assignments } = await supabase
-      .from('client_programs')
-      .select('program_id, status')
-      .eq('client_id', userId)
-      .in('status', ASSIGNED_STATUSES)
+    // Every program this client is enrolled in, plus the ones personally
+    // assigned to them (free or offered for purchase)
+    const [{ data: enrollments }, { data: assignments }] = await Promise.all([
+      supabase
+        .from('client_programs')
+        .select('program_id, status')
+        .eq('client_id', userId)
+        .in('status', ASSIGNED_STATUSES),
+      supabase
+        .from('client_assignments')
+        .select('program_id')
+        .eq('client_id', userId)
+        .not('program_id', 'is', null),
+    ])
 
-    const assignedIds = new Set((assignments || []).map((a: any) => a.program_id))
-    const activeProgramId = (assignments || []).find((a: any) => a.status === 'active')?.program_id || null
-    const isAdmin = isAdminRole(auth.data.profile?.role)
+    const visibleIds = new Set<string>()
+    for (const e of enrollments || []) visibleIds.add((e as any).program_id)
+    for (const a of assignments || []) visibleIds.add((a as any).program_id)
+
+    const activeProgramId = (enrollments || []).find((a: any) => a.status === 'active')?.program_id || null
 
     // Mark which program is active + convert rich text to plain text.
     // Private programs stay out of the catalog for everyone except the
     // clients they were assigned to (and admins/trainers).
     const result = (programs || [])
-      .filter((p: any) => !p.is_private || isAdmin || assignedIds.has(p.id))
+      .filter((p: any) => !p.is_private || isAdmin || visibleIds.has(p.id))
       .map((p: any) => {
         const { is_private, ...rest } = p
         return {

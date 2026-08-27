@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getStripe } from '@/lib/stripe'
 import { createServerClient } from '@/lib/supabase-server'
 import { authenticateRequest } from '@/lib/api-auth'
+import { programAssignment } from '@/lib/visibility'
 
 /**
  * POST /api/stripe/program-checkout
@@ -39,8 +40,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Program not found' }, { status: 404 })
     }
 
-    // A private program is not for sale — it is handed out by assignment only.
-    if (program.is_private) {
+    // A private program is only for sale to the client it was offered to.
+    if (program.is_private && !(await programAssignment(userId, program.id))) {
       return NextResponse.json({ error: 'Program not found' }, { status: 404 })
     }
 

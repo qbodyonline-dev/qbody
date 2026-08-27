@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getStripe } from '@/lib/stripe'
 import { createServerClient } from '@/lib/supabase-server'
 import { authenticateRequest } from '@/lib/api-auth'
+import { courseAssignment } from '@/lib/visibility'
 
 export async function POST(request: NextRequest) {
   try {
@@ -36,8 +37,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Course not found' }, { status: 404 })
     }
 
-    // A private course is not for sale — it is handed out by assignment only.
-    if (course.is_private) {
+    // A private course is only for sale to the client it was offered to.
+    if (course.is_private && !(await courseAssignment(userId, course.id))) {
       return NextResponse.json({ error: 'Course not found' }, { status: 404 })
     }
 
