@@ -12,57 +12,11 @@ import { ArrowLeft, Play, Clock, BookOpen, CheckCircle2, Shield, Award, Heart, B
 import { toast } from 'sonner'
 import { useScrollReveal, useSmoothAnchor, useLazyImages } from '@/components/ui/scroll-reveal'
 import { CourseLanding } from '@/components/course-landing'
-import { defaultLandingContent, mergeLandingContent } from '@/components/course-landing/content'
+import { getVideoEmbed } from '@/lib/video-embed'
 
 const iconMap: Record<string, any> = {
   'breast-augmentation-recovery': { icon: Heart, color: 'from-pink-500 to-rose-500' },
   'cesarean-recovery': { icon: Baby, color: 'from-purple-500 to-violet-500' },
-}
-
-// ✅ FIX: Helper to resolve Vimeo / YouTube / direct video URLs
-function getVideoEmbed(url: string): React.ReactNode {
-  if (!url) return null
-  try {
-    // Vimeo: https://vimeo.com/123456789
-    if (url.includes('vimeo.com')) {
-      const id = url.replace(/https?:\/\/(www\.)?vimeo\.com\//, '').split('?')[0].split('/')[0]
-      if (id) {
-        return (
-          <iframe
-            src={`https://player.vimeo.com/video/${id}`}
-            className="w-full h-full"
-            allow="autoplay; fullscreen; picture-in-picture"
-            allowFullScreen
-          />
-        )
-      }
-    }
-    // YouTube: watch?v= or youtu.be/
-    if (url.includes('youtube.com') || url.includes('youtu.be')) {
-      let videoId = ''
-      if (url.includes('youtube.com/watch')) {
-        videoId = new URL(url).searchParams.get('v') || ''
-      } else if (url.includes('youtu.be/')) {
-        videoId = url.split('youtu.be/').pop()?.split('?')[0] || ''
-      } else if (url.includes('youtube.com/embed/')) {
-        videoId = url.split('youtube.com/embed/').pop()?.split('?')[0] || ''
-      }
-      if (videoId) {
-        return (
-          <iframe
-            src={`https://www.youtube.com/embed/${videoId}`}
-            className="w-full h-full"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-            allowFullScreen
-          />
-        )
-      }
-    }
-    // Direct video file
-    return <video src={url} controls className="w-full h-full object-contain" />
-  } catch {
-    return <video src={url} controls className="w-full h-full object-contain" />
-  }
 }
 
 export default function CoursePage() {
@@ -169,14 +123,15 @@ export default function CoursePage() {
   // Включается флагом в site_settings (course_landing:{slug}); классическая
   // страница остаётся дефолтом для остальных курсов.
   if (course.landing?.enabled) {
-    const content = mergeLandingContent(defaultLandingContent(), course.landing.data || {})
     return (
       <CourseLanding
         course={course}
-        content={content}
+        landingData={course.landing.data}
         ru={ru}
         onBuy={handleBuy}
         buying={isCheckoutLoading}
+        authBusy={authLoading}
+        account={!authLoading && user ? { href: dashLink, label: dashLabel } : null}
       />
     )
   }

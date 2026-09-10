@@ -84,7 +84,15 @@ function DynamicBlock({ block, lang, index, headerLangConfig }: { block: PageBlo
   const safeContent = sanitizeHTML(content)
   const isStructured = ['header', 'hero', 'about', 'about2', 'cta2', 'faq2', 'contact2', 'footer2', 'courses', 'courses2', 'programs', 'results', 'htmlblock', 'slider', 'herotemplate'].includes(block.type) && (block.data || block.items)
   const safeStyle = sanitizeStyleObj(block.style || {})
-  const sectionStyle = isStructured ? {} : styleToCSS(safeStyle as any)
+  let sectionStyle: React.CSSProperties = isStructured ? {} : styleToCSS(safeStyle as any)
+
+  // Hero min-height is editable in the hero block settings — honor it here the
+  // same way the home page does. Custom pages never forced 100vh, so an unset
+  // value changes nothing.
+  if (block.type === 'hero') {
+    const heroMinHeight = (block.data as any)?.minHeight
+    if (heroMinHeight) sectionStyle = { ...sectionStyle, minHeight: heroMinHeight }
+  }
 
   const rawId = block.style?.htmlId || ''
   const sectionId = rawId.replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 50) || undefined

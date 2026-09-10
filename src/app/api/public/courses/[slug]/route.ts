@@ -106,13 +106,16 @@ export async function GET(
     const totalMinutes = data.course_modules?.reduce((sum: number, m: any) =>
       sum + (m.course_lessons?.reduce((s: number, l: any) => s + l.duration_minutes, 0) || 0), 0) || 0
 
-    // Landing template config (dashboard-editable). site_settings is readable
-    // with the anon key for every key except 'stripe'.
+    // Landing template config. Keyed by course id: the slug is admin-editable
+    // free text (a rename must not detach the landing), and the /api/settings
+    // key sanitizer strips ':' — an id-based key is also the only shape the
+    // dashboard will ever be able to write. site_settings is anon-readable for
+    // every key except 'stripe' (RLS hardened 2026-05-29, verified live).
     let landing: { enabled: boolean; data: any } | null = null
     const { data: landingRow } = await supabase
       .from('site_settings')
       .select('value')
-      .eq('key', `course_landing:${slug}`)
+      .eq('key', `course_landing_${(data as any).id}`)
       .maybeSingle()
     const landingValue = landingRow?.value as any
     if (landingValue?.enabled) {

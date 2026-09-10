@@ -285,9 +285,17 @@ export function renderHeroTemplateHTML(data: HeroTemplateData, lang: 'en' | 'ru'
 
   const featHtml = feats?.length ? `<div style="display:flex;flex-wrap:wrap;gap:12px 16px;${v === 'centered' ? 'justify-content:center;' : ''}margin-top:12px;">${feats.map(f => `<span style="font-size:14px;color:${accent};">✓ ${f}</span>`).join('')}</div>` : ''
 
-  // Photo above the badge (logo etc.)
+  // Photo above the badge (logo etc.). Bare numbers from the editor inputs are
+  // normalized to px so «800» does not become an invalid CSS declaration.
+  const cssLen = (value: string | undefined, fallback: string) => {
+    const t = (value || '').trim()
+    if (!t) return fallback
+    return /^\d+$/.test(t) ? `${t}px` : t
+  }
+  // Every variant except split/minimal centers its text — the logo follows it.
+  const badgeCentered = v !== 'split' && v !== 'minimal'
   const badgeImageHtml = data.badgeImage
-    ? `<div style="margin-bottom:16px;${v === 'centered' ? 'display:flex;justify-content:center;' : ''}"><img src="${data.badgeImage}" alt="" loading="eager" style="max-width:${data.badgeImageMaxWidth || '120px'};max-height:${data.badgeImageMaxHeight || '120px'};border-radius:${data.badgeImageBorderRadius || '0'};object-fit:${data.badgeImageObjectFit || 'contain'};display:block;" /></div>`
+    ? `<div style="margin-bottom:16px;${badgeCentered ? 'display:flex;justify-content:center;' : ''}"><img src="${data.badgeImage}" alt="" loading="eager" style="max-width:${cssLen(data.badgeImageMaxWidth, '120px')};max-height:${cssLen(data.badgeImageMaxHeight, '120px')};border-radius:${cssLen(data.badgeImageBorderRadius, '0')};object-fit:${data.badgeImageObjectFit || 'contain'};display:block;" /></div>`
     : ''
 
   // Background. The 'videobg' / 'fullimage' templates promise a video / photo
@@ -334,7 +342,7 @@ export function renderHeroTemplateHTML(data: HeroTemplateData, lang: 'en' | 'ru'
 
   if (v === 'split') {
     const imgSide = data.sideImage
-      ? `<div class="${id}-img" style="flex:1;min-width:0;display:flex;justify-content:center;"><img src="${data.sideImage}" style="width:100%;max-width:${data.sideImageMaxWidth || '100%'};max-height:${data.sideImageMaxHeight || '600px'};object-fit:${data.sideImageObjectFit || 'cover'};border-radius:${data.sideImageBorderRadius || '24px'};" alt="" loading="eager"></div>`
+      ? `<div class="${id}-img" style="flex:1;min-width:0;display:flex;justify-content:center;"><img src="${data.sideImage}" style="width:100%;max-width:${cssLen(data.sideImageMaxWidth, '100%')};max-height:${cssLen(data.sideImageMaxHeight, '600px')};object-fit:${data.sideImageObjectFit || 'cover'};border-radius:${cssLen(data.sideImageBorderRadius, '24px')};" alt="" loading="eager"></div>`
       : ''
     const order = data.sideImagePosition === 'left' ? 'flex-direction:row-reverse;' : ''
     return `<style>${animKeyframes()}

@@ -67,11 +67,13 @@ export interface LandingContent {
   program: {
     heading: L
     resultLabel: L
-    lessonsLabel: L
     /** How many of the course's modules to show (service modules stay out) */
     maxModules: number
-    /** «Результат» bullets per module, by module order (1-based index) */
+    /** «Результат» bullets per module, by module order (fallback when no id match) */
     results: L[][]
+    /** «Результат» bullets keyed by course_modules.id — survives reordering.
+     *  The stage-2 editor writes this; the positional array stays as fallback. */
+    resultsByModule?: Record<string, L[]>
   }
   expert: {
     kicker: L
@@ -175,7 +177,6 @@ export function defaultLandingContent(): LandingContent {
     program: {
       heading: l('ПРОГРАММА КУРСА'),
       resultLabel: l('РЕЗУЛЬТАТ:'),
-      lessonsLabel: l('УРОКОВ', 'LESSONS'),
       maxModules: 5,
       results: [
         [l('Получишь полное понимание, чего ждать от операции'), l('Уберёшь свои страхи, волнение, панику')],
@@ -279,11 +280,14 @@ function isPlainObject(v: any): v is Record<string, any> {
 
 export function mergeLandingContent(defaults: any, override: any): any {
   if (override === undefined || override === null) return defaults
-  if (Array.isArray(defaults) && Array.isArray(override)) {
-    // Arrays replace wholesale — partial array patches are ambiguous
-    return override
+  if (Array.isArray(defaults)) {
+    // Arrays replace wholesale — partial array patches are ambiguous.
+    // A non-array override (a string, an object) is malformed data: keep defaults
+    // rather than handing the renderer a shape it cannot walk.
+    return Array.isArray(override) ? override : defaults
   }
-  if (isPlainObject(defaults) && isPlainObject(override)) {
+  if (isPlainObject(defaults)) {
+    if (!isPlainObject(override)) return defaults
     const out: Record<string, any> = { ...defaults }
     for (const key of Object.keys(override)) {
       out[key] = key in defaults ? mergeLandingContent(defaults[key], override[key]) : override[key]

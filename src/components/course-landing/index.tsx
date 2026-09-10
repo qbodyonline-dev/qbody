@@ -1,8 +1,10 @@
 'use client'
-import React, { useState } from 'react'
+import React, { useMemo, useState } from 'react'
 import Link from 'next/link'
 import { Loader2 } from 'lucide-react'
 import { LanguageSwitcher } from '@/components/ui/language-switcher'
+import { getVideoEmbed } from '@/lib/video-embed'
+import { defaultLandingContent, mergeLandingContent } from './content'
 import type { L, LandingContent } from './content'
 
 /* ═══════════ COURSE LANDING TEMPLATE ═══════════ */
@@ -42,10 +44,15 @@ interface LandingCourse {
 
 interface Props {
   course: LandingCourse
-  content: LandingContent
+  /** Stored overrides from site_settings; merged over the defaults here */
+  landingData?: any
   ru: boolean
   onBuy: () => void
   buying: boolean
+  /** Auth state is still restoring — hold the buy button so the intent is not lost */
+  authBusy?: boolean
+  /** Logged-in account entry for the header; null → show the sign-in link */
+  account?: { href: string; label: string } | null
 }
 
 /* ─── helpers ─── */
@@ -97,23 +104,23 @@ function MintCheck() {
   )
 }
 
-function getVideoEmbed(url: string): React.ReactNode {
-  const yt = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([\w-]{6,})/)
-  if (yt) {
-    return <iframe src={`https://www.youtube-nocookie.com/embed/${yt[1]}`} className="w-full h-full rounded-[28px]" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen title="Course video" />
-  }
-  const vimeo = url.match(/vimeo\.com\/(?:video\/)?(\d+)/)
-  if (vimeo) {
-    return <iframe src={`https://player.vimeo.com/video/${vimeo[1]}`} className="w-full h-full rounded-[28px]" allow="autoplay; fullscreen; picture-in-picture" allowFullScreen title="Course video" />
-  }
-  return <video src={url} controls playsInline className="w-full h-full object-cover rounded-[28px]" />
+function Heading({ children, light = false, className = '' }: { children: React.ReactNode; light?: boolean; className?: string }) {
+  return (
+    <h2 className={`font-extrabold uppercase leading-[1.02] tracking-[-0.02em] text-[clamp(30px,4vw,56px)] ${light ? 'text-white' : 'text-[#0B0D0E]'} ${className}`}>
+      {children}
+    </h2>
+  )
 }
 
 /* ═══════════ COMPONENT ═══════════ */
 
-export function CourseLanding({ course, content, ru, onBuy, buying }: Props) {
+export function CourseLanding({ course, landingData, ru, onBuy, buying, authBusy = false, account = null }: Props) {
   const T = useT(ru)
-  const c = content
+  // Merge once per data change, not on every FAQ/video state tick
+  const c: LandingContent = useMemo(
+    () => mergeLandingContent(defaultLandingContent(), landingData || {}),
+    [landingData]
+  )
   const [openFaq, setOpenFaq] = useState<number | null>(null)
   const [videoOpen, setVideoOpen] = useState(false)
 
@@ -123,18 +130,14 @@ export function CourseLanding({ course, content, ru, onBuy, buying }: Props) {
     .slice(0, maxModules)
   const videoUrl = c.video.url || course.hero_video_url || ''
   const expertPhoto = c.expert.photo || course.instructor_image_url || undefined
-  const price = `$${Math.round((course.price || 0) / 100)}`
+  // Точная цена: показываем ровно то, что спишет Stripe (без округления центов)
+  const priceValue = (course.price || 0) / 100
+  const price = `$${Number.isInteger(priceValue) ? priceValue : priceValue.toFixed(2)}`
   const planName = ru ? (course.title_secondary || course.title) : course.title
 
   const scrollToPricing = () => {
     document.getElementById('landing-pricing')?.scrollIntoView({ behavior: 'smooth' })
   }
-
-  const H = ({ children, light = false, className = '' }: { children: React.ReactNode; light?: boolean; className?: string }) => (
-    <h2 className={`font-extrabold uppercase leading-[1.02] tracking-[-0.02em] text-[clamp(30px,4vw,56px)] ${light ? 'text-white' : 'text-[#0B0D0E]'} ${className}`}>
-      {children}
-    </h2>
-  )
 
   return (
     <div className="font-sans" style={{ background: PAPER }}>
@@ -148,11 +151,11 @@ export function CourseLanding({ course, content, ru, onBuy, buying }: Props) {
           <div className="flex items-center gap-3">
             <LanguageSwitcher />
             <Link
-              href="/auth/login"
+              href={account ? account.href : '/auth/login'}
               className="px-5 py-2.5 rounded-xl border text-[13px] font-extrabold uppercase tracking-[0.08em] transition-colors hover:bg-[#F0FBF7]"
               style={{ borderColor: MINT_BTN, color: '#0E7C68' }}
             >
-              {ru ? 'Войти' : 'Sign in'}
+              {account ? account.label : (ru ? 'Войти' : 'Sign in')}
             </Link>
           </div>
         </div>
@@ -194,7 +197,7 @@ export function CourseLanding({ course, content, ru, onBuy, buying }: Props) {
       {/* ═══ 02 Video ═══ */}
       <section style={{ background: PAPER }}>
         <div className="max-w-[1370px] mx-auto px-5 py-[clamp(56px,7vw,120px)]">
-          <H>{T(c.video.heading)}</H>
+          <Heading>{T(c.video.heading)}</Heading>
           <div className="relative mt-[clamp(28px,4vw,64px)] h-[clamp(240px,32vw,515px)]">
             <div className="absolute inset-y-0 left-0 w-[44%] rounded-[28px]" style={{ background: MINT }} />
             <div className="absolute inset-y-0 right-0 w-full md:w-[61%] rounded-[28px] overflow-hidden" style={{ background: '#0B0D0F' }}>
@@ -219,7 +222,7 @@ export function CourseLanding({ course, content, ru, onBuy, buying }: Props) {
       {/* ═══ 03 Для кого ═══ */}
       <section style={{ background: PINK_SECTION }}>
         <div className="max-w-[1370px] mx-auto px-5 py-[clamp(56px,7vw,110px)]">
-          <H>{T(c.forWho.heading)}</H>
+          <Heading>{T(c.forWho.heading)}</Heading>
           <div className="grid md:grid-cols-2 gap-6 mt-[clamp(28px,4vw,64px)]">
             {c.forWho.cards.map((card, i) => (
               <div key={i} className="rounded-[28px] overflow-hidden flex flex-col" style={{ background: card.dark ? CARD_DARK : MINT_PALE }}>
@@ -253,7 +256,7 @@ export function CourseLanding({ course, content, ru, onBuy, buying }: Props) {
       {/* ═══ 04 Кейсы ═══ */}
       <section style={{ background: PINK_BRIGHT }}>
         <div className="max-w-[1370px] mx-auto px-5 py-[clamp(56px,7vw,110px)]">
-          <H>{T(c.cases.heading)}</H>
+          <Heading>{T(c.cases.heading)}</Heading>
           <div className="grid md:grid-cols-3 gap-6 mt-[clamp(28px,4vw,64px)]">
             {c.cases.items.map((item, i) => (
               <div key={i} className="bg-white rounded-[24px] overflow-hidden">
@@ -289,34 +292,41 @@ export function CourseLanding({ course, content, ru, onBuy, buying }: Props) {
       {/* ═══ 05 Результаты (bento) ═══ */}
       <section style={{ background: PAPER }}>
         <div className="max-w-[1370px] mx-auto px-5 py-[clamp(56px,7vw,110px)]">
-          <H>{T(c.results.heading)}</H>
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-6 mt-[clamp(28px,4vw,64px)]">
-            {/* tall photo left */}
-            <ResultPhotoCard cell={c.results.cells[0]} T={T} className="md:col-span-4" tall />
-            {/* middle stack */}
-            <div className="md:col-span-4 flex flex-col gap-6">
-              <div className="rounded-[24px] p-7 flex-1" style={{ background: MINT }}>
-                <h3 className="text-[clamp(18px,1.6vw,24px)] font-extrabold uppercase leading-tight text-[#0B0D0E]">{T(c.results.cells[1].title)}</h3>
-                <p className="mt-3 text-[14px] leading-relaxed text-[#2A4A42]">{T(c.results.cells[1].text)}</p>
+          <Heading>{T(c.results.heading)}</Heading>
+          {(() => {
+            /* Защита от укороченного массива в сохранённых данных: отсутствующая
+               ячейка убирает свой блок, а не роняет всю страницу. */
+            const cells = c.results.cells || []
+            return (
+              <div className="grid grid-cols-1 md:grid-cols-12 gap-6 mt-[clamp(28px,4vw,64px)]">
+                <ResultPhotoCard cell={cells[0]} T={T} className="md:col-span-4" tall />
+                <div className="md:col-span-4 flex flex-col gap-6">
+                  {cells[1] && (
+                    <div className="rounded-[24px] p-7 flex-1" style={{ background: MINT }}>
+                      <h3 className="text-[clamp(18px,1.6vw,24px)] font-extrabold uppercase leading-tight text-[#0B0D0E]">{T(cells[1].title)}</h3>
+                      <p className="mt-3 text-[14px] leading-relaxed text-[#2A4A42]">{T(cells[1].text)}</p>
+                    </div>
+                  )}
+                  {cells[3] && (
+                    <div className="rounded-[24px] p-7 flex-1" style={{ background: INK }}>
+                      <h3 className="text-[clamp(18px,1.6vw,24px)] font-extrabold uppercase leading-tight text-white">{T(cells[3].title)}</h3>
+                      <p className="mt-3 text-[14px] leading-relaxed text-zinc-400">{T(cells[3].text)}</p>
+                    </div>
+                  )}
+                </div>
+                <ResultPhotoCard cell={cells[2]} T={T} className="md:col-span-4" tall />
+                <ResultPhotoCard cell={cells[4]} T={T} className="md:col-span-6" />
+                <ResultPhotoCard cell={cells[5]} T={T} className="md:col-span-6" />
               </div>
-              <div className="rounded-[24px] p-7 flex-1" style={{ background: INK }}>
-                <h3 className="text-[clamp(18px,1.6vw,24px)] font-extrabold uppercase leading-tight text-white">{T(c.results.cells[3].title)}</h3>
-                <p className="mt-3 text-[14px] leading-relaxed text-zinc-400">{T(c.results.cells[3].text)}</p>
-              </div>
-            </div>
-            {/* tall photo right */}
-            <ResultPhotoCard cell={c.results.cells[2]} T={T} className="md:col-span-4" tall />
-            {/* two wide */}
-            <ResultPhotoCard cell={c.results.cells[4]} T={T} className="md:col-span-6" />
-            <ResultPhotoCard cell={c.results.cells[5]} T={T} className="md:col-span-6" />
-          </div>
+            )
+          })()}
         </div>
       </section>
 
       {/* ═══ 06 Что внутри ═══ */}
       <section style={{ background: PINK_SECTION }}>
         <div className="max-w-[1370px] mx-auto px-5 py-[clamp(56px,7vw,110px)]">
-          <H>{T(c.inside.heading)}</H>
+          <Heading>{T(c.inside.heading)}</Heading>
           <div className="grid md:grid-cols-12 gap-6 mt-[clamp(28px,4vw,64px)]">
             {/* Платформа */}
             <div className="md:col-span-7 rounded-[28px] p-9 flex flex-col lg:flex-row gap-8" style={{ background: CARD_DARK }}>
@@ -399,12 +409,13 @@ export function CourseLanding({ course, content, ru, onBuy, buying }: Props) {
       {/* ═══ 08 Программа курса ═══ */}
       <section style={{ background: INK }}>
         <div className="max-w-[1370px] mx-auto px-5 py-[clamp(64px,8vw,150px)]">
-          <H light>{T(c.program.heading)}</H>
+          <Heading light>{T(c.program.heading)}</Heading>
           <div className="space-y-8 mt-[clamp(28px,4vw,64px)]">
             {modules.map((m, mi) => {
               const lessons = m.course_lessons || []
               const half = Math.ceil(Math.min(lessons.length, 8) / 2)
-              const bullets = c.program.results[mi] || []
+              // Сначала по id модуля (стабильно при перестановках), затем по позиции
+              const bullets = c.program.resultsByModule?.[m.id] || c.program.results[mi] || []
               return (
                 <div key={m.id} className="bg-white rounded-[28px] p-7 md:p-10">
                   <div className="flex flex-wrap items-start gap-4 md:gap-6">
@@ -466,7 +477,7 @@ export function CourseLanding({ course, content, ru, onBuy, buying }: Props) {
             </div>
             <div className="lg:col-span-7">
               <p className="text-[13px] font-extrabold uppercase tracking-[0.2em]" style={{ color: '#0E9B82' }}>{T(c.expert.kicker)}</p>
-              <H className="mt-4">{T(c.expert.title)}</H>
+              <Heading className="mt-4">{T(c.expert.title)}</Heading>
               <p className="mt-6 max-w-[650px] text-[clamp(15px,1.4vw,19px)] leading-relaxed text-zinc-600">{T(c.expert.text)}</p>
               <div className="grid sm:grid-cols-2 gap-5 mt-9">
                 {c.expert.facts.map((f, i) => (
@@ -485,8 +496,8 @@ export function CourseLanding({ course, content, ru, onBuy, buying }: Props) {
       <section style={{ background: INK }}>
         <div className="max-w-[1370px] mx-auto px-5 py-[clamp(56px,7vw,120px)]">
           <div className="flex flex-col md:flex-row md:items-start gap-4 md:gap-10">
-            <H light className="shrink-0">{T(c.bonus.label)}</H>
-            <H light>{T(c.bonus.heading)}</H>
+            <Heading light className="shrink-0">{T(c.bonus.label)}</Heading>
+            <Heading light>{T(c.bonus.heading)}</Heading>
           </div>
           <p className="mt-7 max-w-[900px] text-[15px] leading-relaxed text-zinc-400">{T(c.bonus.text)}</p>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mt-[clamp(28px,4vw,60px)]">
@@ -506,7 +517,7 @@ export function CourseLanding({ course, content, ru, onBuy, buying }: Props) {
         <div className="max-w-[1370px] mx-auto px-5 pb-[clamp(64px,8vw,130px)] pt-2">
           <div className="grid lg:grid-cols-12 gap-12 items-start">
             <div className="lg:col-span-6">
-              <H light>{T(c.pricing.heading)}</H>
+              <Heading light>{T(c.pricing.heading)}</Heading>
               <div className="grid sm:grid-cols-2 gap-x-8 gap-y-6 mt-10">
                 {c.pricing.bullets.map((b, i) => (
                   <div key={i} className="flex items-center gap-3.5 text-[15px] text-zinc-200">
@@ -526,7 +537,7 @@ export function CourseLanding({ course, content, ru, onBuy, buying }: Props) {
                   <p className="mt-6 text-[13px] leading-relaxed text-zinc-500 max-w-[350px] mx-auto">{T(c.pricing.note)}</p>
                   <button
                     onClick={onBuy}
-                    disabled={buying}
+                    disabled={buying || authBusy}
                     className="mt-8 w-full h-[70px] rounded-2xl font-extrabold uppercase tracking-[0.14em] text-[15px] text-white transition-transform hover:scale-[1.01] active:scale-[0.99] disabled:opacity-60 flex items-center justify-center gap-2"
                     style={{ background: ACCENT_PINK }}
                   >
@@ -546,7 +557,7 @@ export function CourseLanding({ course, content, ru, onBuy, buying }: Props) {
         <div className="max-w-[1370px] mx-auto px-5 py-[clamp(56px,7vw,120px)]">
           <div className="grid lg:grid-cols-12 gap-12">
             <div className="lg:col-span-5">
-              <H>{T(c.faq.heading)}</H>
+              <Heading>{T(c.faq.heading)}</Heading>
             </div>
             <div className="lg:col-span-7">
               {c.faq.items.map((item, i) => (
@@ -590,11 +601,12 @@ export function CourseLanding({ course, content, ru, onBuy, buying }: Props) {
 
 /* ─── Result bento photo card ─── */
 function ResultPhotoCard({ cell, T, className = '', tall = false }: {
-  cell: { title: L; text: L; photo?: string }
+  cell?: { title: L; text: L; photo?: string }
   T: (t: L | undefined) => string
   className?: string
   tall?: boolean
 }) {
+  if (!cell) return null
   return (
     <div className={`rounded-[24px] overflow-hidden flex flex-col ${className}`} style={{ background: '#14110D' }}>
       <Photo src={cell.photo} className={`w-full ${tall ? 'h-[300px] md:h-[380px]' : 'h-[165px]'}`} />
