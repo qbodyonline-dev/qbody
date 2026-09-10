@@ -11,6 +11,8 @@ import { LanguageSwitcher } from '@/components/ui/language-switcher'
 import { ArrowLeft, Play, Clock, BookOpen, CheckCircle2, Shield, Award, Heart, Baby, Star, User, Loader2, Video, FileText, ListChecks, Menu, X, LayoutDashboard } from 'lucide-react'
 import { toast } from 'sonner'
 import { useScrollReveal, useSmoothAnchor, useLazyImages } from '@/components/ui/scroll-reveal'
+import { CourseLanding } from '@/components/course-landing'
+import { defaultLandingContent, mergeLandingContent } from '@/components/course-landing/content'
 
 const iconMap: Record<string, any> = {
   'breast-augmentation-recovery': { icon: Heart, color: 'from-pink-500 to-rose-500' },
@@ -161,6 +163,22 @@ export default function CoursePage() {
     } finally {
       setIsCheckoutLoading(false)
     }
+  }
+
+  // ─── Landing template (клиентский лендинг из Figma-макета) ───
+  // Включается флагом в site_settings (course_landing:{slug}); классическая
+  // страница остаётся дефолтом для остальных курсов.
+  if (course.landing?.enabled) {
+    const content = mergeLandingContent(defaultLandingContent(), course.landing.data || {})
+    return (
+      <CourseLanding
+        course={course}
+        content={content}
+        ru={ru}
+        onBuy={handleBuy}
+        buying={isCheckoutLoading}
+      />
+    )
   }
 
   return (

@@ -106,10 +106,24 @@ export async function GET(
     const totalMinutes = data.course_modules?.reduce((sum: number, m: any) =>
       sum + (m.course_lessons?.reduce((s: number, l: any) => s + l.duration_minutes, 0) || 0), 0) || 0
 
+    // Landing template config (dashboard-editable). site_settings is readable
+    // with the anon key for every key except 'stripe'.
+    let landing: { enabled: boolean; data: any } | null = null
+    const { data: landingRow } = await supabase
+      .from('site_settings')
+      .select('value')
+      .eq('key', `course_landing:${slug}`)
+      .maybeSingle()
+    const landingValue = landingRow?.value as any
+    if (landingValue?.enabled) {
+      landing = { enabled: true, data: landingValue.data || {} }
+    }
+
     return NextResponse.json({
       ...data,
       lessons_count: totalLessons,
       total_hours: Math.round(totalMinutes / 60 * 10) / 10,
+      landing,
     })
   } catch (err: any) {
     console.error('GET /api/public/courses/[slug] error:', err)
