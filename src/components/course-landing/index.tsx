@@ -442,12 +442,12 @@ export function CourseLanding({ course, landingData, ru, onBuy, buying, authBusy
                         </div>
                       ))}
                     </div>
-                    {bullets.length > 0 && (
+                    {bullets.some(b => T(b).trim()) && (
                       <div className="lg:col-span-5">
                         <div className="rounded-[20px] p-7" style={{ background: MINT }}>
                           <p className="text-[14px] font-extrabold uppercase tracking-[0.1em] text-[#0B0D0E]">{T(c.program.resultLabel)}</p>
                           <ul className="mt-4 space-y-2.5">
-                            {bullets.map((b, bi) => (
+                            {bullets.filter(b => T(b).trim()).map((b, bi) => (
                               <li key={bi} className="flex gap-2.5 text-[14px] font-bold leading-snug text-[#0B0D0E]">
                                 <span className="mt-[7px] w-1.5 h-1.5 rounded-full bg-[#0B0D0E] shrink-0" />
                                 {T(b)}

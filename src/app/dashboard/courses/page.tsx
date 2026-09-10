@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge'
 import { Modal } from '@/components/ui/modal'
 import { Input } from '@/components/ui/input'
 import { useTranslation } from '@/lib/i18n'
-import { Plus, Edit, Eye, EyeOff, BookOpen, DollarSign, Clock, Trash2, Loader2, Layers, FileText, Globe, Lock, Users } from 'lucide-react'
+import { Plus, Edit, Eye, EyeOff, BookOpen, DollarSign, Clock, Trash2, Loader2, Layers, FileText, Globe, Lock, Users, LayoutTemplate } from 'lucide-react'
 import { toast } from 'sonner'
 import { fetchWithAuth } from '@/lib/api'
 import { useLanguageConfig } from '@/lib/useLanguageConfig'
@@ -395,6 +395,11 @@ export default function CoursesAdminPage() {
                       <Button variant="outline" size="sm" onClick={() => setAccessCourse(course)}>
                         <Users className="w-4 h-4 mr-1" />{ru ? 'Доступ' : 'Access'}
                       </Button>
+                      <Link href={`/dashboard/courses/${course.id}/landing`}>
+                        <Button variant="outline" size="sm">
+                          <LayoutTemplate className="w-4 h-4 mr-1" />{ru ? 'Лендинг' : 'Landing'}
+                        </Button>
+                      </Link>
                       <Link href={`/courses/${course.slug}`} target="_blank">
                         <Button variant="ghost" size="sm"><Eye className="w-4 h-4 mr-1" />{ru ? 'Просмотр' : 'View'}</Button>
                       </Link>
