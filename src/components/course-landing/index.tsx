@@ -1,7 +1,7 @@
 'use client'
-import React, { useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
-import { Loader2 } from 'lucide-react'
+import { Loader2, Menu, X } from 'lucide-react'
 import { LanguageSwitcher } from '@/components/ui/language-switcher'
 import { getVideoEmbed } from '@/lib/video-embed'
 import { defaultLandingContent, mergeLandingContent } from './content'
@@ -142,6 +142,27 @@ export function CourseLanding({ course, landingData, ru, onBuy, buying, authBusy
   }
   const scrollToPricing = () => scrollToId('landing-pricing')
 
+  /* ─── мобильное меню ─── */
+  const [menuOpen, setMenuOpen] = useState(false)
+  const navItems = [
+    ['landing-video', ru ? 'О курсе' : 'About'],
+    ['landing-forwho', ru ? 'Для кого' : 'For whom'],
+    ['landing-program', ru ? 'Программа' : 'Program'],
+    ['landing-expert', ru ? 'Эксперт' : 'Expert'],
+    ['landing-faq', 'FAQ'],
+  ] as const
+  // Закрыть меню, затем скроллить: пока оверлей открыт, body заблокирован
+  const goTo = (id: string) => {
+    setMenuOpen(false)
+    setTimeout(() => scrollToId(id), 60)
+  }
+  useEffect(() => {
+    if (!menuOpen) return
+    const prev = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => { document.body.style.overflow = prev }
+  }, [menuOpen])
+
   return (
     <div className="font-sans" style={{ background: PAPER }}>
       {/* ═══ Header ═══ */}
@@ -155,13 +176,7 @@ export function CourseLanding({ course, landingData, ru, onBuy, buying, authBusy
           </Link>
           {/* Якорная навигация по секциям — desktop */}
           <nav className="hidden lg:flex items-center gap-7">
-            {([
-              ['landing-video', ru ? 'О курсе' : 'About'],
-              ['landing-forwho', ru ? 'Для кого' : 'For whom'],
-              ['landing-program', ru ? 'Программа' : 'Program'],
-              ['landing-expert', ru ? 'Эксперт' : 'Expert'],
-              ['landing-faq', 'FAQ'],
-            ] as const).map(([id, label]) => (
+            {navItems.map(([id, label]) => (
               <button
                 key={id}
                 onClick={() => scrollToId(id)}
@@ -172,7 +187,8 @@ export function CourseLanding({ course, landingData, ru, onBuy, buying, authBusy
             ))}
           </nav>
           <div className="flex items-center gap-2 md:gap-4 shrink-0">
-            <LanguageSwitcher />
+            {/* На телефоне переключатель языка живёт в мобильном меню */}
+            <div className="hidden md:block"><LanguageSwitcher /></div>
             <Link
               href={account ? account.href : '/auth/login'}
               className="hidden sm:inline-block text-[13px] font-extrabold uppercase tracking-[0.08em] transition-colors hover:text-[#0B0D0E]"
@@ -187,9 +203,59 @@ export function CourseLanding({ course, landingData, ru, onBuy, buying, authBusy
             >
               {T(c.pricing.cta)}
             </button>
+            <button
+              onClick={() => setMenuOpen(true)}
+              className="lg:hidden p-2 -mr-1 text-[#0B0D0E]"
+              aria-label={ru ? 'Открыть меню' : 'Open menu'}
+            >
+              <Menu className="w-6 h-6" />
+            </button>
           </div>
         </div>
       </header>
+
+      {/* ═══ Mobile menu ═══ */}
+      {menuOpen && (
+        <div className="fixed inset-0 z-[60] lg:hidden flex flex-col" style={{ background: PAPER }}>
+          <div className="px-4 h-[64px] shrink-0 flex items-center justify-between border-b border-zinc-200">
+            <span className="flex items-center gap-3">
+              <span className="w-9 h-9 rounded-xl flex items-center justify-center font-extrabold text-[#0B0D0E]" style={{ background: MINT_BTN }}>Q</span>
+              <span className="text-xl font-bold text-[#0B0D0E]">Qbody</span>
+            </span>
+            <button onClick={() => setMenuOpen(false)} className="p-2 -mr-2 text-[#0B0D0E]" aria-label={ru ? 'Закрыть меню' : 'Close menu'}>
+              <X className="w-7 h-7" />
+            </button>
+          </div>
+          <nav className="flex-1 overflow-y-auto px-6 py-6 flex flex-col">
+            {navItems.map(([id, label]) => (
+              <button
+                key={id}
+                onClick={() => goTo(id)}
+                className="text-left py-4 text-[22px] font-extrabold uppercase tracking-[-0.01em] text-[#0B0D0E] border-b border-zinc-200/70"
+              >
+                {label}
+              </button>
+            ))}
+            <Link
+              href={account ? account.href : '/auth/login'}
+              className="py-4 text-[22px] font-extrabold uppercase tracking-[-0.01em] border-b border-zinc-200/70"
+              style={{ color: '#0E7C68' }}
+            >
+              {account ? account.label : (ru ? 'Войти' : 'Sign in')}
+            </Link>
+            <div className="mt-7 md:hidden"><LanguageSwitcher /></div>
+          </nav>
+          <div className="p-5 shrink-0 border-t border-zinc-200">
+            <button
+              onClick={() => goTo('landing-pricing')}
+              className="w-full h-[64px] rounded-2xl font-extrabold uppercase tracking-[0.12em] text-[15px] text-[#0B0D0E] active:scale-[0.99] transition-transform"
+              style={{ background: MINT_BTN }}
+            >
+              {T(c.pricing.cta)}
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* ═══ 01 Hero ═══ */}
       <section className="relative overflow-hidden" style={{ background: INK }}>
