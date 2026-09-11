@@ -137,28 +137,56 @@ export function CourseLanding({ course, landingData, ru, onBuy, buying, authBusy
   const price = `$${Number.isInteger(priceValue) ? priceValue : priceValue.toFixed(2)}`
   const planName = ru ? (course.title_secondary || course.title) : course.title
 
-  const scrollToPricing = () => {
-    document.getElementById('landing-pricing')?.scrollIntoView({ behavior: 'smooth' })
+  const scrollToId = (id: string) => {
+    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' })
   }
+  const scrollToPricing = () => scrollToId('landing-pricing')
 
   return (
     <div className="font-sans" style={{ background: PAPER }}>
       {/* ═══ Header ═══ */}
-      <header className="bg-white">
-        <div className="max-w-[1370px] mx-auto px-5 h-[72px] md:h-[92px] flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-3">
+      {/* Липкий: CTA «Получить доступ» остаётся на экране на всём скролле лендинга */}
+      <header className="sticky top-0 z-50 bg-white/95 backdrop-blur border-b border-zinc-100">
+        <div className="max-w-[1370px] mx-auto px-4 md:px-5 h-[64px] md:h-[80px] flex items-center justify-between gap-3 md:gap-4">
+          <Link href="/" className="flex items-center gap-3 shrink-0">
             <span className="w-9 h-9 rounded-xl flex items-center justify-center font-extrabold text-[#0B0D0E]" style={{ background: MINT_BTN }}>Q</span>
-            <span className="text-xl font-bold text-[#0B0D0E]">Qbody</span>
+            {/* На узких экранах место отдаём переключателю языка и CTA */}
+            <span className="hidden sm:inline text-xl font-bold text-[#0B0D0E]">Qbody</span>
           </Link>
-          <div className="flex items-center gap-3">
+          {/* Якорная навигация по секциям — desktop */}
+          <nav className="hidden lg:flex items-center gap-7">
+            {([
+              ['landing-video', ru ? 'О курсе' : 'About'],
+              ['landing-forwho', ru ? 'Для кого' : 'For whom'],
+              ['landing-program', ru ? 'Программа' : 'Program'],
+              ['landing-expert', ru ? 'Эксперт' : 'Expert'],
+              ['landing-faq', 'FAQ'],
+            ] as const).map(([id, label]) => (
+              <button
+                key={id}
+                onClick={() => scrollToId(id)}
+                className="text-[13px] font-bold uppercase tracking-[0.08em] text-zinc-500 hover:text-[#0B0D0E] transition-colors"
+              >
+                {label}
+              </button>
+            ))}
+          </nav>
+          <div className="flex items-center gap-2 md:gap-4 shrink-0">
             <LanguageSwitcher />
             <Link
               href={account ? account.href : '/auth/login'}
-              className="px-5 py-2.5 rounded-xl border text-[13px] font-extrabold uppercase tracking-[0.08em] transition-colors hover:bg-[#F0FBF7]"
-              style={{ borderColor: MINT_BTN, color: '#0E7C68' }}
+              className="hidden sm:inline-block text-[13px] font-extrabold uppercase tracking-[0.08em] transition-colors hover:text-[#0B0D0E]"
+              style={{ color: '#0E7C68' }}
             >
               {account ? account.label : (ru ? 'Войти' : 'Sign in')}
             </Link>
+            <button
+              onClick={scrollToPricing}
+              className="px-3.5 md:px-5 py-2.5 rounded-xl text-[11px] md:text-[12px] font-extrabold uppercase tracking-[0.06em] md:tracking-[0.1em] whitespace-nowrap text-[#0B0D0E] transition-transform hover:scale-[1.03] active:scale-[0.99]"
+              style={{ background: MINT_BTN }}
+            >
+              {T(c.pricing.cta)}
+            </button>
           </div>
         </div>
       </header>
@@ -177,7 +205,7 @@ export function CourseLanding({ course, landingData, ru, onBuy, buying, authBusy
           </>
         )}
         <div className="relative max-w-[1370px] mx-auto px-5 py-[clamp(80px,12vw,205px)]">
-          <h1 className="font-extrabold uppercase text-white leading-[1.0] tracking-[-0.02em] text-[clamp(38px,5.6vw,76px)]">
+          <h1 className="font-extrabold uppercase text-white leading-[1.0] tracking-[-0.02em] text-[clamp(32px,5.6vw,76px)]">
             {T(c.hero.titleTop) ? <>{T(c.hero.titleTop)}<br /></> : null}
             <span style={{ color: MINT_BTN }}>{T(c.hero.accent)}</span> {T(c.hero.titleRest)}
           </h1>
@@ -196,7 +224,7 @@ export function CourseLanding({ course, landingData, ru, onBuy, buying, authBusy
       </section>
 
       {/* ═══ 02 Video ═══ */}
-      <section style={{ background: PAPER }}>
+      <section id="landing-video" className="scroll-mt-[88px]" style={{ background: PAPER }}>
         <div className="max-w-[1370px] mx-auto px-5 py-[clamp(56px,7vw,120px)]">
           <Heading>{T(c.video.heading)}</Heading>
           <div className="relative mt-[clamp(28px,4vw,64px)] h-[clamp(240px,32vw,515px)]">
@@ -221,7 +249,7 @@ export function CourseLanding({ course, landingData, ru, onBuy, buying, authBusy
       </section>
 
       {/* ═══ 03 Для кого ═══ */}
-      <section style={{ background: PINK_SECTION }}>
+      <section id="landing-forwho" className="scroll-mt-[88px]" style={{ background: PINK_SECTION }}>
         <div className="max-w-[1370px] mx-auto px-5 py-[clamp(56px,7vw,110px)]">
           <Heading>{T(c.forWho.heading)}</Heading>
           <div className="grid md:grid-cols-2 gap-6 mt-[clamp(28px,4vw,64px)]">
@@ -408,7 +436,7 @@ export function CourseLanding({ course, landingData, ru, onBuy, buying, authBusy
       </section>
 
       {/* ═══ 08 Программа курса ═══ */}
-      <section style={{ background: INK }}>
+      <section id="landing-program" className="scroll-mt-[88px]" style={{ background: INK }}>
         <div className="max-w-[1370px] mx-auto px-5 py-[clamp(64px,8vw,150px)]">
           <Heading light>{T(c.program.heading)}</Heading>
           <div className="space-y-8 mt-[clamp(28px,4vw,64px)]">
@@ -466,7 +494,7 @@ export function CourseLanding({ course, landingData, ru, onBuy, buying, authBusy
       </section>
 
       {/* ═══ 09 Эксперт ═══ */}
-      <section style={{ background: PAPER }}>
+      <section id="landing-expert" className="scroll-mt-[88px]" style={{ background: PAPER }}>
         <div className="max-w-[1370px] mx-auto px-5 py-[clamp(56px,7vw,115px)]">
           <div className="grid lg:grid-cols-12 gap-10 items-start">
             <div className="lg:col-span-5 relative rounded-[32px] overflow-hidden h-[420px] md:h-[600px] lg:h-[730px]">
@@ -513,7 +541,7 @@ export function CourseLanding({ course, landingData, ru, onBuy, buying, authBusy
       </section>
 
       {/* ═══ 11 Тариф ═══ */}
-      <section id="landing-pricing" style={{ background: INK }}>
+      <section id="landing-pricing" className="scroll-mt-[88px]" style={{ background: INK }}>
         <div className="max-w-[1370px] mx-auto px-5 pb-[clamp(64px,8vw,130px)] pt-2">
           <div className="grid lg:grid-cols-12 gap-12 items-start">
             <div className="lg:col-span-6">
@@ -553,7 +581,7 @@ export function CourseLanding({ course, landingData, ru, onBuy, buying, authBusy
       </section>
 
       {/* ═══ 12 FAQ ═══ */}
-      <section style={{ background: MINT }}>
+      <section id="landing-faq" className="scroll-mt-[88px]" style={{ background: MINT }}>
         <div className="max-w-[1370px] mx-auto px-5 py-[clamp(56px,7vw,120px)]">
           <div className="grid lg:grid-cols-12 gap-12">
             <div className="lg:col-span-5">
