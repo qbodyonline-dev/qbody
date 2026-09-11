@@ -89,7 +89,12 @@ export async function getSiteSettings(): Promise<SiteSettings> {
       },
     })
 
-    const { data, error } = await supabase.from('site_settings').select('key,value')
+    // Только пять ключей, которые реально потребляются ниже: остальные строки
+    // (course_landing_* и т.п.) могут весить сотни КБ и не нужны в SSR-метаданных
+    const { data, error } = await supabase
+      .from('site_settings')
+      .select('key,value')
+      .in('key', ['general', 'branding', 'social', 'seo', 'app'])
     if (error || !data) {
       cache = { value: EMPTY, expires: Date.now() + 5_000 }
       return EMPTY

@@ -1,5 +1,5 @@
 'use client'
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
 import { Card, CardContent } from '@/components/ui/card'
@@ -30,7 +30,10 @@ function getAt(obj: any, path: Path): any {
 function setAt(obj: any, path: Path, value: any): any {
   if (path.length === 0) return value
   const [head, ...rest] = path
-  const copy: any = Array.isArray(obj) ? [...obj] : { ...(obj || {}) }
+  // числовой ключ при отсутствующем контейнере = индекс массива, а не {"0": …}
+  const copy: any = Array.isArray(obj)
+    ? [...obj]
+    : (obj == null && typeof head === 'number' ? [] : { ...(obj || {}) })
   copy[head as any] = setAt(copy[head as any], rest, value)
   return copy
 }
@@ -207,7 +210,13 @@ export default function CourseLandingEditorPage() {
   const [activeSection, setActiveSection] = useState('hero')
   const [showPreview, setShowPreview] = useState(false)
   const [previewRu, setPreviewRu] = useState(true)
-  const [uploadingPath, setUploadingPath] = useState<string | null>(null)
+  const [uploadingPaths, setUploadingPaths] = useState<Set<string>>(new Set())
+  // Отображаемое значение «сколько модулей», пока поле в фокусе (иначе пустой ввод скачет к 5)
+  const [maxModulesText, setMaxModulesText] = useState<string | null>(null)
+  // Счётчик правок: сохранение сбрасывает dirty, только если за время запроса ничего не менялось
+  const editSeq = useRef(0)
+  // updated_at конфига на момент загрузки — сервер отклонит сохранение поверх правки из другой вкладки
+  const baseUpdatedAt = useRef<string | null>(null)
 
   const sections = useMemo(() => buildSections(), [])
 
@@ -219,6 +228,7 @@ export default function CourseLandingEditorPage() {
         const j = await res.json()
         setCourse(j.course)
         setEnabled(j.enabled)
+        baseUpdatedAt.current = j.updatedAt ?? null
         setDraft(mergeLandingContent(defaultLandingContent(), j.data || {}))
       } catch {
         toast.error(ru ? 'Не удалось загрузить лендинг' : 'Failed to load the landing')
@@ -239,25 +249,53 @@ export default function CourseLandingEditorPage() {
     return () => window.removeEventListener('beforeunload', handler)
   }, [dirty])
 
+  // beforeunload не ловит клиентскую навигацию Next (сайдбар, «Курсы», ссылки превью) —
+  // перехватываем клики по внутренним ссылкам на фазе capture
+  useEffect(() => {
+    if (!dirty) return
+    const onClick = (e: MouseEvent) => {
+      const a = (e.target as HTMLElement)?.closest?.('a[href]') as HTMLAnchorElement | null
+      if (!a || a.target === '_blank') return
+      const href = a.getAttribute('href') || ''
+      if (!href.startsWith('/')) return
+      if (!confirm(ru ? 'Есть несохранённые изменения. Уйти без сохранения?' : 'You have unsaved changes. Leave without saving?')) {
+        e.preventDefault()
+        e.stopPropagation()
+      }
+    }
+    document.addEventListener('click', onClick, true)
+    return () => document.removeEventListener('click', onClick, true)
+  }, [dirty, ru])
+
   const setField = (path: Path, value: any) => {
+    editSeq.current++
     setDraft(prev => (prev ? setAt(prev, path, value) : prev))
     setDirty(true)
   }
 
   const save = async (nextEnabled = enabled) => {
     if (!draft) return
+    const seqAtSend = editSeq.current
     setSaving(true)
     try {
       const res = await fetchWithAuth(`/api/courses/${courseId}/landing`, {
         method: 'PUT',
-        body: JSON.stringify({ enabled: nextEnabled, data: draft }),
+        body: JSON.stringify({ enabled: nextEnabled, data: draft, baseUpdatedAt: baseUpdatedAt.current }),
       })
+      if (res.status === 409) {
+        throw new Error(ru
+          ? 'Лендинг изменён в другой вкладке или сессии. Обнови страницу, чтобы не затереть те правки.'
+          : 'The landing was changed in another tab or session. Reload the page to avoid overwriting those edits.')
+      }
       if (!res.ok) {
         const err = await res.json().catch(() => ({}))
         throw new Error(err.error || (ru ? 'Ошибка сохранения' : 'Save failed'))
       }
+      const j = await res.json().catch(() => ({} as any))
+      if (j.updatedAt) baseUpdatedAt.current = j.updatedAt
       setEnabled(nextEnabled)
-      setDirty(false)
+      // Правки, внесённые пока летел запрос, на сервер не попали — dirty не сбрасываем
+      if (editSeq.current === seqAtSend) setDirty(false)
       toast.success(ru ? 'Лендинг сохранён' : 'Landing saved')
     } catch (err: any) {
       toast.error(err.message)
@@ -267,13 +305,14 @@ export default function CourseLandingEditorPage() {
   }
 
   const uploadPhoto = async (path: Path) => {
+    const key = path.join('.')
     const input = document.createElement('input')
     input.type = 'file'
     input.accept = 'image/*'
     input.onchange = async (e) => {
       const file = (e.target as HTMLInputElement).files?.[0]
       if (!file) return
-      setUploadingPath(path.join('.'))
+      setUploadingPaths(prev => new Set(prev).add(key))
       try {
         const fd = new FormData()
         fd.append('file', file)
@@ -282,23 +321,24 @@ export default function CourseLandingEditorPage() {
         if (!res.ok) throw new Error('Upload failed')
         const { url } = await res.json()
         setField(path, url)
-        toast.success(ru ? 'Фото загружено' : 'Photo uploaded')
+        toast.success(ru ? 'Фото загружено — не забудь сохранить' : 'Photo uploaded — remember to save')
       } catch {
         toast.error(ru ? 'Ошибка загрузки' : 'Upload failed')
       } finally {
-        setUploadingPath(null)
+        setUploadingPaths(prev => { const next = new Set(prev); next.delete(key); return next })
       }
     }
     input.click()
   }
 
   /* ─── module results (по id модуля) ─── */
+  const maxModules = draft?.program.maxModules ?? 5
   const modules: any[] = useMemo(() => {
-    if (!course || !draft) return []
+    if (!course) return []
     return (course.course_modules || [])
       .filter((m: any) => (m.course_lessons || []).length > 0)
-      .slice(0, draft.program.maxModules ?? 5)
-  }, [course, draft])
+      .slice(0, maxModules)
+  }, [course, maxModules])
 
   const moduleBullets = (moduleId: string, index: number): L[] => {
     if (!draft) return []
@@ -306,26 +346,49 @@ export default function CourseLandingEditorPage() {
   }
 
   const setModuleBullets = (moduleId: string, lang: 'ru' | 'en', text: string, index: number) => {
-    if (!draft) return
-    const current = moduleBullets(moduleId, index)
-    const lines = text.split('\n')
-    const next: L[] = lines.map((line, i) => ({
-      ru: lang === 'ru' ? line : (current[i]?.ru ?? ''),
-      en: lang === 'en' ? line : (current[i]?.en ?? ''),
-    }))
-    setField(['program', 'resultsByModule'], { ...(draft.program.resultsByModule || {}), [moduleId]: next })
+    editSeq.current++
+    // Всё считаем от prev внутри апдейтера — снапшот из замыкания может отстать
+    setDraft(prev => {
+      if (!prev) return prev
+      const current: L[] = prev.program.resultsByModule?.[moduleId] || prev.program.results[index] || []
+      const lines = text.split('\n')
+      const other: 'ru' | 'en' = lang === 'ru' ? 'en' : 'ru'
+      // Пары строятся по номеру строки, но длина редактируемой textarea не может
+      // обрезать другой язык: EN-перевод одной строкой не должен стирать RU-пункты.
+      const next: L[] = []
+      for (let i = 0; i < Math.max(lines.length, current.length); i++) {
+        const otherVal = current[i]?.[other] ?? ''
+        if (i >= lines.length) {
+          if (otherVal.trim()) next.push({ ru: other === 'ru' ? otherVal : '', en: other === 'en' ? otherVal : '' })
+          continue
+        }
+        next.push({ ru: lang === 'ru' ? lines[i] : otherVal, en: lang === 'en' ? lines[i] : otherVal })
+      }
+      return setAt(prev, ['program', 'resultsByModule'], { ...(prev.program.resultsByModule || {}), [moduleId]: next })
+    })
+    setDirty(true)
   }
 
   /* ─── faq ─── */
   const faqItems = draft?.faq.items || []
-  const addFaq = () => setField(['faq', 'items'], [...faqItems, { q: { en: '', ru: '' }, a: { en: '', ru: '' } }])
-  const removeFaq = (i: number) => setField(['faq', 'items'], faqItems.filter((_, idx) => idx !== i))
+  const mutateFaq = (fn: (items: typeof faqItems) => typeof faqItems) => {
+    editSeq.current++
+    setDraft(prev => (prev ? setAt(prev, ['faq', 'items'], fn(prev.faq.items || [])) : prev))
+    setDirty(true)
+  }
+  const addFaq = () => mutateFaq(items => [...items, { q: { en: '', ru: '' }, a: { en: '', ru: '' } }])
+  const removeFaq = (i: number) => mutateFaq(items => items.filter((_, idx) => idx !== i))
 
   if (loading) {
     return <div className="flex items-center justify-center min-h-[60vh]"><Loader2 className="w-8 h-8 animate-spin text-teal-500" /></div>
   }
   if (!course || !draft) {
-    return <div className="text-center py-16 text-zinc-500">{ru ? 'Курс не найден' : 'Course not found'}</div>
+    return (
+      <div className="text-center py-16 text-zinc-500 space-y-3">
+        <p>{ru ? 'Не удалось загрузить лендинг: курс не найден или истекла сессия.' : 'Failed to load the landing: course not found or the session expired.'}</p>
+        <Link href="/dashboard/courses" className="inline-block text-teal-600 underline">{ru ? 'К списку курсов' : 'Back to courses'}</Link>
+      </div>
+    )
   }
 
   const active = sections.find(s => s.id === activeSection)
@@ -358,9 +421,15 @@ export default function CourseLandingEditorPage() {
           {enabled ? <Globe className="w-4 h-4" /> : <Lock className="w-4 h-4" />}
           {enabled ? (ru ? 'Лендинг включён' : 'Landing on') : (ru ? 'Лендинг выключен' : 'Landing off')}
         </button>
-        <a href={`/courses/${course.slug}`} target="_blank" rel="noreferrer">
-          <Button variant="outline" size="sm"><ExternalLink className="w-4 h-4 mr-1" />{ru ? 'Открыть' : 'Open'}</Button>
-        </a>
+        {course.is_published ? (
+          <a href={`/courses/${course.slug}`} target="_blank" rel="noreferrer">
+            <Button variant="outline" size="sm"><ExternalLink className="w-4 h-4 mr-1" />{ru ? 'Открыть' : 'Open'}</Button>
+          </a>
+        ) : (
+          <Button variant="outline" size="sm" disabled title={ru ? 'Курс не опубликован — публичной страницы ещё нет, пользуйся превью' : 'Course not published yet — use the preview'}>
+            <ExternalLink className="w-4 h-4 mr-1" />{ru ? 'Открыть' : 'Open'}
+          </Button>
+        )}
         <Button variant="outline" size="sm" onClick={() => setShowPreview(v => !v)}>
           <Eye className="w-4 h-4 mr-1" />{ru ? 'Превью' : 'Preview'}
         </Button>
@@ -431,8 +500,8 @@ export default function CourseLandingEditorPage() {
                             <div className="relative group shrink-0">
                               <img src={value} alt="" className="w-20 h-20 rounded-xl object-cover border border-zinc-200 dark:border-zinc-700" />
                               <button
-                                onClick={() => setField(f.path, undefined)}
-                                className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-red-500 text-white flex items-center justify-center opacity-0 group-hover:opacity-100"
+                                onClick={() => setField(f.path, '')}
+                                className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-red-500 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 focus-visible:opacity-100 [@media(pointer:coarse)]:opacity-100"
                               >
                                 <X className="w-3 h-3" />
                               </button>
@@ -441,9 +510,11 @@ export default function CourseLandingEditorPage() {
                             <div className="w-20 h-20 rounded-xl bg-zinc-100 dark:bg-zinc-800 border border-dashed border-zinc-300 dark:border-zinc-600 shrink-0" />
                           )}
                           <div className="flex-1 space-y-2 min-w-0">
-                            <Input value={value || ''} onChange={e => setField(f.path, e.target.value || undefined)} placeholder="https://…" className="text-xs h-8" />
-                            <Button variant="outline" size="sm" onClick={() => uploadPhoto(f.path)} disabled={uploadingPath === key} className="text-xs">
-                              {uploadingPath === key ? <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> : <Upload className="w-3.5 h-3.5 mr-1.5" />}
+                            {/* Пустая строка, а не undefined: JSON её сохраняет, и merge
+                                не подставит дефолт обратно, если он появится у поля */}
+                            <Input value={value || ''} onChange={e => setField(f.path, e.target.value)} placeholder="https://…" className="text-xs h-8" />
+                            <Button variant="outline" size="sm" onClick={() => uploadPhoto(f.path)} disabled={uploadingPaths.has(key)} className="text-xs">
+                              {uploadingPaths.has(key) ? <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> : <Upload className="w-3.5 h-3.5 mr-1.5" />}
                               {ru ? 'Загрузить' : 'Upload'}
                             </Button>
                           </div>
@@ -457,7 +528,7 @@ export default function CourseLandingEditorPage() {
                     return (
                       <div key={f.path.join('.')}>
                         <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">{f.label}</label>
-                        <Input value={value || ''} onChange={e => setField(f.path, e.target.value || undefined)} placeholder={f.placeholder} className="text-sm h-9" />
+                        <Input value={value || ''} onChange={e => setField(f.path, e.target.value)} placeholder={f.placeholder} className="text-sm h-9" />
                       </div>
                     )
                   }
@@ -512,12 +583,29 @@ export default function CourseLandingEditorPage() {
                     ? 'Названия модулей и уроки берутся из курса автоматически. Здесь — только текст «РЕЗУЛЬТАТ:» каждого модуля, по строке на пункт. Привязано к модулю, перестановка модулей ничего не сломает.'
                     : 'Module titles and lessons come from the course automatically. Here you edit only each module’s RESULT bullets, one per line. Bound to the module id, so reordering is safe.'}
                 </p>
+                {([['heading', ru ? 'Заголовок секции' : 'Section heading'], ['resultLabel', ru ? 'Метка «РЕЗУЛЬТАТ:»' : '"RESULT:" label']] as const).map(([k, label]) => (
+                  <div key={k}>
+                    <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">{label}</label>
+                    <div className="grid sm:grid-cols-2 gap-2">
+                      {(['ru', 'en'] as const).map(lang => (
+                        <Input key={lang} value={draft.program[k]?.[lang] || ''} onChange={e => setField(['program', k, lang], e.target.value)} placeholder={lang.toUpperCase()} className="text-sm h-9" />
+                      ))}
+                    </div>
+                  </div>
+                ))}
                 <div>
                   <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">{ru ? 'Сколько модулей показывать' : 'Modules to show'}</label>
                   <Input
                     type="number" min={1} max={12}
-                    value={draft.program.maxModules ?? 5}
-                    onChange={e => setField(['program', 'maxModules'], Math.max(1, +e.target.value || 5))}
+                    value={maxModulesText ?? String(draft.program.maxModules ?? 5)}
+                    onChange={e => {
+                      // Пока поле редактируется, показываем сырой ввод: моментальный
+                      // кламп на onChange превращал «стереть 5, набрать 1» в 51 → 12
+                      setMaxModulesText(e.target.value)
+                      const n = parseInt(e.target.value, 10)
+                      if (!Number.isNaN(n)) setField(['program', 'maxModules'], Math.min(12, Math.max(1, n)))
+                    }}
+                    onBlur={() => setMaxModulesText(null)}
                     className="text-sm h-9 w-28"
                   />
                   <p className="text-[11px] text-zinc-400 mt-1">{ru ? 'Служебные модули в конце (Bonus, References) отрезаются этим лимитом.' : 'Trailing service modules (Bonus, References) are cut by this limit.'}</p>
@@ -534,7 +622,7 @@ export default function CourseLandingEditorPage() {
                         <div>
                           <p className="text-[11px] text-zinc-400 mb-1">RU — {ru ? 'по строке на пункт' : 'one bullet per line'}</p>
                           <textarea
-                            value={bullets.map(b => b.ru).join('\n')}
+                            value={bullets.map(b => b?.ru ?? '').join('\n')}
                             onChange={e => setModuleBullets(m.id, 'ru', e.target.value, index)}
                             className="w-full h-24 p-2.5 text-sm rounded-lg border border-zinc-200 dark:border-zinc-700 dark:bg-zinc-800 resize-none focus:outline-none focus:ring-2 focus:ring-teal-500"
                           />
@@ -542,7 +630,7 @@ export default function CourseLandingEditorPage() {
                         <div>
                           <p className="text-[11px] text-zinc-400 mb-1">EN</p>
                           <textarea
-                            value={bullets.map(b => b.en).join('\n')}
+                            value={bullets.map(b => b?.en ?? '').join('\n')}
                             onChange={e => setModuleBullets(m.id, 'en', e.target.value, index)}
                             className="w-full h-24 p-2.5 text-sm rounded-lg border border-zinc-200 dark:border-zinc-700 dark:bg-zinc-800 resize-none focus:outline-none focus:ring-2 focus:ring-teal-500"
                           />
@@ -577,12 +665,12 @@ export default function CourseLandingEditorPage() {
                     </div>
                     <div className="grid sm:grid-cols-2 gap-2">
                       {(['ru', 'en'] as const).map(lang => (
-                        <Input key={lang} value={item.q[lang] || ''} onChange={e => setField(['faq', 'items', i, 'q', lang], e.target.value)} placeholder={`${ru ? 'Вопрос' : 'Question'} ${lang.toUpperCase()}`} className="text-sm h-9" />
+                        <Input key={lang} value={item.q?.[lang] || ''} onChange={e => setField(['faq', 'items', i, 'q', lang], e.target.value)} placeholder={`${ru ? 'Вопрос' : 'Question'} ${lang.toUpperCase()}`} className="text-sm h-9" />
                       ))}
                     </div>
                     <div className="grid sm:grid-cols-2 gap-2">
                       {(['ru', 'en'] as const).map(lang => (
-                        <textarea key={lang} value={item.a[lang] || ''} onChange={e => setField(['faq', 'items', i, 'a', lang], e.target.value)} placeholder={`${ru ? 'Ответ' : 'Answer'} ${lang.toUpperCase()}`} className="w-full h-16 p-2.5 text-sm rounded-lg border border-zinc-200 dark:border-zinc-700 dark:bg-zinc-800 resize-none focus:outline-none focus:ring-2 focus:ring-teal-500" />
+                        <textarea key={lang} value={item.a?.[lang] || ''} onChange={e => setField(['faq', 'items', i, 'a', lang], e.target.value)} placeholder={`${ru ? 'Ответ' : 'Answer'} ${lang.toUpperCase()}`} className="w-full h-16 p-2.5 text-sm rounded-lg border border-zinc-200 dark:border-zinc-700 dark:bg-zinc-800 resize-none focus:outline-none focus:ring-2 focus:ring-teal-500" />
                       ))}
                     </div>
                   </div>

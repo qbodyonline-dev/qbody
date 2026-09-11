@@ -283,8 +283,10 @@ export function mergeLandingContent(defaults: any, override: any): any {
   if (Array.isArray(defaults)) {
     // Arrays replace wholesale — partial array patches are ambiguous.
     // A non-array override (a string, an object) is malformed data: keep defaults
-    // rather than handing the renderer a shape it cannot walk.
-    return Array.isArray(override) ? override : defaults
+    // rather than handing the renderer a shape it cannot walk. Null/hole elements
+    // (sparse arrays JSON-serialize holes to null) would crash renderer predicates,
+    // so they are dropped here — the single choke point both consumers pass through.
+    return Array.isArray(override) ? override.filter((v: any) => v != null) : defaults
   }
   if (isPlainObject(defaults)) {
     if (!isPlainObject(override)) return defaults

@@ -120,7 +120,7 @@ export default function CoursePage() {
   }
 
   // ─── Landing template (клиентский лендинг из Figma-макета) ───
-  // Включается флагом в site_settings (course_landing:{slug}); классическая
+  // Включается флагом в site_settings (course_landing_{course.id}); классическая
   // страница остаётся дефолтом для остальных курсов.
   if (course.landing?.enabled) {
     return (

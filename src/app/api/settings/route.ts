@@ -24,9 +24,12 @@ export async function GET() {
   try {
     const supabase = getPublicSupabase()
     
+    // course_landing_* — конфиги лендингов курсов (включая невыключенные черновики):
+    // наружу их отдаёт только /api/public/courses/[slug] и только при enabled
     const { data, error } = await supabase
       .from('site_settings')
       .select('*')
+      .not('key', 'like', 'course_landing_%')
 
     if (error) {
       console.error('GET settings error:', error)
@@ -62,6 +65,11 @@ export async function POST(request: Request) {
     const cleanKey = sanitizeString(key || '', 100).replace(/[^a-zA-Z0-9_.-]/g, '')
     if (!cleanKey) {
       return NextResponse.json({ error: 'Valid key is required' }, { status: 400 })
+    }
+    // Конфиги лендингов пишет только /api/courses/[id]/landing — там валидация
+    // формы и защита от конкурентной записи, этот обход их не имеет
+    if (cleanKey.startsWith('course_landing_')) {
+      return NextResponse.json({ error: 'Use /api/courses/[id]/landing for landing configs' }, { status: 400 })
     }
 
     const { data, error } = await supabase
@@ -104,7 +112,7 @@ export async function PUT(request: Request) {
 
     for (const [rawKey, value] of Object.entries(settings)) {
       const key = sanitizeString(String(rawKey || ''), 100).replace(/[^a-zA-Z0-9_.-]/g, '')
-      if (!key) {
+      if (!key || key.startsWith('course_landing_')) {
         errors.push({ key: rawKey })
         continue
       }
@@ -153,7 +161,7 @@ export async function PATCH(request: Request) {
 
     for (const [rawKey, value] of Object.entries(body)) {
       const key = sanitizeString(String(rawKey || ''), 100).replace(/[^a-zA-Z0-9_.-]/g, '')
-      if (!key) {
+      if (!key || key.startsWith('course_landing_')) {
         errors.push({ key: rawKey })
         continue
       }

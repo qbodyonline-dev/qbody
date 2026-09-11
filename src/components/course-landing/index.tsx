@@ -60,7 +60,9 @@ interface Props {
 function useT(ru: boolean) {
   return (t: L | undefined): string => {
     if (!t) return ''
-    return ru ? (t.ru || t.en) : (t.en || t.ru)
+    // || '' — на случай мусора вместо {en,ru} в сохранённых данных:
+    // вернуть undefined нельзя, на результате зовут .trim()
+    return ru ? (t.ru || t.en || '') : (t.en || t.ru || '')
   }
 }
 
@@ -176,8 +178,7 @@ export function CourseLanding({ course, landingData, ru, onBuy, buying, authBusy
         )}
         <div className="relative max-w-[1370px] mx-auto px-5 py-[clamp(80px,12vw,205px)]">
           <h1 className="font-extrabold uppercase text-white leading-[1.0] tracking-[-0.02em] text-[clamp(38px,5.6vw,76px)]">
-            {T(c.hero.titleTop)}
-            <br />
+            {T(c.hero.titleTop) ? <>{T(c.hero.titleTop)}<br /></> : null}
             <span style={{ color: MINT_BTN }}>{T(c.hero.accent)}</span> {T(c.hero.titleRest)}
           </h1>
           <p className="mt-7 max-w-[620px] text-[clamp(16px,1.6vw,22px)] leading-relaxed text-zinc-300">
@@ -258,7 +259,7 @@ export function CourseLanding({ course, landingData, ru, onBuy, buying, authBusy
         <div className="max-w-[1370px] mx-auto px-5 py-[clamp(56px,7vw,110px)]">
           <Heading>{T(c.cases.heading)}</Heading>
           <div className="grid md:grid-cols-3 gap-6 mt-[clamp(28px,4vw,64px)]">
-            {c.cases.items.map((item, i) => (
+            {c.cases.items.filter(item => item.media || T(item.name).trim() || T(item.before).trim() || T(item.after).trim()).map((item, i) => (
               <div key={i} className="bg-white rounded-[24px] overflow-hidden">
                 <div className="relative h-[215px]">
                   {item.media ? (
@@ -378,7 +379,7 @@ export function CourseLanding({ course, landingData, ru, onBuy, buying, authBusy
               <div className="p-8 flex-1">
                 <h3 className="text-[clamp(18px,1.7vw,26px)] font-extrabold uppercase leading-tight text-white">{T(c.inside.plansTitle)}</h3>
                 <ul className="mt-6 space-y-4">
-                  {c.inside.plansItems.map((item, i) => (
+                  {c.inside.plansItems.filter(item => T(item).trim()).map((item, i) => (
                     <li key={i} className="flex items-center gap-3 text-[15px] text-zinc-200">
                       <MintCheck />
                       {T(item)}
@@ -395,7 +396,7 @@ export function CourseLanding({ course, landingData, ru, onBuy, buying, authBusy
       <section style={{ background: PAPER }}>
         <div className="max-w-[1370px] mx-auto px-5 py-[clamp(40px,5vw,80px)]">
           <div className="grid grid-cols-2 md:grid-cols-4">
-            {c.stats.map((s, i) => (
+            {c.stats.filter(s => (s.value || '').trim() || T(s.label).trim()).map((s, i) => (
               <div key={i} className={`px-6 py-5 ${i > 0 ? 'md:border-l md:border-zinc-300' : ''}`}>
                 <p className="text-[clamp(38px,4vw,60px)] font-extrabold leading-none text-[#0B0D0E]">{s.value}</p>
                 <p className="mt-3 text-[16px] font-extrabold uppercase tracking-[0.06em] text-[#0B0D0E]">{T(s.label)}</p>
@@ -413,7 +414,6 @@ export function CourseLanding({ course, landingData, ru, onBuy, buying, authBusy
           <div className="space-y-8 mt-[clamp(28px,4vw,64px)]">
             {modules.map((m, mi) => {
               const lessons = m.course_lessons || []
-              const half = Math.ceil(Math.min(lessons.length, 8) / 2)
               // Сначала по id модуля (стабильно при перестановках), затем по позиции
               const bullets = c.program.resultsByModule?.[m.id] || c.program.results[mi] || []
               return (
@@ -480,7 +480,7 @@ export function CourseLanding({ course, landingData, ru, onBuy, buying, authBusy
               <Heading className="mt-4">{T(c.expert.title)}</Heading>
               <p className="mt-6 max-w-[650px] text-[clamp(15px,1.4vw,19px)] leading-relaxed text-zinc-600">{T(c.expert.text)}</p>
               <div className="grid sm:grid-cols-2 gap-5 mt-9">
-                {c.expert.facts.map((f, i) => (
+                {c.expert.facts.filter(f => T(f.title).trim() || T(f.sub).trim()).map((f, i) => (
                   <div key={i} className="bg-white rounded-2xl border border-zinc-200 p-5">
                     <p className="text-[14px] font-extrabold uppercase leading-snug text-[#0B0D0E]">{T(f.title)}</p>
                     {T(f.sub) && <p className="mt-1 text-[13px] text-zinc-500">{T(f.sub)}</p>}
@@ -501,7 +501,7 @@ export function CourseLanding({ course, landingData, ru, onBuy, buying, authBusy
           </div>
           <p className="mt-7 max-w-[900px] text-[15px] leading-relaxed text-zinc-400">{T(c.bonus.text)}</p>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mt-[clamp(28px,4vw,60px)]">
-            {c.bonus.cards.map((card, i) => (
+            {c.bonus.cards.filter(card => card.photo || T(card.title).trim() || T(card.text).trim()).map((card, i) => (
               <div key={i}>
                 <Photo src={card.photo} dark className="w-full h-[300px] md:h-[380px] rounded-[20px]" />
                 <p className="mt-5 text-[17px] font-extrabold uppercase text-white">{T(card.title)}</p>
@@ -519,7 +519,7 @@ export function CourseLanding({ course, landingData, ru, onBuy, buying, authBusy
             <div className="lg:col-span-6">
               <Heading light>{T(c.pricing.heading)}</Heading>
               <div className="grid sm:grid-cols-2 gap-x-8 gap-y-6 mt-10">
-                {c.pricing.bullets.map((b, i) => (
+                {c.pricing.bullets.filter(b => T(b).trim()).map((b, i) => (
                   <div key={i} className="flex items-center gap-3.5 text-[15px] text-zinc-200">
                     <MintCheck />
                     {T(b)}
@@ -560,7 +560,7 @@ export function CourseLanding({ course, landingData, ru, onBuy, buying, authBusy
               <Heading>{T(c.faq.heading)}</Heading>
             </div>
             <div className="lg:col-span-7">
-              {c.faq.items.map((item, i) => (
+              {c.faq.items.filter(item => T(item.q).trim()).map((item, i) => (
                 <div key={i} className="border-b" style={{ borderColor: 'rgba(11,13,14,0.15)' }}>
                   <button
                     onClick={() => setOpenFaq(openFaq === i ? null : i)}

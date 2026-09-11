@@ -61,7 +61,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
 
     const { data: row } = await supabase
       .from('site_settings')
-      .select('value')
+      .select('value, updated_at')
       .eq('key', KEY(course.id))
       .maybeSingle()
 
@@ -70,6 +70,9 @@ export async function GET(request: Request, { params }: { params: { id: string }
     return NextResponse.json({
       enabled: !!value.enabled,
       data: value.data || {},
+      // Редактор возвращает это в PUT как baseUpdatedAt — защита от затирания
+      // правок, сохранённых из другой вкладки/сессии
+      updatedAt: (row as any)?.updated_at ?? null,
       course: { ...course, course_modules: modules },
     })
   } catch (err: any) {
@@ -108,23 +111,42 @@ export async function PUT(request: Request, { params }: { params: { id: string }
     if (data !== undefined && data !== null && (typeof data !== 'object' || Array.isArray(data))) {
       return NextResponse.json({ error: 'data must be an object' }, { status: 400 })
     }
-    if (data && JSON.stringify(data).length > MAX_DATA_BYTES) {
+    if (data && Buffer.byteLength(JSON.stringify(data), 'utf8') > MAX_DATA_BYTES) {
       return NextResponse.json({ error: 'Landing data is too large' }, { status: 400 })
     }
 
-    const { error } = await supabase
+    const { data: existing } = await supabase
+      .from('site_settings')
+      .select('value, updated_at')
+      .eq('key', KEY(course.id))
+      .maybeSingle()
+
+    // Оптимистичная блокировка: редактор присылает updated_at, с которым он
+    // загрузился; расхождение = конфиг уже сохранили из другой вкладки/сессии
+    if (body.baseUpdatedAt !== undefined && ((existing as any)?.updated_at ?? null) !== body.baseUpdatedAt) {
+      return NextResponse.json({ error: 'Landing was modified elsewhere', conflict: true }, { status: 409 })
+    }
+
+    // data не прислали — переключаем только флаг, контент не трогаем
+    const nextData = data === undefined || data === null
+      ? (((existing?.value as any) || {}).data || {})
+      : data
+
+    const { data: saved, error } = await supabase
       .from('site_settings')
       .upsert(
-        { key: KEY(course.id), value: { enabled, data: data || {} }, updated_at: new Date().toISOString() },
+        { key: KEY(course.id), value: { enabled, data: nextData }, updated_at: new Date().toISOString() },
         { onConflict: 'key' }
       )
+      .select('updated_at')
+      .single()
 
     if (error) {
       console.error('Save landing config error:', error)
       return NextResponse.json({ error: 'Failed to save landing config' }, { status: 500 })
     }
 
-    return NextResponse.json({ success: true, enabled })
+    return NextResponse.json({ success: true, enabled, updatedAt: (saved as any)?.updated_at ?? null })
   } catch (err: any) {
     console.error('PUT /api/courses/[id]/landing error:', err)
     return NextResponse.json({ error: 'Failed to save landing config' }, { status: 500 })
