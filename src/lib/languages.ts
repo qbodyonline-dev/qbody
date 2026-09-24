@@ -15,7 +15,7 @@ export interface LanguageOption {
 }
 
 export const SUPPORTED_LANGUAGES: LanguageOption[] = [
-  { code: 'en', name: 'English',    nativeName: 'English',    flag: '🇬🇧' },
+  { code: 'en', name: 'English',    nativeName: 'English',    flag: '🇺🇸' },
   { code: 'ru', name: 'Russian',    nativeName: 'Русский',    flag: '🇷🇺' },
   { code: 'fr', name: 'French',     nativeName: 'Français',   flag: '🇫🇷' },
   { code: 'de', name: 'German',     nativeName: 'Deutsch',    flag: '🇩🇪' },
