@@ -513,7 +513,7 @@ export function CourseLanding({ course, landingData, ru, onBuy, buying, authBusy
               return (
                 <div key={m.id} className="bg-white rounded-[28px] p-7 md:p-10">
                   <div className="flex flex-wrap items-start gap-4 md:gap-6">
-                    <span className="text-[clamp(28px,2.6vw,40px)] font-extrabold leading-none" style={{ color: ACCENT_PINK }}>
+                    <span className="shrink-0 whitespace-nowrap text-[clamp(28px,2.6vw,40px)] font-extrabold leading-none" style={{ color: ACCENT_PINK }}>
                       {String(mi + 1).padStart(2, '0')}.
                     </span>
                     <h3 className="flex-1 min-w-[200px] text-[clamp(18px,1.9vw,28px)] font-extrabold uppercase leading-tight text-[#0B0D0E] pt-1">
@@ -527,7 +527,8 @@ export function CourseLanding({ course, landingData, ru, onBuy, buying, authBusy
                     <div className="lg:col-span-7 grid sm:grid-cols-2 gap-x-10 gap-y-5">
                       {lessons.map((lesson, li) => (
                         <div key={lesson.id} className="flex gap-3">
-                          <span className="text-[13px] font-extrabold pt-0.5" style={{ color: ACCENT_PINK }}>
+                          {/* shrink-0 + nowrap: номер «03.» не должен ломаться на две строки */}
+                          <span className="shrink-0 whitespace-nowrap text-[13px] font-extrabold pt-0.5" style={{ color: ACCENT_PINK }}>
                             {String(li + 1).padStart(2, '0')}.
                           </span>
                           <p className="text-[13px] leading-relaxed text-zinc-600">
@@ -589,7 +590,8 @@ export function CourseLanding({ course, landingData, ru, onBuy, buying, authBusy
       {/* ═══ 10 Бонус ═══ */}
       <section style={{ background: INK }}>
         <div className="max-w-[1370px] mx-auto px-5 py-[clamp(56px,7vw,120px)]">
-          <div className="flex flex-col md:flex-row md:items-start gap-4 md:gap-10">
+          {/* gap как ширина пробела в этом кегле: «БОНУС:» читается началом фразы */}
+          <div className="flex flex-col md:flex-row md:items-start gap-2 md:gap-4">
             <Heading light className="shrink-0">{T(c.bonus.label)}</Heading>
             <Heading light>{T(c.bonus.heading)}</Heading>
           </div>
@@ -650,7 +652,9 @@ export function CourseLanding({ course, landingData, ru, onBuy, buying, authBusy
       <section id="landing-faq" className="scroll-mt-[88px]" style={{ background: MINT }}>
         <div className="max-w-[1370px] mx-auto px-5 py-[clamp(56px,7vw,120px)]">
           <div className="grid lg:grid-cols-12 gap-12">
-            <div className="lg:col-span-5">
+            {/* Как в макете: на desktop заголовок по вертикальному центру списка,
+                на мобильном — по центру строки */}
+            <div className="lg:col-span-5 text-center lg:text-left lg:self-center">
               <Heading>{T(c.faq.heading)}</Heading>
             </div>
             <div className="lg:col-span-7">
