@@ -158,9 +158,15 @@ export function CourseLanding({ course, landingData, ru, onBuy, buying, authBusy
   }
   useEffect(() => {
     if (!menuOpen) return
-    const prev = document.body.style.overflow
+    // Лочим html, а не только body: скроллер страницы — документ (overflow-x: clip)
+    const prevHtml = document.documentElement.style.overflow
+    const prevBody = document.body.style.overflow
+    document.documentElement.style.overflow = 'hidden'
     document.body.style.overflow = 'hidden'
-    return () => { document.body.style.overflow = prev }
+    return () => {
+      document.documentElement.style.overflow = prevHtml
+      document.body.style.overflow = prevBody
+    }
   }, [menuOpen])
 
   return (
@@ -446,8 +452,9 @@ export function CourseLanding({ course, landingData, ru, onBuy, buying, authBusy
             </div>
             {/* Чек-листы */}
             <div className="md:col-span-5 rounded-[28px] p-9 relative overflow-hidden" style={{ background: MINT }}>
-              <h3 className="text-[clamp(20px,1.9vw,28px)] font-extrabold uppercase leading-tight text-[#0B0D0E] max-w-[60%]">{T(c.inside.checklistsTitle)}</h3>
-              <div className="absolute right-8 bottom-8 w-[160px] rounded-xl bg-white shadow-lg p-5" aria-hidden>
+              <h3 className="text-[clamp(20px,1.9vw,28px)] font-extrabold uppercase leading-tight text-[#0B0D0E] md:max-w-[60%]">{T(c.inside.checklistsTitle)}</h3>
+              {/* На мобильном карточка в потоке под заголовком (absolute налезала на текст) */}
+              <div className="mt-6 md:mt-0 md:absolute md:right-8 md:bottom-8 w-[160px] rounded-xl bg-white shadow-lg p-5" aria-hidden>
                 <p className="text-[15px] font-extrabold uppercase leading-tight text-[#0B0D0E]">Check<br />list</p>
                 <div className="mt-4 space-y-2">
                   {[0, 1, 2, 3].map(k => (
@@ -528,10 +535,10 @@ export function CourseLanding({ course, landingData, ru, onBuy, buying, authBusy
                       {lessons.map((lesson, li) => (
                         <div key={lesson.id} className="flex gap-3">
                           {/* shrink-0 + nowrap: номер «03.» не должен ломаться на две строки */}
-                          <span className="shrink-0 whitespace-nowrap text-[13px] font-extrabold pt-0.5" style={{ color: ACCENT_PINK }}>
+                          <span className="shrink-0 whitespace-nowrap text-[13px] lg:text-[15px] font-extrabold pt-0.5" style={{ color: ACCENT_PINK }}>
                             {String(li + 1).padStart(2, '0')}.
                           </span>
-                          <p className="text-[13px] leading-relaxed text-zinc-600">
+                          <p className="text-[13px] lg:text-[15px] leading-relaxed text-zinc-600">
                             {(ru ? (lesson.title_secondary || lesson.title) : lesson.title).replace(/^Урок \d+\.\s*/i, '').replace(/^Lesson \d+\.\s*/i, '')}
                           </p>
                         </div>
@@ -543,7 +550,7 @@ export function CourseLanding({ course, landingData, ru, onBuy, buying, authBusy
                           <p className="text-[14px] font-extrabold uppercase tracking-[0.1em] text-[#0B0D0E]">{T(c.program.resultLabel)}</p>
                           <ul className="mt-4 space-y-2.5">
                             {bullets.filter(b => T(b).trim()).map((b, bi) => (
-                              <li key={bi} className="flex gap-2.5 text-[14px] font-bold leading-snug text-[#0B0D0E]">
+                              <li key={bi} className="flex gap-2.5 text-[14px] lg:text-[15px] font-bold leading-snug text-[#0B0D0E]">
                                 <span className="mt-[7px] w-1.5 h-1.5 rounded-full bg-[#0B0D0E] shrink-0" />
                                 {T(b)}
                               </li>

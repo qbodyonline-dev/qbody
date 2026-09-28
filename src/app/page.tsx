@@ -93,8 +93,13 @@ function Header({ headerData, lang }: { headerData?: any; lang: 'en' | 'ru' }) {
   }, [])
 
   React.useEffect(() => {
+    // html, а не только body: скроллер страницы — документ (overflow-x: clip)
+    document.documentElement.style.overflow = isMobileMenuOpen ? 'hidden' : 'unset'
     document.body.style.overflow = isMobileMenuOpen ? 'hidden' : 'unset'
-    return () => { document.body.style.overflow = 'unset' }
+    return () => {
+      document.documentElement.style.overflow = 'unset'
+      document.body.style.overflow = 'unset'
+    }
   }, [isMobileMenuOpen])
 
   const d = headerData

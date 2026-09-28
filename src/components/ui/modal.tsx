@@ -33,15 +33,20 @@ export function Modal({ isOpen, onClose, title, description, children, size = 'm
   }, [])
 
   React.useEffect(() => {
+    // Лочим html, а не только body: скроллер страницы — документ
+    // (html { overflow-x: clip }), и body-лок его не останавливает
     if (isOpen) {
+      document.documentElement.style.overflow = 'hidden'
       document.body.style.overflow = 'hidden'
       setTimeout(() => {
         if (contentRef.current) contentRef.current.scrollTop = 0
       }, 10)
     } else {
+      document.documentElement.style.overflow = 'unset'
       document.body.style.overflow = 'unset'
     }
     return () => {
+      document.documentElement.style.overflow = 'unset'
       document.body.style.overflow = 'unset'
     }
   }, [isOpen])
